@@ -1,0 +1,54 @@
+#起動するコンテナ一覧(app,db)
+services:
+  app:
+      image: node:22
+      #./app フォルダのDockerfileからビルド
+      build: 
+        context: ../app
+        dockerfile: Dockerfile
+      container_name: IssueTracker_app
+      depends_on:
+        db:
+        condition: service_started
+      environment:
+        NODE_ENV: production
+        DATABASE_URL: postgresql://postgres:password@db:5432/issue_prod_db
+      #ブラウザでアクセス可能
+      ports:
+        - "3000:3000"
+        #prisma studio
+        - "51212:51212"
+      #サーバー起動
+      #後で戻す
+      command: npm run dev
+      #command: sleep infinity
+      #ターミナル付きで実行
+      tty: true
+  db:
+  #PostgreSQL を使う
+    image: postgres:15
+    #コンテナ名
+    container_name: IssueTracker_db
+    #自動再起動
+    restart: always
+    #環境変数
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: issue_prod_db
+    #ポート公開 PCからDBに接続できるようにする
+    #PC → localhost:5432 → コンテナ
+    ports:
+      - "5433:5432"
+    #データ永続化
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    #DBが使えるかチェック
+    healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U postgres"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
+#名前付きボリューム定義
+volumes:
+  postgres_data:
