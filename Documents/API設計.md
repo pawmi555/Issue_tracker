@@ -579,6 +579,7 @@ where: {
   "title": "ログインできない",
   "description": "500 error",
   "priorityId": 1,
+  "statusId": 1,
   "assigneeId": 2,
   "dueDate": "2026-05-01"
 }

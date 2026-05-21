@@ -5,7 +5,6 @@ import { updateMemberRoleSchema } from "../validators/project.validator.js";
 
 export const createProject = async (req: AuthRequest, res: Response) => {
   const { name, description } = req.body;
-
   const userId = req.user!.id;
 
   const project = await projectService.createProject(name, userId, description);
