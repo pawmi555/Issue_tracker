@@ -1,8 +1,10 @@
 import { Request } from "express";
 
+type UserRole = "ADMIN" | "USER";
+
 export interface JwtUser {
   id: number;
-  role?: string;
+  role: UserRole;
 }
 
 export interface ProjectMemberPayload {

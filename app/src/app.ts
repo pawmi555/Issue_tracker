@@ -8,6 +8,7 @@ import compression from "compression";
 import userRoutes from "./routes/user.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import projectRoutes from "./routes/project.routes.js";
+import issueRoutes from "./routes/issue.routes.js";
 
 import { authMiddleware } from "./middlewares/auth.middleware.js";
 import { notFoundMiddleware } from "./middlewares/notFoundMiddleware.js";
@@ -101,6 +102,14 @@ app.use("/api/v1/auth", authRoutes);
  */
 app.use("/api/v1/users", authMiddleware, userRoutes);
 app.use("/api/v1/projects", authMiddleware, projectRoutes);
+
+/**
+ * ---------------------------------------------------
+ * Issue Routes
+ *
+ * ---------------------------------------------------
+ */
+app.use("/api/v1//projects/:projectId/issues", authMiddleware, issueRoutes);
 
 /**
  * ---------------------------------------------------
