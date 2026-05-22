@@ -109,7 +109,7 @@ app.use("/api/v1/projects", authMiddleware, projectRoutes);
  *
  * ---------------------------------------------------
  */
-app.use("/api/v1//projects/:projectId/issues", authMiddleware, issueRoutes);
+app.use("/api/v1", authMiddleware, issueRoutes);
 
 /**
  * ---------------------------------------------------
