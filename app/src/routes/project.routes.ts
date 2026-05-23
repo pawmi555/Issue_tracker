@@ -14,7 +14,7 @@ const router = Router();
 
 router.post(
   "/",
-  validate(createProjectSchema),
+  validate({ body: createProjectSchema }),
   asyncHandler(controller.createProject),
 );
 router.get("/", asyncHandler(controller.getProjects));
@@ -26,7 +26,7 @@ router.get(
 router.patch(
   "/:id",
   projectRoleMiddleware("MANAGER"),
-  validate(updateProjectSchema),
+  validate({ body: updateProjectSchema }),
   asyncHandler(controller.updateProject),
 );
 router.delete(
@@ -38,7 +38,7 @@ router.delete(
 router.post(
   "/:id/members",
   projectRoleMiddleware("MANAGER"),
-  validate(addMemberSchema),
+  validate({ body: addMemberSchema }),
   asyncHandler(controller.addMember),
 );
 router.get(
@@ -49,7 +49,7 @@ router.get(
 router.patch(
   "/:id/members/:userId",
   projectRoleMiddleware("MANAGER"),
-  validate(updateMemberRoleSchema),
+  validate({ body: updateMemberRoleSchema }),
   asyncHandler(controller.authorityChange),
 );
 router.delete(
