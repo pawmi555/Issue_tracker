@@ -9,7 +9,7 @@ const router = Router();
 
 router.post(
   "/register",
-  validate(authRegisterSchema),
+  validate({ body: authRegisterSchema }),
   asyncHandler(authController.register),
 );
 router.post("/login", asyncHandler(authController.login));
