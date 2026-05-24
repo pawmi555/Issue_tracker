@@ -5,10 +5,12 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import {
   createIssueController,
   getIssuesController,
+  updateIssueController,
 } from "../controllers/issue.controller.js";
 import {
   createIssueSchema,
   getIssuesQuerySchema,
+  updateIssueSchema,
 } from "../validators/issue.validation.js";
 
 const router = Router();
@@ -31,6 +33,13 @@ router.get(
   validate({ query: getIssuesQuerySchema }),
 
   asyncHandler(getIssuesController),
+);
+
+router.patch(
+  "/issues/:id",
+  authMiddleware,
+  validate(updateIssueSchema),
+  asyncHandler(updateIssueController),
 );
 
 export default router;

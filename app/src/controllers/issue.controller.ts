@@ -3,6 +3,7 @@ import { AuthRequest } from "../types/auth-request.js";
 import {
   createIssueService,
   getIssuesService,
+  updateIssueService,
 } from "../services/issue.service.js";
 
 export const createIssueController = async (
@@ -37,5 +38,23 @@ export const getIssuesController = async (req: AuthRequest, res: Response) => {
   res.json({
     success: true,
     ...result,
+  });
+};
+
+export const updateIssueController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  const issueId = Number(req.params.id);
+
+  const issue = await updateIssueService({
+    issueId,
+    userId: req.user!.id,
+    data: req.body,
+  });
+
+  res.json({
+    success: true,
+    data: issue,
   });
 };
