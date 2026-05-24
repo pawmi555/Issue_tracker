@@ -624,7 +624,7 @@ where: {
 
 #### 制約
 
-- assignee or MANAGER
+- assignee or MANAGER以上
 - statusがCLOSEDは更新不可
 - reporterId変更不可
 

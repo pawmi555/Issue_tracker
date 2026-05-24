@@ -37,3 +37,17 @@ export const getIssuesQuerySchema = z.object({
 
   include: z.string().optional(),
 });
+
+export const updateIssueSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+
+  description: z.string().max(5000).nullable().optional(),
+
+  statusId: z.number().int().positive().optional(),
+
+  priorityId: z.number().int().positive().optional(),
+
+  assigneeId: z.number().int().positive().nullable().optional(),
+
+  dueDate: z.coerce.date().nullable().optional(),
+});
