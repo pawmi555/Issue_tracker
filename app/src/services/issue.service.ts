@@ -436,6 +436,10 @@ export const updateIssueService = async ({
         reporter: true,
       },
     });
+    // 差分なしなら更新しない
+    if (histories.length === 0) {
+      throw new AppError("NO_CHANGES_DETECTED");
+    }
     // issueHistory作成
     if (histories.length > 0) {
       await tx.issueHistory.createMany({
