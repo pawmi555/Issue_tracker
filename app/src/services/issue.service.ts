@@ -289,7 +289,7 @@ export const updateIssueService = async ({
 }: UpdateIssueInput) => {
   // Issue取得
   // deletedAt確認
-  const issue = await prisma.issue.findUnique({
+  const issue = await prisma.issue.findFirst({
     where: {
       id: issueId,
       deletedAt: null,
@@ -351,7 +351,7 @@ export const updateIssueService = async ({
     });
 
     if (!status) {
-      throw new AppError("INVALID_STATUS");
+      throw new AppError("invalid status", 400, "INVALID_STATUS");
     }
   }
 
@@ -363,7 +363,7 @@ export const updateIssueService = async ({
     });
 
     if (!priority) {
-      throw new AppError("INVALID_PRIORITY");
+      throw new AppError("invalid priority", 404, "INVALID_PRIORITY");
     }
   }
 
@@ -417,6 +417,10 @@ export const updateIssueService = async ({
       newValue,
     });
   }
+  // 差分なし
+  if (histories.length === 0) {
+    return issue;
+  }
   // transaction開始
   return prisma.$transaction(async (tx) => {
     // issue更新
@@ -436,25 +440,19 @@ export const updateIssueService = async ({
         reporter: true,
       },
     });
-    // 差分なしなら更新しない
-    if (histories.length === 0) {
-      throw new AppError("NO_CHANGES_DETECTED");
-    }
     // issueHistory作成
-    if (histories.length > 0) {
-      await tx.issueHistory.createMany({
-        data: histories.map((history) => ({
-          issueId,
-          userId,
+    await tx.issueHistory.createMany({
+      data: histories.map((history) => ({
+        issueId,
+        userId,
 
-          fieldName: history.fieldName,
+        fieldName: history.fieldName,
 
-          oldValue: history.oldValue,
+        oldValue: history.oldValue,
 
-          newValue: history.newValue,
-        })),
-      });
-    }
+        newValue: history.newValue,
+      })),
+    });
 
     return updatedIssue;
   });
