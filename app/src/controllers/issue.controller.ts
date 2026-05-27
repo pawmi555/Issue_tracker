@@ -4,6 +4,7 @@ import {
   createIssueService,
   getIssuesService,
   updateIssueService,
+  getIssueDetailService,
 } from "../services/issue.service.js";
 
 export const createIssueController = async (
@@ -51,6 +52,26 @@ export const updateIssueController = async (
     issueId,
     userId: req.user!.id,
     data: req.body,
+  });
+
+  res.json({
+    success: true,
+    data: issue,
+  });
+};
+
+export const getIssueDetailController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  const issue = await getIssueDetailService({
+    issueId: Number(req.params.id),
+
+    userId: req.user!.id,
+
+    include: req.query.include as string,
+
+    includeDeleted: req.query.includeDeleted === "true",
   });
 
   res.json({

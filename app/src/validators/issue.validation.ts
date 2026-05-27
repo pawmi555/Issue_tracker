@@ -51,3 +51,13 @@ export const updateIssueSchema = z.object({
 
   dueDate: z.coerce.date().nullable().optional(),
 });
+
+export const issueIdSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
+export const getIssueQuerySchema = z.object({
+  include: z.string().optional(),
+
+  includeDeleted: z.coerce.boolean().optional().default(false),
+});
