@@ -3,34 +3,55 @@ import { Prisma } from "@prisma/client";
 
 const ISSUE_INCLUDE_FIELDS = ["assignee", "reporter", "comments"] as const;
 
+// Union型生成
+export type IssueIncludeField = (typeof ISSUE_INCLUDE_FIELDS)[number];
+
+// 型ガード関数
+export const isIssueIncludeField = (
+  value: string,
+): value is IssueIncludeField => {
+  return ISSUE_INCLUDE_FIELDS.includes(value as IssueIncludeField);
+};
+
 // Prisma Include生成
-export const buildIssueInclude = (includes: string[]): Prisma.IssueInclude => {
+export const buildIssueInclude = (
+  includes: IssueIncludeField[],
+): Prisma.IssueInclude => {
   const include: Prisma.IssueInclude = {};
 
   if (includes.includes("assignee")) {
-    include.assignee = true;
+    include.assignee = {
+      select: {
+        id: true,
+        name: true,
+      },
+    };
   }
 
   if (includes.includes("reporter")) {
-    include.reporter = true;
+    include.reporter = {
+      select: {
+        id: true,
+        name: true,
+      },
+    };
   }
 
   if (includes.includes("comments")) {
-    include.comments = true;
+    include.comments = {
+      where: {
+        deletedAt: null,
+      },
+
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+      },
+    };
   }
 
   return include;
-};
-
-export const parseInclude = (include?: string): string[] => {
-  if (!include) {
-    return [];
-  }
-
-  return include
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
 };
 
 export const validateIssueIncludes = (includes: string[]) => {

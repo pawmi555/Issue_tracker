@@ -5,7 +5,10 @@ import { parseInclude } from "../utils/include-parser.js";
 import {
   buildIssueInclude,
   validateIssueIncludes,
+  isIssueIncludeField,
 } from "../utils/issue-include.js";
+
+import { checkProjectRole } from "../utils/role-check.js";
 
 type CreateIssueInput = {
   projectId: number;
@@ -350,7 +353,12 @@ export const updateIssueService = async ({
   const roleName = member.role.name;
 
   const canUpdate =
-    isAssignee || roleName === "MANAGER" || roleName === "OWNER";
+    isAssignee ||
+    checkProjectRole({
+      memberRole: member.role.name,
+
+      allowedRoles: ["OWNER", "MANAGER"],
+    });
 
   if (!canUpdate) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
@@ -516,10 +524,13 @@ export const getIssueDetailService = async ({
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
   // include構築
-  const includes = parseInclude(include);
+  const includes = parseInclude(include as string);
+
   validateIssueIncludes(includes);
 
-  const prismaInclude = buildIssueInclude(includes);
+  const safeIncludes = includes.filter(isIssueIncludeField);
+
+  const prismaInclude = buildIssueInclude(safeIncludes);
 
   // 本取得
   const detailedIssue = await prisma.issue.findFirst({
