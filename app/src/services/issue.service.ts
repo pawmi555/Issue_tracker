@@ -2,7 +2,13 @@ import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 import { parseInclude } from "../utils/include-parser.js";
-import { buildIssueInclude } from "../utils/issue-include.js";
+import {
+  buildIssueInclude,
+  validateIssueIncludes,
+  isIssueIncludeField,
+} from "../utils/issue-include.js";
+
+import { checkProjectRole } from "../utils/role-check.js";
 
 type CreateIssueInput = {
   projectId: number;
@@ -54,6 +60,16 @@ type UpdateIssueInput = {
     assigneeId?: number | null;
     dueDate?: Date | null;
   };
+};
+
+type GetIssueDetailInput = {
+  issueId: number;
+
+  userId: number;
+
+  include?: string;
+
+  includeDeleted?: boolean;
 };
 
 /**
@@ -337,7 +353,12 @@ export const updateIssueService = async ({
   const roleName = member.role.name;
 
   const canUpdate =
-    isAssignee || roleName === "MANAGER" || roleName === "OWNER";
+    isAssignee ||
+    checkProjectRole({
+      memberRole: member.role.name,
+
+      allowedRoles: ["OWNER", "MANAGER"],
+    });
 
   if (!canUpdate) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
@@ -456,4 +477,73 @@ export const updateIssueService = async ({
 
     return updatedIssue;
   });
+};
+
+/**
+ * Issue詳細取得
+ */
+export const getIssueDetailService = async ({
+  issueId,
+  userId,
+  include,
+  includeDeleted,
+}: GetIssueDetailInput) => {
+  // soft delete
+  const where: Prisma.IssueWhereInput = {
+    id: issueId,
+  };
+  if (!includeDeleted) {
+    where.deletedAt = null;
+  }
+
+  // Issue取得
+  const issue = await prisma.issue.findFirst({
+    where,
+
+    include: {
+      project: true,
+    },
+  });
+  if (!issue) {
+    throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
+  }
+  // project削除確認
+  if (issue.project.deletedAt) {
+    throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
+  }
+  // 認可
+  const member = await prisma.projectMember.findUnique({
+    where: {
+      projectId_userId: {
+        projectId: issue.projectId,
+        userId,
+      },
+    },
+  });
+  if (!member) {
+    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+  }
+  // include構築
+  const includes = parseInclude(include as string);
+
+  validateIssueIncludes(includes);
+
+  const safeIncludes = includes.filter(isIssueIncludeField);
+
+  const prismaInclude = buildIssueInclude(safeIncludes);
+
+  // 本取得
+  const detailedIssue = await prisma.issue.findFirst({
+    where,
+
+    include: {
+      ...prismaInclude,
+      status: true,
+      priority: true,
+    },
+  });
+  if (!detailedIssue) {
+    throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
+  }
+  return detailedIssue;
 };
