@@ -72,6 +72,15 @@ type GetIssueDetailInput = {
   includeDeleted?: boolean;
 };
 
+type DeleteIssueInput = {
+  issueId: number;
+  userId: number;
+};
+
+export const ISSUE_HISTORY_FIELDS = {
+  DELETED: "deleted",
+} as const;
+
 /**
  * Issue作成
  */
@@ -546,4 +555,101 @@ export const getIssueDetailService = async ({
     throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
   }
   return detailedIssue;
+};
+
+/**
+ * Issue削除
+ */
+export const deleteIssueService = async ({
+  issueId,
+  userId,
+}: DeleteIssueInput) => {
+  // Issue取得
+  const issue = await prisma.issue.findFirst({
+    where: {
+      id: issueId,
+      deletedAt: null,
+    },
+
+    include: {
+      project: true,
+
+      status: true,
+    },
+  });
+
+  if (!issue) {
+    throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
+  }
+
+  // project削除確認
+  if (issue.project.deletedAt) {
+    throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
+  }
+
+  // CLOSED確認
+  if (issue.status.name === "CLOSED") {
+    throw new AppError("issue closed", 403, "ISSUE_CLOSED");
+  }
+
+  // ProjectMember取得
+  const member = await prisma.projectMember.findUnique({
+    where: {
+      projectId_userId: {
+        projectId: issue.projectId,
+        userId,
+      },
+    },
+
+    include: {
+      role: true,
+    },
+  });
+
+  // 認可
+  if (!member) {
+    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+  }
+
+  const canDelete = checkProjectRole({
+    memberRole: member.role.name,
+
+    allowedRoles: ["OWNER", "MANAGER"],
+  });
+
+  if (!canDelete) {
+    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const now = new Date();
+    // soft delete
+    const deletedIssue = await tx.issue.updateMany({
+      where: {
+        id: issueId,
+        deletedAt: null,
+      },
+
+      data: {
+        deletedAt: now,
+      },
+    });
+
+    // IssueHistory作成
+    await tx.issueHistory.create({
+      data: {
+        issueId,
+        userId,
+
+        fieldName: ISSUE_HISTORY_FIELDS.DELETED,
+
+        oldValue: false,
+
+        newValue: true,
+
+        createdAt: now,
+      },
+    });
+    return deletedIssue;
+  });
 };
