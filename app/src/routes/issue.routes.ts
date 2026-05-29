@@ -7,6 +7,7 @@ import {
   getIssuesController,
   updateIssueController,
   getIssueDetailController,
+  deleteIssueController,
 } from "../controllers/issue.controller.js";
 import {
   createIssueSchema,
@@ -53,6 +54,15 @@ router.get(
     query: getIssueQuerySchema,
   }),
   asyncHandler(getIssueDetailController),
+);
+
+router.delete(
+  "/issues/:id",
+  authMiddleware,
+  validate({
+    params: issueIdSchema,
+  }),
+  asyncHandler(deleteIssueController),
 );
 
 export default router;
