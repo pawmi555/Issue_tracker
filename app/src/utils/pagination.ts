@@ -20,11 +20,8 @@ export const buildPagination = ({
 
   return {
     skip: (safePage - 1) * safeLimit,
-
     take: safeLimit,
-
     page: safePage,
-
     limit: safeLimit,
   };
 };
