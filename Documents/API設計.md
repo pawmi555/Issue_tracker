@@ -657,6 +657,8 @@ where: {
 
 - deletedAt != null
 - project削除済みなら不可
+- 削除済みIssueのみ復元可能
+- CLOSEDは復元不可
 - MANAGER以上
 
 ---

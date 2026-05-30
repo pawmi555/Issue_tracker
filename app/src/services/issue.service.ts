@@ -3,12 +3,18 @@ import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 import { parseInclude } from "../utils/include-parser.js";
 import {
+  IssueIncludeField,
   buildIssueInclude,
   validateIssueIncludes,
   isIssueIncludeField,
+  ISSUE_INCLUDE_FIELDS,
 } from "../utils/issue-include.js";
 
-import { checkProjectRole } from "../utils/role-check.js";
+import {
+  checkProjectRole,
+  isProjectRoleName,
+  ISSUE_READ_ROLES,
+} from "../utils/role-check.js";
 
 type CreateIssueInput = {
   projectId: number;
@@ -26,30 +32,23 @@ type CreateIssueInput = {
 
 type GetIssuesInput = {
   projectId: number;
-
   userId: number;
 
   query: {
     page?: number;
     limit?: number;
-
     statusId?: number;
     priorityId?: number;
     assigneeId?: number;
-
     keyword?: string;
-
     sort?: "createdAt" | "dueDate";
-
     order?: "asc" | "desc";
-
     include?: string;
   };
 };
 
 type UpdateIssueInput = {
   issueId: number;
-
   userId: number;
 
   data: {
@@ -64,15 +63,18 @@ type UpdateIssueInput = {
 
 type GetIssueDetailInput = {
   issueId: number;
-
   userId: number;
 
   include?: string;
-
   includeDeleted?: boolean;
 };
 
 type DeleteIssueInput = {
+  issueId: number;
+  userId: number;
+};
+
+type RestoreIssueInput = {
   issueId: number;
   userId: number;
 };
@@ -90,7 +92,7 @@ export const createIssueService = async ({
   data,
 }: CreateIssueInput) => {
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    // project member check
+    // Project参加確認
     const member = await tx.projectMember.findUnique({
       where: {
         projectId_userId: {
@@ -108,12 +110,12 @@ export const createIssueService = async ({
       throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
     }
 
-    // project deleted check
+    // 削除済みProjectは操作不可
     if (member.project.deletedAt) {
       throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
     }
 
-    // assignee member check
+    // Assignee所属確認
     if (data.assigneeId) {
       const assigneeMember = await tx.projectMember.findUnique({
         where: {
@@ -133,7 +135,7 @@ export const createIssueService = async ({
       }
     }
 
-    // priority exists
+    // Priority存在確認
     const priority = await tx.issuePriority.findUnique({
       where: {
         id: data.priorityId,
@@ -144,7 +146,7 @@ export const createIssueService = async ({
       throw new AppError("invalid priority", 404, "INVALID_PRIORITY");
     }
 
-    // status exists
+    // Status存在確認
     const status = await tx.issueStatus.findUnique({
       where: {
         id: data.statusId,
@@ -158,17 +160,12 @@ export const createIssueService = async ({
     const issue = await tx.issue.create({
       data: {
         projectId,
-
         reporterId: userId,
-
         title: data.title,
         description: data.description,
-
         priorityId: data.priorityId,
         statusId: data.statusId,
-
         assigneeId: data.assigneeId,
-
         dueDate: data.dueDate,
       },
 
@@ -187,13 +184,12 @@ export const createIssueService = async ({
 /**
  * Issue一覧取得
  */
-
 export const getIssuesService = async ({
   projectId,
   userId,
   query,
 }: GetIssuesInput) => {
-  // member check
+  // Project参加確認
   const member = await prisma.projectMember.findUnique({
     where: {
       projectId_userId: {
@@ -211,21 +207,35 @@ export const getIssuesService = async ({
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
 
+  // Issue閲覧権限確認
+  const roleName = member.role.name;
+
+  if (!isProjectRoleName(roleName)) {
+    throw new AppError("invalid role", 500, "INVALID_ROLE");
+  }
+
+  if (
+    !checkProjectRole({
+      memberRole: roleName,
+      allowedRoles: ISSUE_READ_ROLES,
+    })
+  ) {
+    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+  }
+
+  // 削除済みProjectは参照不可
   if (member.project.deletedAt) {
     throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
   }
 
-  // pagination
+  // ページネーション設定
   const page = query.page ?? 1;
-
   const limit = query.limit ?? 20;
-
   const skip = (page - 1) * limit;
 
-  // where build
+  // 動的検索条件生成
   const where: Prisma.IssueWhereInput = {
     projectId,
-
     deletedAt: null,
   };
 
@@ -259,31 +269,36 @@ export const getIssuesService = async ({
     ];
   }
 
-  // include build
+  // Include検証・生成
   const includes = parseInclude(query.include);
 
   if (includes.length > 3) {
-    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+    throw new AppError("include limit exceeded", 400, "INCLUDE_LIMIT_EXCEEDED");
   }
 
-  const prismaInclude = buildIssueInclude(includes);
+  const invalidIncludes = includes.filter(
+    (include) => !ISSUE_INCLUDE_FIELDS.includes(include as IssueIncludeField),
+  );
 
-  // order build
+  if (invalidIncludes.length > 0) {
+    throw new AppError("invalid include", 400, "INVALID_INCLUDE");
+  }
+
+  const validIncludes = includes as IssueIncludeField[];
+
+  const prismaInclude = buildIssueInclude(validIncludes);
+
+  // ソート条件生成
   const orderBy = {
     [query.sort ?? "createdAt"]: query.order ?? "desc",
   };
 
-  // prisma query
   const [issues, total] = await prisma.$transaction([
     prisma.issue.findMany({
       where,
-
       include: prismaInclude,
-
       orderBy,
-
       skip,
-
       take: limit,
     }),
 
@@ -292,10 +307,8 @@ export const getIssuesService = async ({
     }),
   ]);
 
-  // return
   return {
     data: issues,
-
     meta: {
       page,
       limit,
@@ -651,5 +664,98 @@ export const deleteIssueService = async ({
       },
     });
     return deletedIssue;
+  });
+};
+
+/**
+ * Issue復元
+ */
+export const restoreIssueService = async ({
+  issueId,
+  userId,
+}: RestoreIssueInput) => {
+  // 対象Issue取得
+  const issue = await prisma.issue.findUnique({
+    where: {
+      id: issueId,
+    },
+    include: {
+      project: true,
+      status: true,
+    },
+  });
+
+  // Issue存在確認
+  if (!issue) {
+    throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
+  }
+
+  // 削除済みIssueのみ復元可能
+  if (!issue.deletedAt) {
+    throw new AppError("issue already restored", 409, "ISSUE_ALREADY_RESTORED");
+  }
+
+  // project削除確認
+  if (issue.project.deletedAt) {
+    throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
+  }
+
+  // CLOSED確認
+  if (issue.status.name === "CLOSED") {
+    throw new AppError("issue closed", 403, "ISSUE_CLOSED");
+  }
+
+  // ProjectMember取得
+  const member = await prisma.projectMember.findUnique({
+    where: {
+      projectId_userId: {
+        projectId: issue.projectId,
+        userId,
+      },
+    },
+
+    include: {
+      role: true,
+    },
+  });
+
+  // 認可
+  if (!member) {
+    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+  }
+
+  const canRestore = checkProjectRole({
+    memberRole: member.role.name,
+
+    allowedRoles: ["OWNER", "MANAGER"],
+  });
+
+  if (!canRestore) {
+    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+  }
+
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // restore実行
+    const restoredIssue = await tx.issue.update({
+      where: {
+        id: issueId,
+      },
+
+      data: {
+        deletedAt: null,
+      },
+    });
+
+    // IssueHistory作成
+    await tx.issueHistory.create({
+      data: {
+        issueId,
+        userId,
+        fieldName: "deleted",
+        oldValue: true,
+        newValue: false,
+      },
+    });
+    return restoredIssue;
   });
 };

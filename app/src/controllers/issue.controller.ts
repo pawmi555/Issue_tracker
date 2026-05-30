@@ -6,6 +6,7 @@ import {
   updateIssueService,
   getIssueDetailService,
   deleteIssueService,
+  restoreIssueService,
 } from "../services/issue.service.js";
 
 export const createIssueController = async (
@@ -86,6 +87,20 @@ export const deleteIssueController = async (
   res: Response,
 ) => {
   await deleteIssueService({
+    issueId: Number(req.params.id),
+    userId: req.user!.id,
+  });
+
+  res.json({
+    success: true,
+  });
+};
+
+export const restoreIssueController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  await restoreIssueService({
     issueId: Number(req.params.id),
     userId: req.user!.id,
   });

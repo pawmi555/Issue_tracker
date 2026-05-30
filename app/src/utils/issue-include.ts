@@ -1,7 +1,11 @@
 import { AppError } from "./app-error.js";
 import { Prisma } from "@prisma/client";
 
-const ISSUE_INCLUDE_FIELDS = ["assignee", "reporter", "comments"] as const;
+export const ISSUE_INCLUDE_FIELDS = [
+  "assignee",
+  "reporter",
+  "comments",
+] as const;
 
 // Union型生成
 export type IssueIncludeField = (typeof ISSUE_INCLUDE_FIELDS)[number];
