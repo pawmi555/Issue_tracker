@@ -16,6 +16,8 @@ import {
   ISSUE_READ_ROLES,
 } from "../utils/role-check.js";
 
+import { buildPagination } from "../utils/pagination.js";
+
 type CreateIssueInput = {
   projectId: number;
   userId: number;
@@ -229,9 +231,10 @@ export const getIssuesService = async ({
   }
 
   // ページネーション設定
-  const page = query.page ?? 1;
-  const limit = query.limit ?? 20;
-  const skip = (page - 1) * limit;
+  const { page, limit, skip, take } = buildPagination({
+    page: query.page,
+    limit: query.limit,
+  });
 
   // 動的検索条件生成
   const where: Prisma.IssueWhereInput = {
@@ -239,15 +242,15 @@ export const getIssuesService = async ({
     deletedAt: null,
   };
 
-  if (query.statusId) {
+  if (query.statusId !== undefined) {
     where.statusId = query.statusId;
   }
 
-  if (query.priorityId) {
+  if (query.priorityId !== undefined) {
     where.priorityId = query.priorityId;
   }
 
-  if (query.assigneeId) {
+  if (query.assigneeId !== undefined) {
     where.assigneeId = query.assigneeId;
   }
 
@@ -325,8 +328,7 @@ export const updateIssueService = async ({
   userId,
   data,
 }: UpdateIssueInput) => {
-  // Issue取得
-  // deletedAt確認
+  // Issue存在確認
   const issue = await prisma.issue.findFirst({
     where: {
       id: issueId,
@@ -343,16 +345,17 @@ export const updateIssueService = async ({
     throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
   }
 
-  // CLOSED確認
+  // CLOSEDのProjectは更新不可
   if (issue.status.name === "CLOSED") {
     throw new AppError("issue closed", 403, "ISSUE_CLOSED");
   }
-  // project削除確認
+
+  // 削除済みProjectは更新不可
   if (issue.project.deletedAt) {
     throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
   }
 
-  // ProjectMember取得
+  // Project参加確認
   const member = await prisma.projectMember.findUnique({
     where: {
       projectId_userId: {
@@ -369,22 +372,21 @@ export const updateIssueService = async ({
   if (!member) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
-  // OWNER/MANAGER/assignee認可
-  const isAssignee = issue.assigneeId === userId;
 
+  // Issue更新権限確認
+  const isAssignee = issue.assigneeId === userId;
   const roleName = member.role.name;
 
-  const canUpdate =
-    isAssignee ||
+  if (
+    !isAssignee ||
     checkProjectRole({
-      memberRole: member.role.name,
-
+      memberRole: roleName,
       allowedRoles: ["OWNER", "MANAGER"],
-    });
-
-  if (!canUpdate) {
+    })
+  ) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
+
   // FK存在確認
   if (data.statusId !== undefined) {
     const status = await prisma.issueStatus.findUnique({
@@ -398,6 +400,7 @@ export const updateIssueService = async ({
     }
   }
 
+  // Priority存在確認
   if (data.priorityId !== undefined) {
     const priority = await prisma.issuePriority.findUnique({
       where: {
@@ -410,6 +413,7 @@ export const updateIssueService = async ({
     }
   }
 
+  // Assignee所属確認
   if (data.assigneeId !== undefined && data.assigneeId !== null) {
     const assignee = await prisma.projectMember.findUnique({
       where: {
@@ -424,6 +428,7 @@ export const updateIssueService = async ({
       throw new AppError("ASSIGNEE_NOT_PROJECT_MEMBER");
     }
   }
+
   // 差分抽出
   const trackedFields = [
     "title",
@@ -447,7 +452,6 @@ export const updateIssueService = async ({
 
     const oldValue = issue[field];
     const newValue = data[field];
-
     const isChanged = JSON.stringify(oldValue) !== JSON.stringify(newValue);
 
     if (!isChanged) {
@@ -460,13 +464,13 @@ export const updateIssueService = async ({
       newValue,
     });
   }
-  // 差分なし
+
+  // 差分なしの場合はissue返却
   if (histories.length === 0) {
     return issue;
   }
-  // transaction開始
-  return prisma.$transaction(async (tx) => {
-    // issue更新
+
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const updatedIssue = await tx.issue.update({
       where: {
         id: issueId,
@@ -483,16 +487,13 @@ export const updateIssueService = async ({
         reporter: true,
       },
     });
-    // issueHistory作成
+
     await tx.issueHistory.createMany({
       data: histories.map((history) => ({
         issueId,
         userId,
-
         fieldName: history.fieldName,
-
         oldValue: history.oldValue,
-
         newValue: history.newValue,
       })),
     });
