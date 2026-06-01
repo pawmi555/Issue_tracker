@@ -345,7 +345,7 @@ export const updateIssueService = async ({
     throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
   }
 
-  // CLOSEDのProjectは更新不可
+  // CLOSEDのIssueは更新不可
   if (issue.status.name === "CLOSED") {
     throw new AppError("issue closed", 403, "ISSUE_CLOSED");
   }
@@ -377,13 +377,14 @@ export const updateIssueService = async ({
   const isAssignee = issue.assigneeId === userId;
   const roleName = member.role.name;
 
-  if (
-    !isAssignee ||
+  const canUpdate =
+    isAssignee ||
     checkProjectRole({
       memberRole: roleName,
       allowedRoles: ["OWNER", "MANAGER"],
-    })
-  ) {
+    });
+
+  if (!canUpdate) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
 
@@ -511,30 +512,37 @@ export const getIssueDetailService = async ({
   include,
   includeDeleted,
 }: GetIssueDetailInput) => {
-  // soft delete
+  // 動的検索条件生成
   const where: Prisma.IssueWhereInput = {
     id: issueId,
   };
+  // includeDeleted=falseの場合は削除済みIssueを除外
   if (!includeDeleted) {
     where.deletedAt = null;
   }
 
-  // Issue取得
+  // Issue存在確認
   const issue = await prisma.issue.findFirst({
     where,
-
     include: {
-      project: true,
+      project: {
+        select: {
+          deletedAt: true,
+        },
+      },
     },
   });
+
   if (!issue) {
     throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
   }
-  // project削除確認
+
+  // 削除済みProjectは参照不可
   if (issue.project.deletedAt) {
     throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
   }
-  // 認可
+
+  // Project参加確認
   const member = await prisma.projectMember.findUnique({
     where: {
       projectId_userId: {
@@ -543,28 +551,29 @@ export const getIssueDetailService = async ({
       },
     },
   });
+
   if (!member) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
-  // include構築
-  const includes = parseInclude(include as string);
+
+  // Include検証・生成
+  const includes = parseInclude(include);
 
   validateIssueIncludes(includes);
 
   const safeIncludes = includes.filter(isIssueIncludeField);
-
   const prismaInclude = buildIssueInclude(safeIncludes);
 
-  // 本取得
+  // Issue詳細取得
   const detailedIssue = await prisma.issue.findFirst({
     where,
-
     include: {
       ...prismaInclude,
       status: true,
       priority: true,
     },
   });
+
   if (!detailedIssue) {
     throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
   }
