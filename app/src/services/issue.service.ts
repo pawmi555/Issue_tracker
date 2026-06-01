@@ -375,12 +375,11 @@ export const updateIssueService = async ({
 
   // Issue更新権限確認
   const isAssignee = issue.assigneeId === userId;
-  const roleName = member.role.name;
 
   const canUpdate =
     isAssignee ||
     checkProjectRole({
-      memberRole: roleName,
+      memberRole: member.role.name,
       allowedRoles: ["OWNER", "MANAGER"],
     });
 
@@ -587,7 +586,7 @@ export const deleteIssueService = async ({
   issueId,
   userId,
 }: DeleteIssueInput) => {
-  // Issue取得
+  // Issue削除可否確認用データ取得
   const issue = await prisma.issue.findFirst({
     where: {
       id: issueId,
@@ -595,9 +594,17 @@ export const deleteIssueService = async ({
     },
 
     include: {
-      project: true,
+      project: {
+        select: {
+          deletedAt: true,
+        },
+      },
 
-      status: true,
+      status: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 
@@ -605,17 +612,17 @@ export const deleteIssueService = async ({
     throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
   }
 
-  // project削除確認
+  // 削除済みProjectは操作不可
   if (issue.project.deletedAt) {
     throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
   }
 
-  // CLOSED確認
+  // CLOSED済みIssueは操作不可
   if (issue.status.name === "CLOSED") {
     throw new AppError("issue closed", 403, "ISSUE_CLOSED");
   }
 
-  // ProjectMember取得
+  // Project参加確認
   const member = await prisma.projectMember.findUnique({
     where: {
       projectId_userId: {
@@ -625,18 +632,21 @@ export const deleteIssueService = async ({
     },
 
     include: {
-      role: true,
+      role: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 
-  // 認可
   if (!member) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
 
+  // Issue削除権限確認
   const canDelete = checkProjectRole({
     memberRole: member.role.name,
-
     allowedRoles: ["OWNER", "MANAGER"],
   });
 
@@ -644,9 +654,10 @@ export const deleteIssueService = async ({
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
 
-  return prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const now = new Date();
-    // soft delete
+
+    // Issueソフトデリート実行
     const deletedIssue = await tx.issue.updateMany({
       where: {
         id: issueId,
@@ -658,22 +669,22 @@ export const deleteIssueService = async ({
       },
     });
 
-    // IssueHistory作成
+    if (deletedIssue.count === 0) {
+      throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
+    }
+
+    // 削除履歴記録
     await tx.issueHistory.create({
       data: {
         issueId,
         userId,
-
         fieldName: ISSUE_HISTORY_FIELDS.DELETED,
-
         oldValue: false,
-
         newValue: true,
-
         createdAt: now,
       },
     });
-    return deletedIssue;
+    return;
   });
 };
 
