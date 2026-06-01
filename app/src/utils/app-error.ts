@@ -1,4 +1,7 @@
-// utils/app-error.ts
+/**
+ * HTTPステータスコードとエラーコードを保持する
+ * アプリケーション専用のエラークラス
+ */
 export class AppError extends Error {
   statusCode: number;
   code: string;

@@ -22,21 +22,15 @@ const router = Router();
 
 router.post(
   "/projects/:projectId/issues",
-
   authMiddleware,
-
   validate({ body: createIssueSchema }),
-
   asyncHandler(createIssueController),
 );
 
 router.get(
   "/projects/:projectId/issues",
-
   authMiddleware,
-
   validate({ query: getIssuesQuerySchema }),
-
   asyncHandler(getIssuesController),
 );
 

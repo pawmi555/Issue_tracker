@@ -32,9 +32,7 @@ export const getIssuesController = async (req: AuthRequest, res: Response) => {
 
   const result = await getIssuesService({
     projectId,
-
     userId: req.user!.id,
-
     query: req.query,
   });
 
@@ -68,11 +66,8 @@ export const getIssueDetailController = async (
 ) => {
   const issue = await getIssueDetailService({
     issueId: Number(req.params.id),
-
     userId: req.user!.id,
-
     include: req.query.include as string,
-
     includeDeleted: req.query.includeDeleted === "true",
   });
 

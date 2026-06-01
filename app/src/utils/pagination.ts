@@ -10,6 +10,12 @@ type PaginationResult = {
   limit: number;
 };
 
+/**
+ * ページネーション情報を生成する
+ *
+ * pageとlimitを正規化し、
+ * Prismaで利用するskipとtakeを算出する。
+ */
 export const buildPagination = ({
   page = 1,
   limit = 20,
