@@ -695,7 +695,7 @@ export const restoreIssueService = async ({
   issueId,
   userId,
 }: RestoreIssueInput) => {
-  // 対象Issue取得
+  // Issue存在確認
   const issue = await prisma.issue.findUnique({
     where: {
       id: issueId,
@@ -706,7 +706,6 @@ export const restoreIssueService = async ({
     },
   });
 
-  // Issue存在確認
   if (!issue) {
     throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
   }
@@ -716,17 +715,17 @@ export const restoreIssueService = async ({
     throw new AppError("issue already restored", 409, "ISSUE_ALREADY_RESTORED");
   }
 
-  // project削除確認
+  // 削除済みProjectは操作不可
   if (issue.project.deletedAt) {
     throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
   }
 
-  // CLOSED確認
+  // CLOSED済みIssueは操作不可
   if (issue.status.name === "CLOSED") {
     throw new AppError("issue closed", 403, "ISSUE_CLOSED");
   }
 
-  // ProjectMember取得
+  // Project参加確認
   const member = await prisma.projectMember.findUnique({
     where: {
       projectId_userId: {
@@ -740,14 +739,13 @@ export const restoreIssueService = async ({
     },
   });
 
-  // 認可
   if (!member) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
 
+  // Issue復元権限確認
   const canRestore = checkProjectRole({
     memberRole: member.role.name,
-
     allowedRoles: ["OWNER", "MANAGER"],
   });
 
@@ -767,12 +765,12 @@ export const restoreIssueService = async ({
       },
     });
 
-    // IssueHistory作成
+    // 復元履歴記録
     await tx.issueHistory.create({
       data: {
         issueId,
         userId,
-        fieldName: "deleted",
+        fieldName: ISSUE_HISTORY_FIELDS.DELETED,
         oldValue: true,
         newValue: false,
       },
