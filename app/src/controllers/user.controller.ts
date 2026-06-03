@@ -1,11 +1,9 @@
 import { Request, Response } from "express";
 import * as userService from "../services/user.service.js";
+import { AuthRequest } from "../types/auth-request.js";
 
-export const getUsers = async (req: Request, res: Response) => {
-  const page = Number(req.query.page || 1);
-  const limit = Number(req.query.limit || 20);
-
-  const users = await userService.getUsers(page, limit);
+export const getUsers = async (req: AuthRequest, res: Response) => {
+  const users = await userService.getUsers(req.query);
 
   res.json({
     success: true,
@@ -27,7 +25,6 @@ export const getUserById = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   const { name } = req.body;
-
   const user = await userService.updateUser(id, name);
 
   res.json({
@@ -38,7 +35,6 @@ export const updateUser = async (req: Request, res: Response) => {
 
 export const deleteUser = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
-
   await userService.deleteUser(id);
 
   res.json({

@@ -3,11 +3,9 @@ import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 import { parseInclude } from "../utils/include-parser.js";
 import {
-  IssueIncludeField,
   buildIssueInclude,
   validateIssueIncludes,
   isIssueIncludeField,
-  ISSUE_INCLUDE_FIELDS,
 } from "../utils/issue-include.js";
 
 import {
@@ -17,6 +15,8 @@ import {
 } from "../utils/role-check.js";
 
 import { buildPagination } from "../utils/pagination.js";
+
+import { IssueSortField } from "../constants/issue.constants.js";
 
 type CreateIssueInput = {
   projectId: number;
@@ -43,7 +43,7 @@ type GetIssuesInput = {
     priorityId?: number;
     assigneeId?: number;
     keyword?: string;
-    sort?: "createdAt" | "dueDate";
+    sort?: IssueSortField;
     order?: "asc" | "desc";
     include?: string;
   };
@@ -279,17 +279,10 @@ export const getIssuesService = async ({
     throw new AppError("include limit exceeded", 400, "INCLUDE_LIMIT_EXCEEDED");
   }
 
-  const invalidIncludes = includes.filter(
-    (include) => !ISSUE_INCLUDE_FIELDS.includes(include as IssueIncludeField),
-  );
+  validateIssueIncludes(includes);
 
-  if (invalidIncludes.length > 0) {
-    throw new AppError("invalid include", 400, "INVALID_INCLUDE");
-  }
-
-  const validIncludes = includes as IssueIncludeField[];
-
-  const prismaInclude = buildIssueInclude(validIncludes);
+  const safeIncludes = includes.filter(isIssueIncludeField);
+  const prismaInclude = buildIssueInclude(safeIncludes);
 
   // ソート条件生成
   const orderBy = {

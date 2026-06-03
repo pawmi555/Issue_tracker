@@ -6,7 +6,6 @@ import { updateMemberRoleSchema } from "../validators/project.validator.js";
 export const createProject = async (req: AuthRequest, res: Response) => {
   const { name, description } = req.body;
   const userId = req.user!.id;
-
   const project = await projectService.createProject(name, userId, description);
 
   res.status(201).json({
@@ -30,7 +29,6 @@ export const getProjects = async (req: AuthRequest, res: Response) => {
 export const getProject = async (req: AuthRequest, res: Response) => {
   const userId = req.user!.id;
   const id = Number(req.params.id);
-
   const project = await projectService.getProjectById(id, userId);
 
   res.json({
@@ -41,9 +39,7 @@ export const getProject = async (req: AuthRequest, res: Response) => {
 
 export const updateProject = async (req: AuthRequest, res: Response) => {
   const id = Number(req.params.id);
-
   const { name, description } = req.body;
-
   const project = await projectService.updateProject(id, name, description);
 
   res.json({
@@ -54,7 +50,6 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
 
 export const deleteProject = async (req: AuthRequest, res: Response) => {
   const id = Number(req.params.id);
-
   await projectService.deleteProject(id);
 
   res.status(204).send();
@@ -63,7 +58,6 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
 export const addMember = async (req: AuthRequest, res: Response) => {
   const { userId, role } = req.body;
   const projectId = Number(req.params.id);
-
   const project = await projectService.addMember(projectId, userId, role);
 
   res.status(201).json({
@@ -74,7 +68,6 @@ export const addMember = async (req: AuthRequest, res: Response) => {
 
 export const getMembers = async (req: AuthRequest, res: Response) => {
   const projectId = Number(req.params.id);
-
   const project = await projectService.getMembers(projectId);
 
   res.status(200).json({
