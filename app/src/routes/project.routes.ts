@@ -17,18 +17,22 @@ router.post(
   validate({ body: createProjectSchema }),
   asyncHandler(controller.createProject),
 );
+
 router.get("/", asyncHandler(controller.getProjects));
+
 router.get(
   "/:id",
   projectRoleMiddleware("VIEWER"),
   asyncHandler(controller.getProject),
 );
+
 router.patch(
   "/:id",
   projectRoleMiddleware("MANAGER"),
   validate({ body: updateProjectSchema }),
   asyncHandler(controller.updateProject),
 );
+
 router.delete(
   "/:id",
   projectRoleMiddleware("OWNER"),
@@ -41,17 +45,20 @@ router.post(
   validate({ body: addMemberSchema }),
   asyncHandler(controller.addMember),
 );
+
 router.get(
   "/:id/members",
   projectRoleMiddleware("MANAGER"),
   asyncHandler(controller.getMembers),
 );
+
 router.patch(
   "/:id/members/:userId",
   projectRoleMiddleware("MANAGER"),
   validate({ body: updateMemberRoleSchema }),
   asyncHandler(controller.authorityChange),
 );
+
 router.delete(
   "/:id/members/:userId",
   projectRoleMiddleware("OWNER"),

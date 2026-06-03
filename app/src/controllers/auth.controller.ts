@@ -14,7 +14,6 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
-
   const result = await authService.login(email, password);
 
   res.json({
@@ -25,7 +24,6 @@ export const login = async (req: Request, res: Response) => {
 
 export const refresh = async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
-
   const tokens = await authService.refresh(refreshToken);
 
   res.json({

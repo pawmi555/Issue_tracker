@@ -1,14 +1,6 @@
 import { AppError } from "./app-error.js";
 import { Prisma } from "@prisma/client";
-
-/**
- * Issue取得時に指定可能なinclude項目一覧
- */
-export const ISSUE_INCLUDE_FIELDS = [
-  "assignee",
-  "reporter",
-  "comments",
-] as const;
+import { ISSUE_INCLUDE_FIELDS } from "../constants/issue.constants.js";
 
 /**
  * 利用可能なIssue include項目を表すUnion型
