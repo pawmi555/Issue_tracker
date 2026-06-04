@@ -1,15 +1,17 @@
 import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
+import {
+  type ProjectRoleName,
+  PROJECT_HISTORY_EVENTS,
+} from "../constants/project.constants.js";
 
 /**
  * Project作成
  * - projects 作成
  * - project_members に OWNER 自動追加
+ * - project_histories に作成履歴を記録
  */
-
-type ProjectRoleName = "OWNER" | "MANAGER" | "MEMBER" | "VIEWER";
-
 export const createProject = async (
   name: string,
   userId: number,
@@ -77,14 +79,28 @@ export const createProject = async (
         },
       });
 
+      // 作成履歴記録
+      await tx.projectHistory.create({
+        data: {
+          projectId: project.id,
+          userId,
+          fieldName: PROJECT_HISTORY_EVENTS.CREATED,
+          oldValue: null,
+          newValue: true,
+        },
+      });
+
       return project;
     });
   } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      throw new AppError("Project name already exists", 409, "PROJECT_EXISTS");
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        throw new AppError(
+          "Project name already exists",
+          409,
+          "PROJECT_EXISTS",
+        );
+      }
     }
 
     throw error;
@@ -101,11 +117,6 @@ export const getProjects = async (userId: number) => {
       members: {
         some: {
           userId,
-          role: {
-            name: {
-              in: ["OWNER", "MANAGER", "MEMBER", "VIEWER"],
-            },
-          },
         },
       },
     },
@@ -238,6 +249,16 @@ export const addMember = async (
   role: ProjectRoleName,
 ) => {
   try {
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        deletedAt: null,
+      },
+    });
+
+    if (!project) {
+      throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
+    }
     return await prisma.projectMember.create({
       data: {
         project: {
@@ -336,19 +357,20 @@ export const changeMemberRole = async (
     );
   }
 
+  // OWNERを他権限へ変更する場合
   const isRemovingOwner = member.role.name === "OWNER" && role !== "OWNER";
 
   if (isRemovingOwner) {
     const ownerCount = await prisma.projectMember.count({
       where: {
         projectId,
-
         role: {
           name: "OWNER",
         },
       },
     });
 
+    // 最後のOWNER降格を防止
     if (ownerCount === 1) {
       throw new AppError(
         "Cannot remove last owner",
@@ -357,6 +379,7 @@ export const changeMemberRole = async (
       );
     }
   }
+
   return prisma.projectMember.update({
     where: {
       projectId_userId: {
@@ -409,9 +432,29 @@ export const removeMember = async (projectId: number, userId: number) => {
     throw new AppError("Member not found", 404, "MEMBER_NOT_FOUND");
   }
 
-  if (member.role.name === "OWNER") {
-    throw new AppError("Cannot remove owner", 400, "OWNER_REMOVE_FORBIDDEN");
+  // OWNER削除時は最後のOWNERでないことを確認
+  const isRemovingOwner = member.role.name === "OWNER";
+
+  if (isRemovingOwner) {
+    // 最後のOWNER削除を防止
+    const ownerCount = await prisma.projectMember.count({
+      where: {
+        projectId,
+        role: {
+          name: "OWNER",
+        },
+      },
+    });
+
+    if (ownerCount === 1) {
+      throw new AppError(
+        "Cannot remove last owner",
+        400,
+        "LAST_OWNER_FORBIDDEN",
+      );
+    }
   }
+
   return prisma.projectMember.delete({
     where: {
       projectId_userId: {

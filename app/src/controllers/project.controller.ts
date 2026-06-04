@@ -1,12 +1,18 @@
 import { Request, Response } from "express";
-import { AuthRequest } from "../types/auth-request.js";
+import { ProjectRequest } from "../types/auth-request.js";
 import * as projectService from "../services/project.service.js";
 import { updateMemberRoleSchema } from "../validators/project.validator.js";
 
-export const createProject = async (req: AuthRequest, res: Response) => {
+export const createProject = async (req: ProjectRequest, res: Response) => {
+  console.log("controller start");
   const { name, description } = req.body;
   const userId = req.user!.id;
+
+  console.log("before service");
+
   const project = await projectService.createProject(name, userId, description);
+
+  console.log("after service");
 
   res.status(201).json({
     success: true,
@@ -14,9 +20,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const getProjects = async (req: AuthRequest, res: Response) => {
-  console.log(req.user);
-  console.log(req.user!.id);
+export const getProjects = async (req: ProjectRequest, res: Response) => {
   const userId = req.user!.id;
   const project = await projectService.getProjects(userId);
 
@@ -26,7 +30,7 @@ export const getProjects = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const getProject = async (req: AuthRequest, res: Response) => {
+export const getProject = async (req: ProjectRequest, res: Response) => {
   const userId = req.user!.id;
   const id = Number(req.params.id);
   const project = await projectService.getProjectById(id, userId);
@@ -37,7 +41,7 @@ export const getProject = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const updateProject = async (req: AuthRequest, res: Response) => {
+export const updateProject = async (req: ProjectRequest, res: Response) => {
   const id = Number(req.params.id);
   const { name, description } = req.body;
   const project = await projectService.updateProject(id, name, description);
@@ -48,14 +52,14 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const deleteProject = async (req: AuthRequest, res: Response) => {
+export const deleteProject = async (req: ProjectRequest, res: Response) => {
   const id = Number(req.params.id);
   await projectService.deleteProject(id);
 
   res.status(204).send();
 };
 
-export const addMember = async (req: AuthRequest, res: Response) => {
+export const addMember = async (req: ProjectRequest, res: Response) => {
   const { userId, role } = req.body;
   const projectId = Number(req.params.id);
   const project = await projectService.addMember(projectId, userId, role);
@@ -66,7 +70,7 @@ export const addMember = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const getMembers = async (req: AuthRequest, res: Response) => {
+export const getMembers = async (req: ProjectRequest, res: Response) => {
   const projectId = Number(req.params.id);
   const project = await projectService.getMembers(projectId);
 
@@ -76,7 +80,7 @@ export const getMembers = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const authorityChange = async (req: AuthRequest, res: Response) => {
+export const authorityChange = async (req: ProjectRequest, res: Response) => {
   const { role } = updateMemberRoleSchema.parse(req.body);
   const userId = Number(req.params.userId);
   const projectId = Number(req.params.id);
@@ -93,7 +97,7 @@ export const authorityChange = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const removeMember = async (req: AuthRequest, res: Response) => {
+export const removeMember = async (req: ProjectRequest, res: Response) => {
   const userId = Number(req.params.userId);
   const projectId = Number(req.params.id);
 

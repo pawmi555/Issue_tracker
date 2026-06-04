@@ -1,28 +1,37 @@
 import { Request, Response, NextFunction } from "express";
-
-import { ZodError, ZodSchema } from "zod";
+import { ValidatedRequest } from "../types/validated-request.js";
+import { ZodError, ZodType } from "zod";
 
 type ValidationSchemas = {
-  body?: ZodSchema;
-  query?: ZodSchema;
-  params?: ZodSchema;
+  body?: ZodType;
+  query?: ZodType;
+  params?: ZodType;
 };
 
+/**
+ * Zod Schemaによるリクエスト検証Middlewareを生成する
+ *
+ * body、query、paramsの検証を行い、
+ * 検証済みデータをreqへ格納する。
+ *
+ * バリデーションエラーの場合は
+ * 422を返す。
+ *
+ * @param schemas 検証対象のSchema定義
+ */
 export const validate =
   (schemas: ValidationSchemas) =>
-  (req: Request, res: Response, next: NextFunction) => {
+  (req: ValidatedRequest, res: Response, next: NextFunction) => {
+    console.log("validate start");
     try {
-      // body
       if (schemas.body) {
-        req.body = schemas.body.parse(req.body);
+        req.validatedBody = schemas.body.parse(req.body);
       }
-      // query
       if (schemas.query) {
-        req.query = schemas.query.parse(req.query);
+        req.validatedQuery = schemas.query.parse(req.query);
       }
-      // params
       if (schemas.params) {
-        req.params = schemas.params.parse(req.params);
+        req.validatedParams = schemas.params.parse(req.params);
       }
       next();
     } catch (error) {
@@ -36,4 +45,5 @@ export const validate =
 
       next(error);
     }
+    console.log("validate end");
   };

@@ -16,7 +16,10 @@ import {
 
 import { buildPagination } from "../utils/pagination.js";
 
-import { IssueSortField } from "../constants/issue.constants.js";
+import {
+  IssueSortField,
+  ISSUE_HISTORY_FIELDS,
+} from "../constants/issue.constants.js";
 
 type CreateIssueInput = {
   projectId: number;
@@ -80,10 +83,6 @@ type RestoreIssueInput = {
   issueId: number;
   userId: number;
 };
-
-export const ISSUE_HISTORY_FIELDS = {
-  DELETED: "deleted",
-} as const;
 
 /**
  * Issue作成
