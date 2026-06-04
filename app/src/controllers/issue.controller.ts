@@ -9,16 +9,19 @@ import {
   restoreIssueService,
 } from "../services/issue.service.js";
 
+import { createIssueSchema } from "../validators/issue.validation.js";
+
 export const createIssueController = async (
   req: AuthRequest,
   res: Response,
 ) => {
   const projectId = Number(req.params.projectId);
 
+  const data = createIssueSchema.parse(req.body);
   const issue = await createIssueService({
     projectId,
     userId: req.user!.id,
-    data: req.body,
+    data,
   });
 
   res.status(201).json({

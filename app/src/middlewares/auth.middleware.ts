@@ -6,11 +6,18 @@ interface JwtPayload {
   userId: number;
 }
 
+/**
+ * JWT認証を行うMiddleware
+ *
+ * AuthorizationヘッダーのBearer Tokenを検証し、
+ * 認証済みユーザー情報をreq.userへ設定する。
+ */
 export const authMiddleware = (
   req: AuthRequest,
   res: Response,
   next: NextFunction,
 ) => {
+  console.log("auth start");
   try {
     const auth = req.headers.authorization;
 
@@ -40,4 +47,5 @@ export const authMiddleware = (
       message: "Invalid token",
     });
   }
+  console.log("auth end");
 };

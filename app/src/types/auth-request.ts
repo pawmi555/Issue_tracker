@@ -4,7 +4,6 @@ type UserRole = "ADMIN" | "USER";
 
 export interface JwtUser {
   id: number;
-  role: UserRole;
 }
 
 export interface ProjectMemberPayload {
@@ -22,5 +21,8 @@ export interface ProjectMemberPayload {
 
 export interface AuthRequest extends Request {
   user?: JwtUser;
+}
+
+export interface ProjectRequest extends AuthRequest {
   projectMember?: ProjectMemberPayload;
 }

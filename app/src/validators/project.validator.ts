@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PROJECT_ROLES } from "../constants/project.constants.js";
 
 export const createProjectSchema = z.object({
   name: z.string().min(1, "name is required").max(100),
@@ -21,9 +22,9 @@ export const updateProjectSchema = updateProjectBodySchema.refine(
 
 export const addMemberSchema = z.object({
   userId: z.number().int().positive(),
-  role: z.nativeEnum(["OWNER", "MANAGER", "MEMBER", "VIEWER"]),
+  role: z.enum(PROJECT_ROLES),
 });
 
 export const updateMemberRoleSchema = z.object({
-  role: z.nativeEnum(["OWNER", "MANAGER", "MEMBER", "VIEWER"]),
+  role: z.enum(PROJECT_ROLES),
 });
