@@ -37,7 +37,7 @@ router.get(
 router.patch(
   "/issues/:id",
   authMiddleware,
-  validate(updateIssueSchema),
+  validate({ body: updateIssueSchema }),
   asyncHandler(updateIssueController),
 );
 
