@@ -6,7 +6,7 @@ export const register = async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
   const result = await authService.register(name, email, password);
 
-  res.json({
+  res.status(201).json({
     success: true,
     data: result,
   });
@@ -16,7 +16,7 @@ export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
   const result = await authService.login(email, password);
 
-  res.json({
+  res.status(200).json({
     success: true,
     data: result,
   });
@@ -26,7 +26,7 @@ export const refresh = async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
   const tokens = await authService.refresh(refreshToken);
 
-  res.json({
+  res.status(200).json({
     success: true,
     data: tokens,
   });
@@ -37,7 +37,7 @@ export const logout = async (req: Request, res: Response) => {
   console.log("logout token:", refreshToken);
   await authService.logout(refreshToken);
 
-  res.json({
+  res.status(200).json({
     success: true,
   });
 };

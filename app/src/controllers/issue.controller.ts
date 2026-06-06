@@ -39,7 +39,7 @@ export const getIssuesController = async (req: AuthRequest, res: Response) => {
     query: req.query,
   });
 
-  res.json({
+  res.status(200).json({
     success: true,
     ...result,
   });
@@ -57,7 +57,7 @@ export const updateIssueController = async (
     data: req.body,
   });
 
-  res.json({
+  res.status(200).json({
     success: true,
     data: issue,
   });
@@ -74,7 +74,7 @@ export const getIssueDetailController = async (
     includeDeleted: req.query.includeDeleted === "true",
   });
 
-  res.json({
+  res.status(200).json({
     success: true,
     data: issue,
   });
@@ -89,7 +89,7 @@ export const deleteIssueController = async (
     userId: req.user!.id,
   });
 
-  res.json({
+  res.status(200).json({
     success: true,
   });
 };
@@ -103,7 +103,7 @@ export const restoreIssueController = async (
     userId: req.user!.id,
   });
 
-  res.json({
+  res.status(200).json({
     success: true,
   });
 };

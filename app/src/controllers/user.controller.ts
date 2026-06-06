@@ -5,7 +5,7 @@ import { AuthRequest } from "../types/auth-request.js";
 export const getUsers = async (req: AuthRequest, res: Response) => {
   const users = await userService.getUsers(req.query);
 
-  res.json({
+  res.status(200).json({
     success: true,
     data: users,
   });
@@ -16,7 +16,7 @@ export const getUserById = async (req: Request, res: Response) => {
 
   const user = await userService.getUserById(id);
 
-  res.json({
+  res.status(200).json({
     success: true,
     data: user,
   });
@@ -37,7 +37,7 @@ export const deleteUser = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   await userService.deleteUser(id);
 
-  res.json({
+  res.status(200).json({
     success: true,
     message: "User deleted",
   });
