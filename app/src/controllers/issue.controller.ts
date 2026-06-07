@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { AuthRequest } from "../types/auth-request.js";
 import {
   createIssueService,
@@ -16,7 +16,6 @@ export const createIssueController = async (
   res: Response,
 ) => {
   const projectId = Number(req.params.projectId);
-
   const data = createIssueSchema.parse(req.body);
   const issue = await createIssueService({
     projectId,
@@ -32,11 +31,12 @@ export const createIssueController = async (
 
 export const getIssuesController = async (req: AuthRequest, res: Response) => {
   const projectId = Number(req.params.projectId);
-
+  const userId = req.user!.id;
+  const query = req.query;
   const result = await getIssuesService({
     projectId,
-    userId: req.user!.id,
-    query: req.query,
+    userId,
+    query,
   });
 
   res.status(200).json({

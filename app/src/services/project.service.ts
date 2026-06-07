@@ -5,6 +5,16 @@ import {
   type ProjectRoleName,
   PROJECT_HISTORY_EVENTS,
 } from "../constants/project.constants.js";
+import { buildPagination } from "../utils/pagination.js";
+
+export type GetProjectsInput = {
+  userId: number;
+
+  query: {
+    page: number;
+    limit: number;
+  };
+};
 
 /**
  * Project作成
@@ -12,7 +22,7 @@ import {
  * - project_members に OWNER 自動追加
  * - project_histories に作成履歴を記録
  */
-export const createProject = async (
+export const createProjectService = async (
   name: string,
   userId: number,
   description?: string,
@@ -110,42 +120,76 @@ export const createProject = async (
 /**
  * 自分が所属するProject一覧取得
  */
-export const getProjects = async (userId: number) => {
-  return prisma.project.findMany({
-    where: {
-      deletedAt: null,
-      members: {
-        some: {
-          userId,
-        },
-      },
-    },
-
-    include: {
-      owner: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-      _count: {
-        select: {
-          members: true,
-          issues: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
+export const getProjectsService = async ({
+  userId,
+  query,
+}: GetProjectsInput) => {
+  // ページネーション設定
+  const pagination = buildPagination({
+    page: query.page,
+    limit: query.limit,
   });
+
+  const [projects, total] = await Promise.all([
+    prisma.project.findMany({
+      where: {
+        deletedAt: null,
+        members: {
+          some: {
+            userId,
+          },
+        },
+      },
+      skip: pagination.skip,
+      take: pagination.take,
+
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        _count: {
+          select: {
+            members: true,
+            issues: true,
+          },
+        },
+      },
+    }),
+
+    // プロジェクトカウント
+    prisma.project.count({
+      where: {
+        deletedAt: null,
+        members: {
+          some: {
+            userId,
+          },
+        },
+      },
+    }),
+  ]);
+
+  return {
+    data: projects,
+    meta: {
+      page: pagination.page,
+      limit: pagination.limit,
+      total,
+    },
+  };
 };
 
 /**
  * Project詳細取得
  */
-export const getProjectById = async (id: number, userId: number) => {
+export const getProjectDatailService = async (id: number, userId: number) => {
   const project = await prisma.project.findFirst({
     where: {
       id,
@@ -193,7 +237,7 @@ export const getProjectById = async (id: number, userId: number) => {
 /**
  * Project更新
  */
-export const updateProject = async (
+export const updateProjectDatailService = async (
   id: number,
   name: string,
   description?: string,
@@ -221,7 +265,7 @@ export const updateProject = async (
 /**
  * Project削除（論理削除）
  */
-export const deleteProject = async (id: number) => {
+export const deleteProjectService = async (id: number) => {
   const project = await prisma.project.findFirst({
     where: {
       id,
@@ -243,7 +287,7 @@ export const deleteProject = async (id: number) => {
 /**
  * メンバー追加
  */
-export const addMember = async (
+export const addMemberService = async (
   projectId: number,
   userId: number,
   role: ProjectRoleName,
@@ -304,7 +348,7 @@ export const addMember = async (
 /**
  * メンバー一覧取得
  */
-export const getMembers = async (projectId: number) => {
+export const getMemberService = async (projectId: number) => {
   return prisma.projectMember.findMany({
     where: {
       projectId,
@@ -332,7 +376,7 @@ export const getMembers = async (projectId: number) => {
 /**
  * 権限変更
  */
-export const changeMemberRole = async (
+export const changeMemberRoleService = async (
   projectId: number,
   userId: number,
   role: ProjectRoleName,
@@ -411,7 +455,10 @@ export const changeMemberRole = async (
 /**
  * メンバー削除
  */
-export const removeMember = async (projectId: number, userId: number) => {
+export const removeMemberService = async (
+  projectId: number,
+  userId: number,
+) => {
   const member = await prisma.projectMember.findUnique({
     where: {
       projectId_userId: {

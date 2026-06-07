@@ -19,6 +19,12 @@ export type GetCommentsInput = {
   };
 };
 
+export type UpdateCommentInput = {
+  commentId: number;
+  userId: number;
+  content: string;
+};
+
 /**
  * Comment作成
  */
@@ -156,4 +162,52 @@ export const getCommentsService = async ({
       total,
     },
   };
+};
+
+/**
+ * Comment更新
+ */
+export const updateCommentService = async ({
+  commentId,
+  userId,
+  content,
+}: UpdateCommentInput) => {
+  // コメント存在確認
+  const comment = await prisma.comment.findFirst({
+    where: {
+      id: commentId,
+      deletedAt: null,
+    },
+  });
+
+  if (!comment) {
+    throw new AppError("Comment not found", 404, "COMMENT_NOT_FOUND");
+  }
+
+  // 投稿者確認
+  if (comment.userId !== userId) {
+    throw new AppError("comment forbidden", 403, "COMMENT_FORBIDDEN");
+  }
+
+  // 更新処理
+  const updatedComment = await prisma.comment.update({
+    where: {
+      id: commentId,
+    },
+
+    data: {
+      content,
+    },
+
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  return updatedComment;
 };

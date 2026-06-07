@@ -1,6 +1,16 @@
 import { Router } from "express";
 
-import * as controller from "../controllers/project.controller.js";
+import {
+  createProjectController,
+  getProjectsController,
+  getProjectDatailController,
+  updateProjectDatailController,
+  deleteProjectDatailController,
+  addMemberController,
+  getMembersController,
+  authorityChangeController,
+  removeMemberController,
+} from "../controllers/project.controller.js";
 import { projectRoleMiddleware } from "../middlewares/projectRole.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -15,54 +25,54 @@ const router = Router();
 router.post(
   "/",
   validate({ body: createProjectSchema }),
-  asyncHandler(controller.createProject),
+  asyncHandler(createProjectController),
 );
 
-router.get("/", asyncHandler(controller.getProjects));
+router.get("/", asyncHandler(getProjectsController));
 
 router.get(
   "/:id",
   projectRoleMiddleware("VIEWER"),
-  asyncHandler(controller.getProject),
+  asyncHandler(getProjectDatailController),
 );
 
 router.patch(
   "/:id",
   projectRoleMiddleware("MANAGER"),
   validate({ body: updateProjectSchema }),
-  asyncHandler(controller.updateProject),
+  asyncHandler(updateProjectDatailController),
 );
 
 router.delete(
   "/:id",
   projectRoleMiddleware("OWNER"),
-  asyncHandler(controller.deleteProject),
+  asyncHandler(deleteProjectDatailController),
 );
 
 router.post(
   "/:id/members",
   projectRoleMiddleware("MANAGER"),
   validate({ body: addMemberSchema }),
-  asyncHandler(controller.addMember),
+  asyncHandler(addMemberController),
 );
 
 router.get(
   "/:id/members",
   projectRoleMiddleware("MANAGER"),
-  asyncHandler(controller.getMembers),
+  asyncHandler(getMembersController),
 );
 
 router.patch(
   "/:id/members/:userId",
   projectRoleMiddleware("MANAGER"),
   validate({ body: updateMemberRoleSchema }),
-  asyncHandler(controller.authorityChange),
+  asyncHandler(authorityChangeController),
 );
 
 router.delete(
   "/:id/members/:userId",
   projectRoleMiddleware("OWNER"),
-  asyncHandler(controller.removeMember),
+  asyncHandler(removeMemberController),
 );
 
 export default router;

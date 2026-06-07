@@ -13,7 +13,6 @@ export const getUsers = async (req: AuthRequest, res: Response) => {
 
 export const getUserById = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
-
   const user = await userService.getUserById(id);
 
   res.status(200).json({

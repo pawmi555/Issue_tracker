@@ -1,12 +1,14 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { AuthRequest } from "../types/auth-request.js";
 import {
   createCommentsService,
   getCommentsService,
+  updateCommentService,
 } from "../services/comment.service.js";
 import {
   createCommentSchema,
   getCommentsSchema,
+  updateCommentSchema,
 } from "../validators/comment.validators.js";
 
 export const createCommentController = async (
@@ -34,7 +36,7 @@ export const getCommentsController = async (
   const issueId = Number(req.params.id);
   const query = getCommentsSchema.parse(req.query);
 
-  const comments = await getCommentsService({
+  const result = await getCommentsService({
     issueId,
     userId: req.user!.id,
     query,
@@ -42,6 +44,26 @@ export const getCommentsController = async (
 
   res.status(200).json({
     success: true,
-    ...comments,
+    ...result,
+  });
+};
+
+export const updateCommentController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  const commentId = Number(req.params.id);
+
+  const data = updateCommentSchema.parse(req.body);
+
+  const comment = await updateCommentService({
+    commentId,
+    userId: req.user!.id,
+    content: data.content,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: comment,
   });
 };
