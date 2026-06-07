@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createCommentController,
   getCommentsController,
+  updateCommentController,
 } from "../controllers/comment.controller.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
@@ -19,5 +20,7 @@ router.get(
   authMiddleware,
   asyncHandler(getCommentsController),
 );
+
+router.patch("/comments/:id", authMiddleware, updateCommentController);
 
 export default router;
