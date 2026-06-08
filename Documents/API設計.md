@@ -701,7 +701,7 @@ where: {
 
 #### 制約
 
-- 投稿者のみ
+- 投稿者 or MANAGER以上
 
 ```json
 {
@@ -717,7 +717,7 @@ where: {
 
 #### 制約
 
-- 投稿者 or MANAGER
+- 投稿者 or MANAGER以上
 
 ---
 

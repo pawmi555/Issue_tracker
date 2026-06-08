@@ -3,6 +3,7 @@ import {
   createCommentController,
   getCommentsController,
   updateCommentController,
+  deleteCommentController,
 } from "../controllers/comment.controller.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
@@ -22,5 +23,7 @@ router.get(
 );
 
 router.patch("/comments/:id", authMiddleware, updateCommentController);
+
+router.delete("/comments/:id", authMiddleware, deleteCommentController);
 
 export default router;
