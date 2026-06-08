@@ -81,9 +81,29 @@ comments {
   datetime deletedAt
 }
 
+project_histories{
+  int id PK
+  int projectId FK
+  int userId FK
+  string fieldName
+  json oldValue
+  json newValue
+  datetime createdAt
+}
+
 issue_histories {
   int id PK
   int issueId FK
+  int userId FK
+  string fieldName
+  json oldValue
+  json newValue
+  datetime createdAt
+}
+
+comment_histories{
+  int id PK
+  int commentId FK
   int userId FK
   string fieldName
   json oldValue
@@ -128,8 +148,14 @@ issue_priorities ||--o{ issues : defines
 issues ||--o{ comments : has
 users ||--o{ comments : writes
 
+projects ||--o{ project_histories : has
+users ||--o{ project_histories : has
+
 issues ||--o{ issue_histories : has
 users ||--o{ issue_histories : has
+
+comments ||--o{ comment_histories : has
+users ||--o{ comment_histories : has
 
 users ||--o{ refresh_tokens : has
 
