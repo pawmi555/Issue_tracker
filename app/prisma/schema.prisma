@@ -86,6 +86,7 @@ model User {
 
   issueHistories   IssueHistory[]
   projectHistories ProjectHistory[]
+  commentHistories CommentHistory[]
 
   refreshTokens  RefreshToken[]
   apiRequestLogs ApiRequestLog[]
@@ -210,6 +211,8 @@ model Comment {
   issue     Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
   user      User  @relation(fields: [userId], references: [id], onDelete: Restrict)
 
+  histories CommentHistory[]
+
   @@index([issueId])
   @@map("comments")
 }
@@ -265,6 +268,31 @@ model IssueHistory {
 
 //
 // =======================
+// Comment History
+// =======================
+//
+
+model CommentHistory {
+  id        Int @id @default(autoincrement())
+  commentId   Int
+  userId    Int
+
+  fieldName String
+  oldValue  Json?
+  newValue  Json?
+
+  createdAt DateTime @default(now())
+
+  comment     Comment @relation(fields: [commentId], references: [id])
+  user      User  @relation(fields: [userId], references: [id])
+
+  @@index([commentId, createdAt])
+  @@map("comment_histories")
+}
+
+
+//
+// =======================
 // Refresh Token
 // =======================
 //
@@ -295,6 +323,7 @@ model RefreshToken {
 
 model ApiRequestLog {
   id        Int    @id @default(autoincrement())
+  requestId String? @unique
   userId    Int?
   user      User?  @relation(fields: [userId], references: [id])
   method    String

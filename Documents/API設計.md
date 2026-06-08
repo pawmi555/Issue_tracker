@@ -63,15 +63,25 @@ Authorization: Bearer <access_token>
 }
 ```
 
-#### エラーコード例
+#### エラーコードルール
 
-| code              | 内容                 |
-| ----------------- | -------------------- |
-| USER_NOT_FOUND    | ユーザー不存在       |
-| PROJECT_FORBIDDEN | プロジェクト権限なし |
-| ISSUE_CLOSED      | クローズ済み         |
-| VALIDATION_ERROR  | 入力エラー           |
-| UNAUTHORIZED      | 未認証               |
+##### 形式
+
+RESOURCE_REASON
+
+##### 例
+
+| code                  | status | 内容                       |
+| --------------------- | ------ | -------------------------- |
+| USER_NOT_FOUND        | 404    | ユーザー不存在             |
+| PROJECT_NOT_FOUND     | 404    | プロジェクト不存在         |
+| PROJECT_FORBIDDEN     | 403    | プロジェクト権限なし       |
+| ISSUE_NOT_FOUND       | 404    | Issue不存在                |
+| COMMENT_NOT_FOUND     | 404    | コメント不存在             |
+| ISSUE_CLOSED          | 409    | クローズ済みのため更新不可 |
+| INVALID_REFRESH_TOKEN | 401    | 無効または失効したトークン |
+| VALIDATION_ERROR      | 422    | 入力エラー                 |
+| UNAUTHORIZED          | 401    | 未認証                     |
 
 ---
 
@@ -115,17 +125,17 @@ Authorization: Bearer <access_token>
 
 ## Middleware
 
-| Middleware            | 役割                    |
-| --------------------- | ----------------------- |
-| authMiddleware        | JWT認証                 |
-| adminMiddleware       | ADMINのみ許可           |
-| userOwnerMiddleware   | 自分とADMINのみ許可     |
-| projectRoleMiddleware | ProjectRole権限チェック |
-| requireRole           | RBAC認可                |
-| validateMiddleware    | Zod validation          |
-| requestLogger         | APIログ                 |
-| errorMiddleware       | 共通エラーハンドリング  |
-| notFoundMiddleware    | 404エラー処理           |
+| Middleware              | 役割                    |
+| ----------------------- | ----------------------- |
+| authMiddleware          | JWT認証                 |
+| adminMiddleware         | ADMINのみ許可           |
+| userOwnerMiddleware     | 自分とADMINのみ許可     |
+| projectRoleMiddleware   | ProjectRole権限チェック |
+| requireRoleMiddleware   | RBAC認可                |
+| validateMiddleware      | Zod validation          |
+| requestLoggerMiddleware | APIログ                 |
+| errorMiddleware         | 共通エラーハンドリング  |
+| notFoundMiddleware      | 404エラー処理           |
 
 ---
 
@@ -138,7 +148,7 @@ Authorization: Bearer <access_token>
 #### 制約
 
 - ホワイトリスト制
-- 最大3件
+- 最大5件
 
 #### include whitelist
 
@@ -147,6 +157,9 @@ Authorization: Bearer <access_token>
 | assignee |
 | reporter |
 | comments |
+| project  |
+| status   |
+| priority |
 
 ```json
 {
@@ -160,6 +173,22 @@ Authorization: Bearer <access_token>
   "comments": [...]
 }
 ```
+
+---
+
+## DateTime Format
+
+すべての日時はISO8601形式で返却する。
+
+### 例
+
+2026-05-01T10:00:00Z
+
+### ルール
+
+- DBはUTCで保存
+- APIはUTCで返却
+- クライアント側でローカルタイムへ変換
 
 ---
 
@@ -197,6 +226,25 @@ Authorization: Bearer <access_token>
 
 ---
 
+### Issue状態遷移
+
+#### 許可される状態遷移
+
+| From        | To          |
+| ----------- | ----------- |
+| OPEN        | IN_PROGRESS |
+| IN_PROGRESS | REVIEW      |
+| REVIEW      | DONE        |
+| DONE        | CLOSED      |
+
+#### 制約
+
+- CLOSEDから他状態への変更不可
+- スキップ遷移不可
+- 巻き戻し不可
+
+---
+
 ### IssuePriority
 
 | name     | 説明           |
@@ -205,6 +253,65 @@ Authorization: Bearer <access_token>
 | MEDIUM   | 中             |
 | HIGH     | 高             |
 | CRITICAL | 緊急・重大障害 |
+
+---
+
+### ProjectHistory
+
+プロジェクト変更履歴を保持する。
+
+#### 保存対象
+
+- name
+- description
+
+#### 保存内容
+
+- fieldName
+- oldValue
+- newValue
+- userId
+- createdAt
+
+### IssueHistory
+
+Issue変更履歴を保持する。
+
+#### 保存対象
+
+- title
+- description
+- statusId
+- priorityId
+- assigneeId
+- dueDate
+- deleted
+
+#### 保存内容
+
+- fieldName
+- oldValue
+- newValue
+- userId
+- createdAt
+
+---
+
+### CommentHistory
+
+コメント変更履歴を保持する。
+
+#### 保存対象
+
+- content
+
+#### 保存内容
+
+- fieldName
+- oldValue
+- newValue
+- userId
+- createdAt
 
 ---
 
@@ -253,8 +360,10 @@ where: {
 
 以下はトランザクション必須：
 
-- プロジェクト作成（project + member）
+- Project作成（project + member）
+- Project更新（履歴作成含む）
 - Issue更新（履歴作成含む）
+- Comment更新（履歴作成含む）
 - Refresh Token更新
 
 ---
@@ -330,8 +439,12 @@ where: {
 
 #### 制約
 
-- トークンローテーション
-- 不正検知時は全revoke
+- Refresh Token Rotation採用
+- DBにはハッシュ化して保存
+- 使用済みRefresh Tokenは失効
+- 新しいRefresh Tokenを発行
+- replacedByTokenでトークンチェーンを保持
+- 失効済みTokenの再利用を検知した場合は全Refresh Tokenをrevoke
 
 #### Request
 
@@ -406,6 +519,7 @@ where: {
 
 ```json
 {
+  "email": "new@test.com",
   "name": "New Name"
 }
 ```
@@ -477,6 +591,8 @@ where: {
 #### 制約
 
 - MANAGER以上
+- 更新時はProjectHistory作成
+- トランザクション必須
 
 #### Request
 
@@ -556,7 +672,8 @@ where: {
 
 #### 制約
 
-- OWNER
+- OWNER以上
+- 論理削除
 
 ---
 
@@ -628,6 +745,22 @@ where: {
 - statusがCLOSEDは更新不可
 - reporterId変更不可
 
+#### 更新可能項目
+
+- title
+- description
+- statusId
+- priorityId
+- assigneeId
+- dueDate
+
+#### 更新不可項目
+
+- id
+- projectId
+- reporterId
+- createdAt
+
 #### Request
 
 ```json
@@ -690,6 +823,7 @@ where: {
 #### 制約
 
 - プロジェクトメンバーのみ
+- ソート順は createdAt ASC
 
 ---
 
@@ -702,6 +836,8 @@ where: {
 #### 制約
 
 - 投稿者 or MANAGER以上
+- 更新時はCommentHistory作成
+- トランザクション必須
 
 ```json
 {
@@ -718,18 +854,45 @@ where: {
 #### 制約
 
 - 投稿者 or MANAGER以上
+- 論理削除
 
 ---
 
 ## 7.7 History API
 
-### 7.7.1 Issue履歴一覧
+### 7.7.1 Project履歴一覧
+
+### GET `/projects/:id/histories?page=1&limit=20`
+
+#### 制約
+
+- プロジェクトメンバーのみ
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "fieldName": "description",
+      "oldValue": "Issue管理システム",
+      "newValue": "社内Issue管理システム",
+      "createdAt": "2026-04-26T12:00:00Z"
+    }
+  ]
+}
+```
+
+### 7.7.2 Issue履歴一覧
 
 ### GET `/issues/:id/histories?page=1&limit=20`
 
 #### 制約
 
 - プロジェクトメンバーのみ
+
+#### Response
 
 ```json
 {
@@ -739,6 +902,32 @@ where: {
       "fieldName": "status",
       "oldValue": "OPEN",
       "newValue": "DONE",
+      "createdAt": "2026-04-26T12:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### 7.7.3 Comment履歴一覧
+
+### GET `/comments/:id/histories?page=1&limit=20`
+
+#### 制約
+
+- プロジェクトメンバーのみ
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "fieldName": "content",
+      "oldValue": "調査します",
+      "newValue": "調査完了しました",
       "createdAt": "2026-04-26T12:00:00Z"
     }
   ]
@@ -764,8 +953,8 @@ where: {
 - method
 - path
 - userId
-- statusCode
-- responseTime
+- status
+- duration
 
 ---
 
@@ -800,5 +989,12 @@ https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation
 - スケーラビリティ考慮
 - セキュリティ重視
 - 実務運用前提
+- JWT + RefreshToken Rotation採用
+- RBAC採用
+- SoftDelete採用
+- Issue変更履歴管理
+- Comment変更履歴管理
+- 状態遷移制御
+- 実務運用を想定した監査性を重視
 
 ---
