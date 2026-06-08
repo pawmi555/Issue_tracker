@@ -4,6 +4,7 @@ import {
   createCommentsService,
   getCommentsService,
   updateCommentService,
+  deleteCommentService,
 } from "../services/comment.service.js";
 import {
   createCommentSchema,
@@ -65,5 +66,21 @@ export const updateCommentController = async (
   res.status(200).json({
     success: true,
     data: comment,
+  });
+};
+
+export const deleteCommentController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  const commentId = Number(req.params.id);
+
+  await deleteCommentService({
+    commentId,
+    userId: req.user!.id,
+  });
+
+  res.status(200).json({
+    success: true,
   });
 };

@@ -2,6 +2,7 @@ import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
+import { checkProjectRole } from "../utils/role-check.js";
 
 export type CreateCommentInput = {
   issueId: number;
@@ -23,6 +24,11 @@ export type UpdateCommentInput = {
   commentId: number;
   userId: number;
   content: string;
+};
+
+export type DeleteCommentInput = {
+  commentId: number;
+  userId: number;
 };
 
 /**
@@ -210,4 +216,81 @@ export const updateCommentService = async ({
   });
 
   return updatedComment;
+};
+
+/**
+ * Comment削除
+ */
+export const deleteCommentService = async ({
+  commentId,
+  userId,
+}: DeleteCommentInput) => {
+  // Comment存在確認
+  const comment = await prisma.comment.findFirst({
+    where: {
+      id: commentId,
+      deletedAt: null,
+    },
+    include: {
+      issue: {
+        include: {
+          project: true,
+        },
+      },
+    },
+  });
+
+  if (!comment) {
+    throw new AppError("Comment not found", 404, "COMMENT_NOT_FOUND");
+  }
+
+  // 削除済みProjectは操作不可
+  if (comment.issue.project.deletedAt) {
+    throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
+  }
+
+  // Project参加確認
+  const member = await prisma.projectMember.findUnique({
+    where: {
+      projectId_userId: {
+        projectId: comment.issue.projectId,
+        userId,
+      },
+    },
+    select: {
+      role: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!member) {
+    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+  }
+
+  // 削除権限確認
+
+  const isAuthor = comment.userId === userId;
+  const canDelete = checkProjectRole({
+    memberRole: member.role.name,
+    allowedRoles: ["MANAGER"],
+  });
+
+  if (!isAuthor && !canDelete) {
+    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+  }
+
+  // Commentソフトデリート実行
+  const deletedComment = await prisma.comment.update({
+    where: {
+      id: commentId,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+
+  return deletedComment;
 };
