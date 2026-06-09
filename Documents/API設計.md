@@ -141,14 +141,22 @@ RESOURCE_REASON
 
 ## include設計
 
+#### 対象API
+
+- GET /issues
+- GET /issues/:id
+
 ```http
-?include=assignee,reporter
+?include=assignee,reporter,comments,project,status,priority
 ```
 
 #### 制約
 
 - ホワイトリスト制
-- 最大5件
+- 最大6件
+- 重複指定不可
+- 不正なinclude指定時は422を返却
+- commentsはIssue詳細取得時のみ指定可能
 
 #### include whitelist
 
@@ -161,16 +169,47 @@ RESOURCE_REASON
 | status   |
 | priority |
 
+#### Response
+
 ```json
 {
   "id": 1,
-  "title": "xxx",
+  "title": "ログインできない",
+  "description": "500 error",
+
+  "status": {
+    "id": 1,
+    "name": "OPEN",
+    "label": "未着手"
+  },
+
+  "priority": {
+    "id": 2,
+    "name": "HIGH",
+    "label": "高"
+  },
+
+  "project": {
+    "id": 1,
+    "name": "Issue Tracker"
+  },
+
   "assignee": {
     "id": 1,
-    "name": "user"
+    "name": "Tanaka"
   },
-  "reporter": {...},
-  "comments": [...]
+
+  "reporter": {
+    "id": 2,
+    "name": "Suzuki"
+  },
+
+  "comments": [
+    {
+      "id": 1,
+      "content": "調査します"
+    }
+  ]
 }
 ```
 
@@ -425,6 +464,11 @@ where: {
 {
   "success": true,
   "data": {
+    "user": {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@example.com"
+    },
     "accessToken": "jwt...",
     "refreshToken": "jwt..."
   }
@@ -458,8 +502,11 @@ where: {
 
 ```json
 {
-  "accessToken": "jwt",
-  "refreshToken": "jwt"
+  "success": true,
+  "data": {
+    "accessToken": "jwt",
+    "refreshToken": "jwt"
+  }
 }
 ```
 
@@ -473,6 +520,22 @@ where: {
 
 - RefreshToken revoke
 
+#### Request
+
+```json
+{
+  "refreshToken": "jwt"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true
+}
+```
+
 ---
 
 ### 7.1.5 自分情報取得
@@ -482,6 +545,27 @@ where: {
 #### 制約
 
 - 自分の情報のみ取得可能
+
+#### Request
+
+```json
+{
+  "refreshToken": "jwt"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Admin User",
+    "email": "admin@example.com"
+  }
+}
+```
 
 ---
 
@@ -493,7 +577,7 @@ where: {
 
 #### 制約
 
-- ADMIN
+- ADMINのみ
 
 ---
 
@@ -533,7 +617,7 @@ where: {
 #### 制約
 
 - 論理削除
-- ADMIN
+- ADMINのみ
 
 ---
 
@@ -720,7 +804,7 @@ where: {
 #### 制約
 
 - sortホワイトリスト
-- include最大3件
+- include最大6件
 - MEMBER以上
 
 ---

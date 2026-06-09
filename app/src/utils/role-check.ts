@@ -14,6 +14,29 @@ export const PROJECT_ROLE_NAMES = [
 export const ISSUE_READ_ROLES = ["OWNER", "MANAGER", "MEMBER"] as const;
 
 /**
+ * プロジェクトロールの権限レベル
+ */
+const PROJECT_ROLE_LEVEL = {
+  VIEWER: 1,
+  MEMBER: 2,
+  MANAGER: 3,
+  OWNER: 4,
+} as const;
+
+/**
+ * 指定された最低ロール以上か判定
+ */
+export const hasProjectRole = ({
+  memberRole,
+  minimumRole,
+}: {
+  memberRole: ProjectRoleName;
+  minimumRole: ProjectRoleName;
+}) => {
+  return PROJECT_ROLE_LEVEL[memberRole] >= PROJECT_ROLE_LEVEL[minimumRole];
+};
+
+/**
  * 利用可能なプロジェクトロールを表すUnion型
  */
 export type ProjectRoleName = (typeof PROJECT_ROLE_NAMES)[number];

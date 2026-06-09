@@ -21,6 +21,8 @@ import {
   ISSUE_HISTORY_FIELDS,
 } from "../constants/issue.constants.js";
 
+import { requireRole } from "../middlewares/requireRoleMiddleware.js";
+
 type CreateIssueInput = {
   projectId: number;
   userId: number;
@@ -215,12 +217,7 @@ export const getIssuesService = async ({
     throw new AppError("invalid role", 500, "INVALID_ROLE");
   }
 
-  if (
-    !checkProjectRole({
-      memberRole: roleName,
-      allowedRoles: ISSUE_READ_ROLES,
-    })
-  ) {
+  if (!requireRole("MEMBER")) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
 
@@ -368,12 +365,7 @@ export const updateIssueService = async ({
   // Issue更新権限確認
   const isAssignee = issue.assigneeId === userId;
 
-  const canUpdate =
-    isAssignee ||
-    checkProjectRole({
-      memberRole: member.role.name,
-      allowedRoles: ["OWNER", "MANAGER"],
-    });
+  const canUpdate = isAssignee || requireRole("MANAGER");
 
   if (!canUpdate) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
@@ -637,10 +629,7 @@ export const deleteIssueService = async ({
   }
 
   // Issue削除権限確認
-  const canDelete = checkProjectRole({
-    memberRole: member.role.name,
-    allowedRoles: ["OWNER", "MANAGER"],
-  });
+  const canDelete = requireRole("MANAGER");
 
   if (!canDelete) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
@@ -736,10 +725,7 @@ export const restoreIssueService = async ({
   }
 
   // Issue復元権限確認
-  const canRestore = checkProjectRole({
-    memberRole: member.role.name,
-    allowedRoles: ["OWNER", "MANAGER"],
-  });
+  const canRestore = requireRole("MANAGER");
 
   if (!canRestore) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");

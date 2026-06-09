@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { ProjectRoleName } from "../constants/project.constants.js";
 
 type UserRole = "ADMIN" | "USER";
 
@@ -10,7 +11,7 @@ export interface ProjectMemberPayload {
   id: number;
 
   role: {
-    name: string;
+    name: ProjectRoleName;
   };
 
   project: {
