@@ -11,7 +11,7 @@ type GetUsersQuery = {
  * ユーザー一覧取得
  */
 export const getUsers = async (query: GetUsersQuery) => {
-  const { page, limit, skip, take } = buildPagination({
+  const { skip, take } = buildPagination({
     page: query.page,
     limit: query.limit,
   });
@@ -84,6 +84,13 @@ export const updateUser = async (id: number, name: string) => {
   const user = await prisma.user.update({
     where: { id },
     data: { name },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 
   return user;
