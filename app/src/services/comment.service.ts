@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
 import { checkProjectRole } from "../utils/role-check.js";
+import { requireRole } from "../middlewares/requireRoleMiddleware.js";
 
 export type CreateCommentInput = {
   issueId: number;
@@ -273,10 +274,7 @@ export const deleteCommentService = async ({
   // 削除権限確認
 
   const isAuthor = comment.userId === userId;
-  const canDelete = checkProjectRole({
-    memberRole: member.role.name,
-    allowedRoles: ["MANAGER"],
-  });
+  const canDelete = requireRole("MANAGER");
 
   if (!isAuthor && !canDelete) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
