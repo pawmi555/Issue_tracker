@@ -579,6 +579,27 @@ where: {
 
 - ADMINのみ
 
+#### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@example.com",
+      "role": {
+        "id": 1,
+        "name": "ADMIN",
+        "label": "管理者"
+      },
+      "createdAt": "2026-06-04T11:30:59.329Z"
+    }
+  ]
+}
+```
+
 ---
 
 ### 7.2.2 ユーザー詳細
@@ -588,6 +609,24 @@ where: {
 #### 制約
 
 - 自分 or ADMINのみ
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "name": "Test User",
+    "email": "user@example.com",
+    "role": {
+      "id": 2,
+      "name": "USER",
+      "label": "一般ユーザー"
+    }
+  }
+}
+```
 
 ---
 
@@ -599,12 +638,18 @@ where: {
 
 - 自分 or ADMINのみ
 
-#### Request
+#### Response
 
 ```json
 {
-  "email": "new@test.com",
-  "name": "New Name"
+  "success": true,
+  "data": {
+    "id": 3,
+    "name": "New Name",
+    "email": "new@test.com",
+    "createdAt": "2026-05-01T10:00:00.000Z",
+    "updatedAt": "2026-06-09T06:40:16.979Z"
+  }
 }
 ```
 
@@ -618,6 +663,10 @@ where: {
 
 - 論理削除
 - ADMINのみ
+
+#### Response
+
+204 No Content
 
 ---
 
@@ -696,6 +745,10 @@ where: {
 
 - OWNER
 
+#### Response
+
+204 No Content
+
 ---
 
 ## 7.4. Project Member API
@@ -756,8 +809,12 @@ where: {
 
 #### 制約
 
-- OWNER以上
+- OWNER
 - 論理削除
+
+#### Response
+
+204 No Content
 
 ---
 
@@ -864,6 +921,10 @@ where: {
 - 論理削除
 - MANAGER以上
 
+#### Response
+
+204 No Content
+
 ---
 
 ### 7.5.6 Issue復元
@@ -939,6 +1000,10 @@ where: {
 
 - 投稿者 or MANAGER以上
 - 論理削除
+
+#### Response
+
+204 No Content
 
 ---
 
