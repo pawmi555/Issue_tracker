@@ -11,10 +11,7 @@ import {
 
 import { createIssueSchema } from "../validators/issue.validation.js";
 
-export const createIssueController = async (
-  req: AuthRequest,
-  res: Response,
-) => {
+export const createIssue = async (req: AuthRequest, res: Response) => {
   const projectId = Number(req.params.projectId);
   const data = createIssueSchema.parse(req.body);
   const issue = await createIssueService({
@@ -29,7 +26,7 @@ export const createIssueController = async (
   });
 };
 
-export const getIssuesController = async (req: AuthRequest, res: Response) => {
+export const getIssues = async (req: AuthRequest, res: Response) => {
   const projectId = Number(req.params.projectId);
   const userId = req.user!.id;
   const query = req.query;
@@ -45,10 +42,7 @@ export const getIssuesController = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const updateIssueController = async (
-  req: AuthRequest,
-  res: Response,
-) => {
+export const updateIssue = async (req: AuthRequest, res: Response) => {
   const issueId = Number(req.params.id);
 
   const issue = await updateIssueService({
@@ -63,10 +57,7 @@ export const updateIssueController = async (
   });
 };
 
-export const getIssueDetailController = async (
-  req: AuthRequest,
-  res: Response,
-) => {
+export const getIssueDetail = async (req: AuthRequest, res: Response) => {
   const issue = await getIssueDetailService({
     issueId: Number(req.params.id),
     userId: req.user!.id,
@@ -80,24 +71,16 @@ export const getIssueDetailController = async (
   });
 };
 
-export const deleteIssueController = async (
-  req: AuthRequest,
-  res: Response,
-) => {
+export const deleteIssue = async (req: AuthRequest, res: Response) => {
   await deleteIssueService({
     issueId: Number(req.params.id),
     userId: req.user!.id,
   });
 
-  res.status(200).json({
-    success: true,
-  });
+  res.sendStatus(204);
 };
 
-export const restoreIssueController = async (
-  req: AuthRequest,
-  res: Response,
-) => {
+export const restoreIssue = async (req: AuthRequest, res: Response) => {
   await restoreIssueService({
     issueId: Number(req.params.id),
     userId: req.user!.id,

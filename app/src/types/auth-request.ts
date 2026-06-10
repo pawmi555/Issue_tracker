@@ -1,8 +1,6 @@
 import { Request } from "express";
 import { ProjectRoleName } from "../constants/project.constants.js";
 
-type UserRole = "ADMIN" | "USER";
-
 export interface JwtUser {
   id: number;
 }
@@ -20,10 +18,21 @@ export interface ProjectMemberPayload {
   };
 }
 
+/**
+ * JWT認証後のユーザー情報を保持するRequest
+ *
+ * 認証ミドルウェアで req.user が設定される
+ */
 export interface AuthRequest extends Request {
   user?: JwtUser;
 }
 
+/**
+ * プロジェクト権限チェック後のRequest
+ *
+ * projectMemberには対象プロジェクトにおける
+ * ユーザーのロール情報が格納される
+ */
 export interface ProjectRequest extends AuthRequest {
   projectMember?: ProjectMemberPayload;
 }

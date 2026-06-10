@@ -3,12 +3,12 @@ import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {
-  createIssueController,
-  getIssuesController,
-  updateIssueController,
-  getIssueDetailController,
-  deleteIssueController,
-  restoreIssueController,
+  createIssue,
+  getIssues,
+  updateIssue,
+  getIssueDetail,
+  deleteIssue,
+  restoreIssue,
 } from "../controllers/issue.controller.js";
 import {
   createIssueSchema,
@@ -24,21 +24,21 @@ router.post(
   "/projects/:projectId/issues",
   authMiddleware,
   validate({ body: createIssueSchema }),
-  asyncHandler(createIssueController),
+  asyncHandler(createIssue),
 );
 
 router.get(
   "/projects/:projectId/issues",
   authMiddleware,
   validate({ query: getIssuesQuerySchema }),
-  asyncHandler(getIssuesController),
+  asyncHandler(getIssues),
 );
 
 router.patch(
   "/issues/:id",
   authMiddleware,
   validate({ body: updateIssueSchema }),
-  asyncHandler(updateIssueController),
+  asyncHandler(updateIssue),
 );
 
 router.get(
@@ -48,7 +48,7 @@ router.get(
     params: issueIdSchema,
     query: getIssueQuerySchema,
   }),
-  asyncHandler(getIssueDetailController),
+  asyncHandler(getIssueDetail),
 );
 
 router.delete(
@@ -57,7 +57,7 @@ router.delete(
   validate({
     params: issueIdSchema,
   }),
-  asyncHandler(deleteIssueController),
+  asyncHandler(deleteIssue),
 );
 
 router.post(
@@ -66,7 +66,7 @@ router.post(
   validate({
     params: issueIdSchema,
   }),
-  asyncHandler(restoreIssueController),
+  asyncHandler(restoreIssue),
 );
 
 export default router;

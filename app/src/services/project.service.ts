@@ -237,7 +237,7 @@ export const getProjectDatailService = async (id: number, userId: number) => {
 /**
  * Project更新
  */
-export const updateProjectDatailService = async (
+export const updateProjectService = async (
   id: number,
   name: string,
   description?: string,
