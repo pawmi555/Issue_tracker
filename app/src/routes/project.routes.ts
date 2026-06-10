@@ -4,8 +4,8 @@ import {
   createProject,
   getProjects,
   getProjectDatail,
-  updateProjectDatail,
-  deleteProjectDatail,
+  updateProject,
+  deleteProject,
   addMember,
   getMembers,
   authorityChange,
@@ -40,13 +40,13 @@ router.patch(
   "/:id",
   projectRoleMiddleware("MANAGER"),
   validate({ body: updateProjectSchema }),
-  asyncHandler(updateProjectDatail),
+  asyncHandler(updateProject),
 );
 
 router.delete(
   "/:id",
   projectRoleMiddleware("OWNER"),
-  asyncHandler(deleteProjectDatail),
+  asyncHandler(deleteProject),
 );
 
 router.post(
