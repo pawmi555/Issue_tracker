@@ -4,7 +4,7 @@ import {
   createProjectService,
   getProjectsService,
   getProjectDatailService,
-  updateProjectDatailService,
+  updateProjectService,
   deleteProjectService,
   addMemberService,
   getMemberService,
@@ -16,10 +16,7 @@ import {
   getProjectsSchema,
 } from "../validators/project.validator.js";
 
-export const createProjectController = async (
-  req: ProjectRequest,
-  res: Response,
-) => {
+export const createProject = async (req: ProjectRequest, res: Response) => {
   console.log("controller start");
   const { name, description } = req.body;
   const userId = req.user!.id;
@@ -36,10 +33,7 @@ export const createProjectController = async (
   });
 };
 
-export const getProjectsController = async (
-  req: ProjectRequest,
-  res: Response,
-) => {
+export const getProjects = async (req: ProjectRequest, res: Response) => {
   const userId = req.user!.id;
   const query = getProjectsSchema.parse(req.query);
   const result = await getProjectsService({ userId, query });
@@ -50,10 +44,7 @@ export const getProjectsController = async (
   });
 };
 
-export const getProjectDatailController = async (
-  req: ProjectRequest,
-  res: Response,
-) => {
+export const getProjectDatail = async (req: ProjectRequest, res: Response) => {
   const userId = req.user!.id;
   const id = Number(req.params.id);
   const project = await getProjectDatailService(id, userId);
@@ -64,13 +55,10 @@ export const getProjectDatailController = async (
   });
 };
 
-export const updateProjectDatailController = async (
-  req: ProjectRequest,
-  res: Response,
-) => {
+export const updateProject = async (req: ProjectRequest, res: Response) => {
   const id = Number(req.params.id);
   const { name, description } = req.body;
-  const project = await updateProjectDatailService(id, name, description);
+  const project = await updateProjectService(id, name, description);
 
   res.json({
     success: true,
@@ -78,22 +66,14 @@ export const updateProjectDatailController = async (
   });
 };
 
-export const deleteProjectDatailController = async (
-  req: ProjectRequest,
-  res: Response,
-) => {
+export const deleteProject = async (req: ProjectRequest, res: Response) => {
   const id = Number(req.params.id);
   await deleteProjectService(id);
 
-  res.status(200).json({
-    success: true,
-  });
+  res.sendStatus(204);
 };
 
-export const addMemberController = async (
-  req: ProjectRequest,
-  res: Response,
-) => {
+export const addMember = async (req: ProjectRequest, res: Response) => {
   const { userId, role } = req.body;
   const projectId = Number(req.params.id);
   const project = await addMemberService(projectId, userId, role);
@@ -104,10 +84,7 @@ export const addMemberController = async (
   });
 };
 
-export const getMembersController = async (
-  req: ProjectRequest,
-  res: Response,
-) => {
+export const getMembers = async (req: ProjectRequest, res: Response) => {
   const projectId = Number(req.params.id);
   const project = await getMemberService(projectId);
 
@@ -117,10 +94,7 @@ export const getMembersController = async (
   });
 };
 
-export const authorityChangeController = async (
-  req: ProjectRequest,
-  res: Response,
-) => {
+export const authorityChange = async (req: ProjectRequest, res: Response) => {
   const { role } = updateMemberRoleSchema.parse(req.body);
   const userId = Number(req.params.userId);
   const projectId = Number(req.params.id);
@@ -133,17 +107,11 @@ export const authorityChangeController = async (
   });
 };
 
-export const removeMemberController = async (
-  req: ProjectRequest,
-  res: Response,
-) => {
+export const removeMember = async (req: ProjectRequest, res: Response) => {
   const userId = Number(req.params.userId);
   const projectId = Number(req.params.id);
 
-  const project = await removeMemberService(projectId, userId);
+  await removeMemberService(projectId, userId);
 
-  res.status(200).json({
-    success: true,
-    data: project,
-  });
+  res.sendStatus(204);
 };

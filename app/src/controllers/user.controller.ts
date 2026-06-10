@@ -1,9 +1,13 @@
 import { Request, Response } from "express";
-import * as userService from "../services/user.service.js";
-import { AuthRequest } from "../types/auth-request.js";
+import {
+  getUsersService,
+  getUserByIdService,
+  updateUserService,
+  deleteUserService,
+} from "../services/user.service.js";
 
-export const getUsers = async (req: AuthRequest, res: Response) => {
-  const users = await userService.getUsers(req.query);
+export const getUsers = async (req: Request, res: Response) => {
+  const users = await getUsersService(req.query);
 
   res.status(200).json({
     success: true,
@@ -13,7 +17,7 @@ export const getUsers = async (req: AuthRequest, res: Response) => {
 
 export const getUserById = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
-  const user = await userService.getUserById(id);
+  const user = await getUserByIdService(id);
 
   res.status(200).json({
     success: true,
@@ -24,7 +28,7 @@ export const getUserById = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   const { name } = req.body;
-  const user = await userService.updateUser(id, name);
+  const user = await updateUserService(id, name);
 
   res.json({
     success: true,
@@ -34,7 +38,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
 export const deleteUser = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
-  await userService.deleteUser(id);
+  await deleteUserService(id);
 
   res.sendStatus(204);
 };

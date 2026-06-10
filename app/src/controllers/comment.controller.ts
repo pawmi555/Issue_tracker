@@ -12,10 +12,7 @@ import {
   updateCommentSchema,
 } from "../validators/comment.validators.js";
 
-export const createCommentController = async (
-  req: AuthRequest,
-  res: Response,
-) => {
+export const createComment = async (req: AuthRequest, res: Response) => {
   const issueId = Number(req.params.id);
   const data = createCommentSchema.parse(req.body);
   const comment = await createCommentsService({
@@ -30,10 +27,7 @@ export const createCommentController = async (
   });
 };
 
-export const getCommentsController = async (
-  req: AuthRequest,
-  res: Response,
-) => {
+export const getComments = async (req: AuthRequest, res: Response) => {
   const issueId = Number(req.params.id);
   const query = getCommentsSchema.parse(req.query);
 
@@ -49,10 +43,7 @@ export const getCommentsController = async (
   });
 };
 
-export const updateCommentController = async (
-  req: AuthRequest,
-  res: Response,
-) => {
+export const updateComment = async (req: AuthRequest, res: Response) => {
   const commentId = Number(req.params.id);
 
   const data = updateCommentSchema.parse(req.body);
@@ -69,10 +60,7 @@ export const updateCommentController = async (
   });
 };
 
-export const deleteCommentController = async (
-  req: AuthRequest,
-  res: Response,
-) => {
+export const deleteComment = async (req: AuthRequest, res: Response) => {
   const commentId = Number(req.params.id);
 
   await deleteCommentService({
@@ -80,7 +68,5 @@ export const deleteCommentController = async (
     userId: req.user!.id,
   });
 
-  res.status(200).json({
-    success: true,
-  });
+  res.sendStatus(204);
 };

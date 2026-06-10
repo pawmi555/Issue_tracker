@@ -10,7 +10,7 @@ type GetUsersQuery = {
 /**
  * ユーザー一覧取得
  */
-export const getUsers = async (query: GetUsersQuery) => {
+export const getUsersService = async (query: GetUsersQuery) => {
   const { skip, take } = buildPagination({
     page: query.page,
     limit: query.limit,
@@ -34,7 +34,7 @@ export const getUsers = async (query: GetUsersQuery) => {
 /**
  * ユーザー詳細取得
  */
-export const getUserById = async (id: number) => {
+export const getUserByIdService = async (id: number) => {
   if (Number.isNaN(id)) {
     throw new AppError("invalid user id", 400, "INVALID_USER_ID");
   }
@@ -62,7 +62,7 @@ export const getUserById = async (id: number) => {
 /**
  * ユーザー更新
  */
-export const updateUser = async (id: number, name: string) => {
+export const updateUserService = async (id: number, name: string) => {
   if (Number.isNaN(id)) {
     throw new AppError("invalid user id", 400, "INVALID_USER_ID");
   }
@@ -99,7 +99,7 @@ export const updateUser = async (id: number, name: string) => {
 /**
  * ユーザー削除
  */
-export const deleteUser = async (id: number) => {
+export const deleteUserService = async (id: number) => {
   if (Number.isNaN(id)) {
     throw new AppError("invalid user id", 400, "INVALID_USER_ID");
   }
