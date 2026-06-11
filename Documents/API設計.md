@@ -399,7 +399,6 @@ where: {
 
 以下はトランザクション必須：
 
-- Project作成（project + member）
 - Project更新（履歴作成含む）
 - Issue更新（履歴作成含む）
 - Comment更新（履歴作成含む）
@@ -680,11 +679,7 @@ where: {
 
 - ownerId = ログインユーザー
 - Project作成時に、作成者をProjectMemberへOWNER権限で自動追加
-- OWNERは最低1人必要
-- 最後のOWNER削除禁止
 - 同一ユーザー内で project.name は一意
-- トランザクション必須
-- 論理削除済みProjectは対象外
 
 #### Request
 
@@ -692,6 +687,22 @@ where: {
 {
   "name": "Issue Tracker",
   "description": "社内管理ツール"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "ownerId": 1,
+    "name": "Issue Tracker",
+    "description": "社内管理ツール",
+    "createdAt": "2026-06-10T05:18:59.669Z",
+    "updatedAt": "2026-06-10T05:18:59.669Z"
+  }
 }
 ```
 
@@ -705,6 +716,55 @@ where: {
 
 - 自分が所属するプロジェクトのみ
 
+#### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 5,
+      "ownerId": 1,
+      "name": "sample application",
+      "description": "Sample project",
+      "createdAt": "2026-06-10T13:06:41.080Z",
+      "updatedAt": "2026-06-10T13:06:41.080Z",
+      "owner": {
+        "id": 1,
+        "name": "Admin User",
+        "email": "admin@example.com"
+      },
+      "_count": {
+        "members": 1,
+        "issues": 0
+      }
+    },
+    {
+      "id": 1,
+      "ownerId": 1,
+      "name": "Issue Tracker",
+      "description": "Sample project",
+      "createdAt": "2026-06-10T11:05:56.661Z",
+      "updatedAt": "2026-06-10T11:05:56.661Z",
+      "owner": {
+        "id": 1,
+        "name": "Admin User",
+        "email": "admin@example.com"
+      },
+      "_count": {
+        "members": 2,
+        "issues": 1
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 2
+  }
+}
+```
+
 ---
 
 ### 7.3.3 プロジェクト詳細
@@ -715,6 +775,30 @@ where: {
 
 - メンバーのみ
 
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "ownerId": 1,
+    "name": "Issue Tracker",
+    "description": "Sample project",
+    "createdAt": "...",
+    "updatedAt": "...",
+    "owner": {
+      "id": 1,
+      "name": "Admin User"
+    },
+    "_count": {
+      "members": 2,
+      "issues": 1
+    }
+  }
+}
+```
+
 ---
 
 ### 7.3.4 プロジェクト更新
@@ -724,14 +808,41 @@ where: {
 #### 制約
 
 - MANAGER以上
-- 更新時はProjectHistory作成
+- Project作成履歴を作成
 - トランザクション必須
+
+#### 更新可能項目
+
+- name
+- description
+
+#### 更新不可項目
+
+- id
+- ownerId
+- createdAt
 
 #### Request
 
 ```json
 {
   "name": "Updated Project"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "ownerId": 1,
+    "name": "sample application",
+    "description": "updated",
+    "createdAt": "2026-06-11T06:35:31.672Z",
+    "updatedAt": "2026-06-11T06:35:40.013Z"
+  }
 }
 ```
 
@@ -743,7 +854,8 @@ where: {
 
 #### 制約
 
-- OWNER
+- OWNERのみ
+- 論理削除
 
 #### Response
 
@@ -760,9 +872,9 @@ where: {
 #### 制約
 
 - userは存在必須
-- project所属チェック
+- ログインユーザーが対象ProjectのMANAGER以上であること
+- 追加対象ユーザーは未所属であること
 - UNIQUE(projectId, userId)
-- MANAGER以上
 
 #### Request
 
@@ -770,6 +882,30 @@ where: {
 {
   "userId": 3,
   "role": "MEMBER"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 7,
+    "userId": 3,
+    "projectId": 1,
+    "role": {
+      "id": 3,
+      "name": "MEMBER"
+    },
+    "createdAt": "2026-06-11T06:50:51.435Z",
+    "updatedAt": "2026-06-11T06:50:51.435Z",
+    "user": {
+      "id": 3,
+      "name": "test",
+      "email": "test@example.com"
+    }
+  }
 }
 ```
 
@@ -781,7 +917,38 @@ where: {
 
 #### 制約
 
-- MANAGER以上
+- ログインユーザーが対象ProjectのMANAGER以上であること
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "userId": 1,
+      "projectId": 1,
+      "createdAt": "2026-06-10T11:05:56.661Z",
+      "updatedAt": "2026-06-10T11:05:56.661Z",
+      "user": {
+        "id": 1,
+        "name": "Admin User",
+        "email": "admin@example.com"
+      },
+      "role": {
+        "id": 1,
+        "name": "OWNER"
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 1
+  }
+}
+```
 
 ---
 
@@ -791,13 +958,40 @@ where: {
 
 #### 制約
 
-- MANAGER以上
+- OWNERは最低1人必要
+- 最後のOWNER降格禁止
+- OWNER権限付与はOWNERのみ
+- ログインユーザーが対象ProjectのMANAGER以上であること
 
 #### Request
 
 ```json
 {
   "role": "MEMBER"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 7,
+    "userId": 3,
+    "projectId": 1,
+    "createdAt": "2026-06-11T06:50:51.435Z",
+    "updatedAt": "2026-06-11T06:52:34.266Z",
+    "role": {
+      "id": 3,
+      "name": "MEMBER"
+    },
+    "user": {
+      "id": 3,
+      "name": "test",
+      "email": "test@example.com"
+    }
+  }
 }
 ```
 
@@ -809,8 +1003,11 @@ where: {
 
 #### 制約
 
-- OWNER
-- 論理削除
+- ログインユーザーが対象ProjectのMANAGER以上であること
+- OWNERメンバーの削除はOWNERのみ可能
+- OWNERは最低1人必要
+- 最後のOWNER削除禁止
+- 物理削除
 
 #### Response
 
