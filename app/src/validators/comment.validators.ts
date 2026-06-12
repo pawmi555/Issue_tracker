@@ -4,19 +4,54 @@ export const createCommentSchema = z.object({
   content: z
     .string()
     .trim()
-    .min(1, "content is required")
-    .max(1000, "content must be 1000 characters or less"),
+    .min(1, {
+      error: "コメントを入力してください",
+    })
+    .max(1000, {
+      error: "コメントは1000文字以内で入力してください",
+    }),
 });
 
 export type CreateCommentSchema = z.infer<typeof createCommentSchema>;
 
 export const getCommentsSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  page: z.coerce
+    .number({
+      error: "ページ番号は数値で入力してください",
+    })
+    .int({
+      error: "ページ番号は整数で入力してください",
+    })
+    .min(1, {
+      error: "ページ番号は1以上を指定してください",
+    })
+    .default(1),
+  limit: z.coerce
+    .number({
+      error: "取得件数は数値で入力してください",
+    })
+    .int({
+      error: "取得件数は整数で入力してください",
+    })
+    .min(1, {
+      error: "取得件数は1以上を指定してください",
+    })
+    .max(1000, {
+      error: "取得件数は100件以下で指定してください",
+    })
+    .default(20),
 });
 
 export const updateCommentSchema = z.object({
-  content: z.string().trim().min(1).max(1000),
+  content: z
+    .string()
+    .trim()
+    .min(1, {
+      error: "コメントを入力してください",
+    })
+    .max(1000, {
+      error: "コメントは1000文字以内で入力してください",
+    }),
 });
 
 export type UpdateCommentSchema = z.infer<typeof updateCommentSchema>;

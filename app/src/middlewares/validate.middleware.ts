@@ -39,7 +39,8 @@ export const validate =
         return res.status(422).json({
           success: false,
           code: "VALIDATION_ERROR",
-          message: error.issues[0]?.message ?? "Validation error",
+          message: "入力内容が不正です",
+          errors: error.issues,
         });
       }
 

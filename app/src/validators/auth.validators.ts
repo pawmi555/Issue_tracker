@@ -1,7 +1,19 @@
 import { z } from "zod";
 
 export const authRegisterSchema = z.object({
-  name: z.string().min(1).max(50),
-  email: z.string().email(),
-  password: z.string().min(8),
+  name: z
+    .string()
+    .trim()
+    .min(1, {
+      error: "名前を入力してください",
+    })
+    .max(50, {
+      error: "名前は50文字以内で入力してください",
+    }),
+  email: z.email({
+    error: "メール形式が不正です",
+  }),
+  password: z.string().min(8, {
+    error: "パスワードは8文字以上入力してください",
+  }),
 });
