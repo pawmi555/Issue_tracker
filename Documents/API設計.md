@@ -40,6 +40,29 @@ Issue管理システムのREST API設計書。
 Authorization: Bearer <access_token>
 ```
 
+### Token保存方針
+
+#### Access Token
+
+- Response Body返却
+- クライアントメモリ保持
+- Authorization Header送信
+
+#### Refresh Token
+
+- HttpOnly Cookie保存
+- Token Rotation採用
+- Cookie設定は「Cookie Policy」に従う
+
+### Cookie Policy
+
+- Cookie名: refresh_token
+- HttpOnly=true
+- Secure=true（production）
+- Secure=false（development）
+- SameSite=Lax
+- Path=/
+
 ---
 
 ## 共通レスポンス
@@ -55,6 +78,34 @@ Authorization: Bearer <access_token>
 
 ### 失敗
 
+#### VALIDATION_ERROR（422）
+
+errors:
+
+- VALIDATION_ERROR時のみ返却
+- fieldはRequest BodyのJSON Path
+- 順序は入力順
+
+```json
+{
+  "success": false,
+  "code": "VALIDATION_ERROR",
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "email",
+      "message": "メール形式が不正です"
+    },
+    {
+      "field": "password",
+      "message": "8文字以上必要です"
+    }
+  ]
+}
+```
+
+#### その他エラー
+
 ```json
 {
   "success": false,
@@ -63,25 +114,28 @@ Authorization: Bearer <access_token>
 }
 ```
 
-#### エラーコードルール
+---
 
-##### 形式
+## エラーコードルール
+
+#### 形式
 
 RESOURCE_REASON
 
-##### 例
+#### 例
 
-| code                  | status | 内容                       |
-| --------------------- | ------ | -------------------------- |
-| USER_NOT_FOUND        | 404    | ユーザー不存在             |
-| PROJECT_NOT_FOUND     | 404    | プロジェクト不存在         |
-| PROJECT_FORBIDDEN     | 403    | プロジェクト権限なし       |
-| ISSUE_NOT_FOUND       | 404    | Issue不存在                |
-| COMMENT_NOT_FOUND     | 404    | コメント不存在             |
-| ISSUE_CLOSED          | 409    | クローズ済みのため更新不可 |
-| INVALID_REFRESH_TOKEN | 401    | 無効または失効したトークン |
-| VALIDATION_ERROR      | 422    | 入力エラー                 |
-| UNAUTHORIZED          | 401    | 未認証                     |
+| code                     | status | 内容                       |
+| ------------------------ | ------ | -------------------------- |
+| USER_NOT_FOUND           | 404    | ユーザー不存在             |
+| PROJECT_NOT_FOUND        | 404    | プロジェクト不存在         |
+| PROJECT_FORBIDDEN        | 403    | プロジェクト権限なし       |
+| ISSUE_NOT_FOUND          | 404    | Issue不存在                |
+| COMMENT_NOT_FOUND        | 404    | コメント不存在             |
+| ISSUE_CLOSED             | 409    | クローズ済みのため更新不可 |
+| INVALID_REFRESH_TOKEN    | 401    | 無効または失効したトークン |
+| VALIDATION_ERROR         | 422    | 入力エラー                 |
+| UNAUTHORIZED             | 401    | 未認証                     |
+| ISSUE_INVALID_TRANSITION | 409    | 許可されない状態遷移       |
 
 ---
 
@@ -108,6 +162,7 @@ RESOURCE_REASON
 
 ```json
 {
+  "success": true,
   "data": [],
   "meta": {
     "page": 1,
@@ -117,7 +172,7 @@ RESOURCE_REASON
 }
 ```
 
-制約:
+#### 制約
 
 - limit 最大100
 
@@ -143,7 +198,7 @@ RESOURCE_REASON
 
 #### 対象API
 
-- GET /issues
+- GET /projects/:projectId/issues
 - GET /issues/:id
 
 ```http
@@ -312,6 +367,8 @@ RESOURCE_REASON
 - userId
 - createdAt
 
+---
+
 ### IssueHistory
 
 Issue変更履歴を保持する。
@@ -354,15 +411,35 @@ Issue変更履歴を保持する。
 
 ---
 
-## ソフトデリート
+## 論理削除
+
+### 対象リソース
+
+- User
+- Project
+- Issue
+- Comment
+
+### Query Parameter
 
 ```http
-?includeDeleted=true/false
+?includeDeleted=true
 ```
 
-#### 制約
+### 制約
 
-- 明示的に指定しない限り表示しない
+- 明示的に指定しない限り`deletedAt = null`のデータのみ返却する
+- `includeDeleted=true`指定時は、削除済・未削除を区別せず返却する
+- 削除済データのみ取得する用途はサポートしない
+- includeDeletedは対象リソースのみに適用する（関連リソースへ伝播しない）
+- 親リソースが論理削除済の場合、その子リソースは参照不可
+- 詳細取得APIは`includeDeleted=true`指定時のみ削除済データ取得可能
+- 履歴（History）は監査目的のためSoft Delete対象外
+- UserリソースのincludeDeleted利用はADMINのみ許可
+- Project/Issue/CommentはMANAGER以上のみ利用可能
+- Paginationの `total` は取得対象条件適用後の件数を返却
+
+### 一覧取得（デフォルト）
 
 ```ts
 where: {
@@ -372,6 +449,41 @@ where: {
   }
 }
 ```
+
+### 一覧取得（includeDeleted=true）
+
+```ts
+where: {
+}
+```
+
+### 詳細取得
+
+```ts
+// includeDeleted未指定
+where: {
+  id,
+  deletedAt: null
+}
+
+// includeDeleted=true
+where: {
+  id
+}
+```
+
+### API適用範囲
+
+| API                      | includeDeleted | 権限制御    |
+| ------------------------ | -------------- | ----------- |
+| GET /projects            | ○              | OWNER以上   |
+| GET /projects/:id        | ○              | MEMBER以上  |
+| GET /projects/:id/issues | ○              | MANAGER以上 |
+| GET /issues/:id          | ○              | MEMBER以上  |
+| GET /issues/:id/comments | ○              | MEMBER以上  |
+| GET /users               | ○              | ADMIN       |
+| GET /histories           | ×              | 非対応      |
+|                          |                |             |
 
 ---
 
@@ -399,6 +511,7 @@ where: {
 
 以下はトランザクション必須：
 
+- User更新（履歴作成含む）
 - Project更新（履歴作成含む）
 - Issue更新（履歴作成含む）
 - Comment更新（履歴作成含む）
@@ -468,11 +581,14 @@ where: {
       "name": "Admin User",
       "email": "admin@example.com"
     },
-    "accessToken": "jwt...",
-    "refreshToken": "jwt..."
+    "accessToken": "jwt..."
   }
 }
 ```
+
+#### Response Cookie
+
+共通仕様「Cookie Policy」に従い、refresh_token を発行する
 
 ---
 
@@ -489,25 +605,31 @@ where: {
 - replacedByTokenでトークンチェーンを保持
 - 失効済みTokenの再利用を検知した場合は全Refresh Tokenをrevoke
 
-#### Request
+#### Request Cookie
 
-```json
-{
-  "refreshToken": "jwt..."
-}
+共通仕様「Cookie Policy」に従う
+
+```http
+Cookie:
+refresh_token=xxx
 ```
 
 #### Response
+
+新しいAccess Tokenを返却する（Refresh TokenはResponse Cookieで更新）
 
 ```json
 {
   "success": true,
   "data": {
-    "accessToken": "jwt",
-    "refreshToken": "jwt"
+    "accessToken": "jwt"
   }
 }
 ```
+
+### Response Cookie
+
+共通仕様「Cookie Policy」に従い、refresh_token を更新する
 
 ---
 
@@ -518,22 +640,26 @@ where: {
 #### 制約
 
 - RefreshToken revoke
+- 既に失効済みでも成功扱い（冪等）
 
-#### Request
+#### Request Cookie
 
-```json
-{
-  "refreshToken": "jwt"
-}
+共通仕様「Cookie Policy」に従う
+
+```http
+Cookie:
+refresh_token=xxx
 ```
 
 #### Response
 
-```json
-{
-  "success": true
-}
+```http
+204 No Content
 ```
+
+#### Response Cookie
+
+共通仕様「Cookie Policy」に従い、refresh_token を削除する
 
 ---
 
@@ -544,14 +670,8 @@ where: {
 #### 制約
 
 - 自分の情報のみ取得可能
-
-#### Request
-
-```json
-{
-  "refreshToken": "jwt"
-}
-```
+- Authorization Header必須
+- Access Tokenからログインユーザーを取得
 
 #### Response
 
@@ -637,6 +757,24 @@ where: {
 
 - 自分 or ADMINのみ
 
+#### 更新可能項目
+
+- name
+- email
+
+#### 更新不可項目
+
+- role
+- createdAt
+
+#### Request
+
+```json
+{
+  "name": "New Name"
+}
+```
+
 #### Response
 
 ```json
@@ -665,7 +803,9 @@ where: {
 
 #### Response
 
+```http
 204 No Content
+```
 
 ---
 
@@ -679,7 +819,7 @@ where: {
 
 - ownerId = ログインユーザー
 - Project作成時に、作成者をProjectMemberへOWNER権限で自動追加
-- 同一ユーザー内で project.name は一意
+- 同一ユーザー内でproject.nameは一意
 
 #### Request
 
@@ -838,7 +978,7 @@ where: {
   "data": {
     "id": 1,
     "ownerId": 1,
-    "name": "sample application",
+    "name": "Updated Project",
     "description": "updated",
     "createdAt": "2026-06-11T06:35:31.672Z",
     "updatedAt": "2026-06-11T06:35:40.013Z"
@@ -859,7 +999,9 @@ where: {
 
 #### Response
 
+```http
 204 No Content
+```
 
 ---
 
@@ -1011,7 +1153,9 @@ where: {
 
 #### Response
 
+```http
 204 No Content
+```
 
 ---
 
@@ -1037,6 +1181,22 @@ where: {
   "statusId": 1,
   "assigneeId": 2,
   "dueDate": "2026-05-01"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "title": "...",
+    "status": {
+      "name": "OPEN"
+    },
+    "createdAt": "..."
+  }
 }
 ```
 
@@ -1082,6 +1242,8 @@ where: {
 - assignee or MANAGER以上
 - statusがCLOSEDは更新不可
 - reporterId変更不可
+- status更新時は「Issue状態遷移」に従う
+- 不正な状態遷移は409 Conflictを返却
 
 #### 更新可能項目
 
@@ -1120,7 +1282,9 @@ where: {
 
 #### Response
 
+```http
 204 No Content
+```
 
 ---
 
@@ -1173,13 +1337,13 @@ where: {
 
 ### PATCH `/comments/:id`
 
-#### Request
-
 #### 制約
 
 - 投稿者 or MANAGER以上
 - 更新時はCommentHistory作成
 - トランザクション必須
+
+#### Request
 
 ```json
 {
@@ -1200,7 +1364,9 @@ where: {
 
 #### Response
 
+```http
 204 No Content
+```
 
 ---
 
@@ -1224,6 +1390,10 @@ where: {
       "fieldName": "description",
       "oldValue": "Issue管理システム",
       "newValue": "社内Issue管理システム",
+      "changedBy": {
+        "id": 1,
+        "name": "Admin"
+      },
       "createdAt": "2026-04-26T12:00:00Z"
     }
   ]
@@ -1248,6 +1418,10 @@ where: {
       "fieldName": "status",
       "oldValue": "OPEN",
       "newValue": "DONE",
+      "changedBy": {
+        "id": 1,
+        "name": "Admin"
+      },
       "createdAt": "2026-04-26T12:00:00Z"
     }
   ]
@@ -1274,6 +1448,10 @@ where: {
       "fieldName": "content",
       "oldValue": "調査します",
       "newValue": "調査完了しました",
+      "changedBy": {
+        "id": 1,
+        "name": "Admin"
+      },
       "createdAt": "2026-04-26T12:00:00Z"
     }
   ]
@@ -1337,7 +1515,7 @@ https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation
 - 実務運用前提
 - JWT + RefreshToken Rotation採用
 - RBAC採用
-- SoftDelete採用
+- 論理削除採用
 - Issue変更履歴管理
 - Comment変更履歴管理
 - 状態遷移制御
