@@ -75,6 +75,22 @@ model HistoryAction {
 
 //
 // =======================
+// Enum
+// =======================
+//
+enum HistoryField {
+  TITLE
+  DESCRIPTION
+  STATUS
+  PRIORITY
+  ASSIGNEE
+  DUE_DATE
+  CONTENT
+  DELETED_AT
+}
+
+//
+// =======================
 // User
 // =======================
 //
@@ -245,7 +261,7 @@ model ProjectHistory {
 
   actionId Int
 
-  fieldName String
+  fieldName HistoryField
   oldValue  Json?
   newValue  Json?
 
@@ -272,7 +288,7 @@ model IssueHistory {
 
   actionId Int
 
-  fieldName String
+  fieldName HistoryField
   oldValue  Json?
   newValue  Json?
 
@@ -299,7 +315,7 @@ model CommentHistory {
 
   actionId Int
 
-  fieldName String
+  fieldName HistoryField
   oldValue  Json?
   newValue  Json?
 
