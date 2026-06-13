@@ -150,7 +150,7 @@ RESOURCE_REASON
 | 401  | 未認証               |
 | 403  | 権限なし             |
 | 404  | データなし           |
-| 409  | 重複                 |
+| 409  | リソース競合         |
 | 422  | バリデーションエラー |
 | 500  | サーバーエラー       |
 
@@ -350,6 +350,16 @@ RESOURCE_REASON
 
 ---
 
+### HistoryAction
+
+| name    |
+| ------- |
+| UPDATE  |
+| DELETE  |
+| RESTORE |
+
+---
+
 ### ProjectHistory
 
 プロジェクト変更履歴を保持する。
@@ -359,13 +369,18 @@ RESOURCE_REASON
 - name
 - description
 
-#### 保存内容
+#### 保存内容（DB）
 
+- action
 - fieldName
 - oldValue
 - newValue
-- userId
+- changedById
 - createdAt
+
+#### Response
+
+changedByはUserを参照して返却する
 
 ---
 
@@ -373,7 +388,7 @@ RESOURCE_REASON
 
 Issue変更履歴を保持する。
 
-#### 保存対象
+#### 保存対象（内部保存値）
 
 - title
 - description
@@ -381,15 +396,35 @@ Issue変更履歴を保持する。
 - priorityId
 - assigneeId
 - dueDate
-- deleted
+- deletedAt
 
-#### 保存内容
+#### 保存内容（DB）
 
+- action
 - fieldName
 - oldValue
 - newValue
-- userId
+- changedById
 - createdAt
+
+#### Response
+
+changedByはUserを参照して返却する
+
+#### 表示ルール
+
+履歴は内部値を保存する。
+API返却時は表示用に変換する。
+
+例：
+
+statusId:
+1 → OPEN
+2 → IN_PROGRESS
+
+priorityId:
+1 → LOW
+2 → MEDIUM
 
 ---
 
@@ -401,13 +436,18 @@ Issue変更履歴を保持する。
 
 - content
 
-#### 保存内容
+#### 保存内容（DB）
 
+- action
 - fieldName
 - oldValue
 - newValue
-- userId
+- changedById
 - createdAt
+
+#### Response
+
+changedByはUserを参照して返却する
 
 ---
 
@@ -459,6 +499,9 @@ where: {
 
 ### 詳細取得
 
+対象リソース自身に対してincludeDeletedを適用する。
+親リソースが論理削除済の場合は404扱いとする。
+
 ```ts
 // includeDeleted未指定
 where: {
@@ -468,7 +511,10 @@ where: {
 
 // includeDeleted=true
 where: {
-  id
+  id,
+}
+if (issue.project.deletedAt !== null) {
+  throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
 }
 ```
 
@@ -948,7 +994,7 @@ refresh_token=xxx
 #### 制約
 
 - MANAGER以上
-- Project作成履歴を作成
+- Project変更履歴を作成
 - トランザクション必須
 
 #### 更新可能項目
@@ -1170,6 +1216,8 @@ refresh_token=xxx
 - projectメンバーのみ
 - assigneeはメンバー限定
 - priority/status存在チェック
+- 作成時statusはOPEN固定
+- RequestでstatusId指定不可
 
 #### Request
 
@@ -1178,7 +1226,6 @@ refresh_token=xxx
   "title": "ログインできない",
   "description": "500 error",
   "priorityId": 1,
-  "statusId": 1,
   "assigneeId": 2,
   "dueDate": "2026-05-01"
 }
@@ -1372,6 +1419,12 @@ refresh_token=xxx
 
 ## 7.7 History API
 
+### 共通制約
+
+- createdAt DESC
+- 最新履歴を先頭に返却
+- Pagination適用
+
 ### 7.7.1 Project履歴一覧
 
 ### GET `/projects/:id/histories?page=1&limit=20`
@@ -1387,6 +1440,7 @@ refresh_token=xxx
   "success": true,
   "data": [
     {
+      "action": "UPDATE",
       "fieldName": "description",
       "oldValue": "Issue管理システム",
       "newValue": "社内Issue管理システム",
@@ -1396,7 +1450,12 @@ refresh_token=xxx
       },
       "createdAt": "2026-04-26T12:00:00Z"
     }
-  ]
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 1
+  }
 }
 ```
 
@@ -1415,6 +1474,7 @@ refresh_token=xxx
   "success": true,
   "data": [
     {
+      "action": "UPDATE",
       "fieldName": "status",
       "oldValue": "OPEN",
       "newValue": "DONE",
@@ -1424,7 +1484,12 @@ refresh_token=xxx
       },
       "createdAt": "2026-04-26T12:00:00Z"
     }
-  ]
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 1
+  }
 }
 ```
 
@@ -1445,6 +1510,7 @@ refresh_token=xxx
   "success": true,
   "data": [
     {
+      "action": "UPDATE",
       "fieldName": "content",
       "oldValue": "調査します",
       "newValue": "調査完了しました",
@@ -1454,7 +1520,12 @@ refresh_token=xxx
       },
       "createdAt": "2026-04-26T12:00:00Z"
     }
-  ]
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 1
+  }
 }
 ```
 
