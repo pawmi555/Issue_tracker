@@ -375,7 +375,7 @@ RESOURCE_REASON
 - fieldName
 - oldValue
 - newValue
-- changedById
+- userId
 - createdAt
 
 #### Response
@@ -404,7 +404,7 @@ Issue変更履歴を保持する。
 - fieldName
 - oldValue
 - newValue
-- changedById
+- userId
 - createdAt
 
 #### Response
@@ -442,7 +442,7 @@ priorityId:
 - fieldName
 - oldValue
 - newValue
-- changedById
+- userId
 - createdAt
 
 #### Response
