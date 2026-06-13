@@ -59,6 +59,20 @@ model IssuePriority {
   @@map("issue_priorities")
 }
 
+model HistoryAction {
+  id Int @id @default(autoincrement())
+
+  name String @unique
+  label String
+  sortOrder Int
+
+  projectHistories ProjectHistory[]
+  issueHistories IssueHistory[]
+  commentHistories CommentHistory[]
+
+  @@map("history_actions")
+}
+
 //
 // =======================
 // User
@@ -229,14 +243,17 @@ model ProjectHistory {
   projectId Int
   userId    Int
 
+  actionId Int
+
   fieldName String
   oldValue  Json?
   newValue  Json?
 
   createdAt DateTime @default(now())
 
-  project Project @relation(fields: [projectId], references: [id])
-  user    User    @relation(fields: [userId], references: [id])
+  project Project       @relation(fields: [projectId], references: [id])
+  user    User          @relation(fields: [userId], references: [id])
+  action HistoryAction  @relation(fields:[actionId], references:[id])
 
   @@index([projectId, createdAt])
   @@map("project_histories")
@@ -253,14 +270,17 @@ model IssueHistory {
   issueId   Int
   userId    Int
 
+  actionId Int
+
   fieldName String
   oldValue  Json?
   newValue  Json?
 
   createdAt DateTime @default(now())
 
-  issue     Issue @relation(fields: [issueId], references: [id])
-  user      User  @relation(fields: [userId], references: [id])
+  issue     Issue           @relation(fields: [issueId], references: [id])
+  user      User            @relation(fields: [userId], references: [id])
+  action    HistoryAction   @relation(fields:[actionId], references:[id])
 
   @@index([issueId, createdAt])
   @@map("issue_histories")
@@ -277,14 +297,17 @@ model CommentHistory {
   commentId   Int
   userId    Int
 
+  actionId Int
+
   fieldName String
   oldValue  Json?
   newValue  Json?
 
   createdAt DateTime @default(now())
 
-  comment     Comment @relation(fields: [commentId], references: [id])
-  user      User  @relation(fields: [userId], references: [id])
+  comment     Comment        @relation(fields: [commentId], references: [id])
+  user        User           @relation(fields: [userId], references: [id])
+  action      HistoryAction  @relation(fields:[actionId], references:[id])
 
   @@index([commentId, createdAt])
   @@map("comment_histories")
