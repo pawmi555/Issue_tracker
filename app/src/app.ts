@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth.routes.js";
 import projectRoutes from "./routes/project.routes.js";
 import issueRoutes from "./routes/issue.routes.js";
 import commentRoutes from "./routes/comment.routes.js";
+import historyRoutes from "./routes/history.routes.js";
 
 import { authMiddleware } from "./middlewares/auth.middleware.js";
 import { notFoundMiddleware } from "./middlewares/notFoundMiddleware.js";
@@ -119,6 +120,14 @@ app.use("/api/v1", authMiddleware, issueRoutes);
  * ---------------------------------------------------
  */
 app.use("/api/v1", authMiddleware, commentRoutes);
+
+/**
+ * ---------------------------------------------------
+ * History Routes
+ *
+ * ---------------------------------------------------
+ */
+app.use("/api/v1", authMiddleware, historyRoutes);
 
 /**
  * ---------------------------------------------------

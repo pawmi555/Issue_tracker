@@ -2,7 +2,6 @@ import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
-import { checkProjectRole } from "../utils/role-check.js";
 import { requireRole } from "../middlewares/requireRoleMiddleware.js";
 
 export type CreateCommentInput = {
@@ -195,28 +194,39 @@ export const updateCommentService = async ({
   if (comment.userId !== userId) {
     throw new AppError("comment forbidden", 403, "COMMENT_FORBIDDEN");
   }
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const updatedComment = await tx.comment.update({
+      where: {
+        id: commentId,
+      },
 
-  // 更新処理
-  const updatedComment = await prisma.comment.update({
-    where: {
-      id: commentId,
-    },
+      data: {
+        content,
+      },
 
-    data: {
-      content,
-    },
-
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  return updatedComment;
+    // await tx.commentHistory.create({
+    //   data: {
+    //     commentId,
+    //     userId,
+    //     action: "UPDATE",
+    //     fieldName: "content",
+    //     oldValue: comment.content,
+    //     newValue: content,
+    //   },
+    // });
+
+    return updatedComment;
+  });
 };
 
 /**

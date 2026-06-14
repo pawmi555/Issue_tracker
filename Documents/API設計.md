@@ -1318,6 +1318,35 @@ refresh_token=xxx
 }
 ```
 
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "title": "修正",
+    "description": "Cannot login with test account",
+    "dueDate": null,
+    "status": {
+      "id": 1,
+      "name": "OPEN",
+      "label": "未着手"
+    },
+    "priority": {
+      "id": 3,
+      "name": "HIGH",
+      "label": "高"
+    },
+    "assignee": {
+      "id": 2,
+      "name": "Test User"
+    },
+    "updatedAt": "2026-06-13T13:32:27.151Z"
+  }
+}
+```
+
 ---
 
 ### 7.5.5 Issue削除

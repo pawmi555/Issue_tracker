@@ -23,6 +23,10 @@ import {
 
 import { requireRole } from "../middlewares/requireRoleMiddleware.js";
 
+import { buildIssueHistories } from "../utils/history.utils.js";
+
+import { mapIssueResponse } from "../mappers/issue.mapper.js";
+
 type CreateIssueInput = {
   projectId: number;
   userId: number;
@@ -365,36 +369,42 @@ export const updateIssueService = async ({
   // Issue更新権限確認
   const isAssignee = issue.assigneeId === userId;
 
-  const canUpdate = isAssignee || requireRole("MANAGER");
+  const hasManagerRole = checkProjectRole({
+    memberRole: member.role.name,
+    allowedRoles: ["OWNER", "MANAGER"],
+  });
+
+  const canUpdate = isAssignee || hasManagerRole;
 
   if (!canUpdate) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
 
   // FK存在確認
-  if (data.statusId !== undefined) {
-    const status = await prisma.issueStatus.findUnique({
-      where: {
-        id: data.statusId,
-      },
-    });
+  const [status, priority] = await Promise.all([
+    data.statusId !== undefined
+      ? prisma.issueStatus.findUnique({
+          where: {
+            id: data.statusId,
+          },
+        })
+      : null,
 
-    if (!status) {
-      throw new AppError("invalid status", 400, "INVALID_STATUS");
-    }
+    data.priorityId !== undefined
+      ? prisma.issuePriority.findUnique({
+          where: {
+            id: data.priorityId,
+          },
+        })
+      : null,
+  ]);
+
+  if (data.statusId !== undefined && !status) {
+    throw new AppError("invalid status", 404, "INVALID_STATUS");
   }
 
-  // Priority存在確認
-  if (data.priorityId !== undefined) {
-    const priority = await prisma.issuePriority.findUnique({
-      where: {
-        id: data.priorityId,
-      },
-    });
-
-    if (!priority) {
-      throw new AppError("invalid priority", 404, "INVALID_PRIORITY");
-    }
+  if (data.priorityId !== undefined && !priority) {
+    throw new AppError("invalid priority", 404, "INVALID_PRIORITY");
   }
 
   // Assignee所属確認
@@ -409,80 +419,109 @@ export const updateIssueService = async ({
     });
 
     if (!assignee) {
-      throw new AppError("ASSIGNEE_NOT_PROJECT_MEMBER");
+      throw new AppError(
+        "assignee not project member",
+        400,
+        "ASSIGNEE_NOT_PROJECT_MEMBER",
+      );
     }
-  }
-
-  // 差分抽出
-  const trackedFields = [
-    "title",
-    "description",
-    "statusId",
-    "priorityId",
-    "assigneeId",
-    "dueDate",
-  ] as const;
-
-  const histories: {
-    fieldName: string;
-    oldValue: unknown;
-    newValue: unknown;
-  }[] = [];
-
-  for (const field of trackedFields) {
-    if (!(field in data)) {
-      continue;
-    }
-
-    const oldValue = issue[field];
-    const newValue = data[field];
-    const isChanged = JSON.stringify(oldValue) !== JSON.stringify(newValue);
-
-    if (!isChanged) {
-      continue;
-    }
-
-    histories.push({
-      fieldName: field,
-      oldValue,
-      newValue,
-    });
-  }
-
-  // 差分なしの場合はissue返却
-  if (histories.length === 0) {
-    return issue;
   }
 
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const updatedIssue = await tx.issue.update({
+    // 更新前Issue取得
+    const issue = await tx.issue.findUniqueOrThrow({
       where: {
         id: issueId,
       },
 
-      data: {
-        ...data,
-      },
-
-      include: {
-        status: true,
-        priority: true,
-        assignee: true,
-        reporter: true,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        dueDate: true,
+        assigneeId: true,
+        statusId: true,
+        priorityId: true,
+        updatedAt: true,
       },
     });
+
+    const HISTORY_ACTION_UPDATE = 1;
+
+    // レスポンス定義
+    const issueResponseSelect = {
+      id: true,
+      title: true,
+      description: true,
+      dueDate: true,
+      updatedAt: true,
+
+      status: {
+        select: {
+          id: true,
+          name: true,
+          label: true,
+        },
+      },
+
+      priority: {
+        select: {
+          id: true,
+          name: true,
+          label: true,
+        },
+      },
+
+      assignee: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    } satisfies Prisma.IssueSelect;
+
+    // 履歴生成
+    const histories = buildIssueHistories({
+      before: {
+        title: issue.title,
+        description: issue.description,
+        statusId: issue.statusId,
+        priorityId: issue.priorityId,
+        assigneeId: issue.assigneeId,
+        dueDate: issue.dueDate,
+      },
+
+      after: data,
+      issueId,
+      userId,
+      actionId: HISTORY_ACTION_UPDATE,
+    });
+
+    // 差分なし
+    if (histories.length === 0) {
+      const current = await tx.issue.findUniqueOrThrow({
+        where: {
+          id: issueId,
+        },
+        select: issueResponseSelect,
+      });
+
+      return mapIssueResponse(current);
+    }
 
     await tx.issueHistory.createMany({
-      data: histories.map((history) => ({
-        issueId,
-        userId,
-        fieldName: history.fieldName,
-        oldValue: history.oldValue,
-        newValue: history.newValue,
-      })),
+      data: histories,
     });
 
-    return updatedIssue;
+    const updatedIssue = await tx.issue.update({
+      where: {
+        id: issueId,
+      },
+      data,
+      select: issueResponseSelect,
+    });
+
+    return mapIssueResponse(updatedIssue);
   });
 };
 
@@ -655,16 +694,16 @@ export const deleteIssueService = async ({
     }
 
     // 削除履歴記録
-    await tx.issueHistory.create({
-      data: {
-        issueId,
-        userId,
-        fieldName: ISSUE_HISTORY_FIELDS.DELETED,
-        oldValue: false,
-        newValue: true,
-        createdAt: now,
-      },
-    });
+    // await tx.issueHistory.create({
+    //   data: {
+    //     issueId,
+    //     userId,
+    //     fieldName: ISSUE_HISTORY_FIELDS.DELETED,
+    //     oldValue: false,
+    //     newValue: true,
+    //     createdAt: now,
+    //   },
+    // });
     return;
   });
 };
@@ -744,15 +783,15 @@ export const restoreIssueService = async ({
     });
 
     // 復元履歴記録
-    await tx.issueHistory.create({
-      data: {
-        issueId,
-        userId,
-        fieldName: ISSUE_HISTORY_FIELDS.DELETED,
-        oldValue: true,
-        newValue: false,
-      },
-    });
+    // await tx.issueHistory.create({
+    //   data: {
+    //     issueId,
+    //     userId,
+    //     fieldName: ISSUE_HISTORY_FIELDS.DELETED,
+    //     oldValue: true,
+    //     newValue: false,
+    //   },
+    // });
     return restoredIssue;
   });
 };
