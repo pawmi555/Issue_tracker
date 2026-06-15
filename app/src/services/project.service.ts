@@ -1,11 +1,10 @@
 import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
-import {
-  type ProjectRoleName,
-  PROJECT_HISTORY_EVENTS,
-} from "../constants/project.constants.js";
+import { type ProjectRoleName } from "../constants/project.constants.js";
 import { buildPagination } from "../utils/pagination.js";
+import { checkProjectRole } from "../utils/role-check.js";
+import { buildProjectHistories } from "../utils/history.utils.js";
 
 export type GetProjectsInput = {
   userId: number;
@@ -13,6 +12,15 @@ export type GetProjectsInput = {
   query: {
     page: number;
     limit: number;
+  };
+};
+
+type UpdateProjectsInput = {
+  projectId: number;
+  userId: number;
+  data: {
+    name: string;
+    description?: string;
   };
 };
 
@@ -237,28 +245,90 @@ export const getProjectDatailService = async (id: number, userId: number) => {
 /**
  * Project更新
  */
-export const updateProjectService = async (
-  id: number,
-  name: string,
-  description?: string,
-) => {
-  const project = await prisma.project.findFirst({
-    where: {
-      id,
-      deletedAt: null,
-    },
-  });
+export const updateProjectService = async ({
+  projectId,
+  userId,
+  data,
+}: UpdateProjectsInput) => {
+  // レスポンス定義
+  const projectResponseSelect = {
+    id: true,
+    name: true,
+    description: true,
+    updatedAt: true,
+  } satisfies Prisma.ProjectSelect;
 
-  if (!project) {
-    throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
-  }
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const HISTORY_ACTION_UPDATE = 1;
+    // Project存在確認
+    const project = await tx.project.findFirst({
+      where: {
+        id: projectId,
+        deletedAt: null,
+      },
+      select: projectResponseSelect,
+    });
 
-  return prisma.project.update({
-    where: { id },
-    data: {
-      name,
-      description,
-    },
+    if (!project) {
+      throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
+    }
+
+    // Project更新権限確認
+    const member = await tx.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+
+      include: {
+        role: true,
+      },
+    });
+
+    if (!member) {
+      throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+    }
+
+    const canUpdate = checkProjectRole({
+      memberRole: member.role.name,
+      allowedRoles: ["OWNER", "MANAGER"],
+    });
+
+    if (!canUpdate) {
+      throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+    }
+
+    // 履歴生成（メモリ）
+    const histories = buildProjectHistories({
+      before: {
+        name: project.name,
+        description: project.description,
+      },
+
+      after: data,
+      projectId,
+      userId,
+      actionId: HISTORY_ACTION_UPDATE,
+    });
+
+    // 差分なし
+    if (histories.length === 0) {
+      return project;
+    }
+
+    const updatedProject = await tx.project.update({
+      where: { id: projectId },
+      data,
+      select: projectResponseSelect,
+    });
+
+    await tx.projectHistory.createMany({
+      data: histories,
+    });
+
+    return updatedProject;
   });
 };
 

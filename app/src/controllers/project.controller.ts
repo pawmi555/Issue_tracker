@@ -56,11 +56,14 @@ export const getProjectDatail = async (req: ProjectRequest, res: Response) => {
 };
 
 export const updateProject = async (req: ProjectRequest, res: Response) => {
-  const id = Number(req.params.id);
-  const { name, description } = req.body;
-  const project = await updateProjectService(id, name, description);
+  const projectId = Number(req.params.id);
+  const project = await updateProjectService({
+    projectId,
+    userId: req.user!.id,
+    data: req.body,
+  });
 
-  res.json({
+  res.status(200).json({
     success: true,
     data: project,
   });

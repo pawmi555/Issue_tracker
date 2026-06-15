@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
 import { requireRole } from "../middlewares/requireRoleMiddleware.js";
+import { buildCommentHistories } from "../utils/history.utils.js";
 
 export type CreateCommentInput = {
   issueId: number;
@@ -178,23 +179,39 @@ export const updateCommentService = async ({
   userId,
   content,
 }: UpdateCommentInput) => {
-  // コメント存在確認
-  const comment = await prisma.comment.findFirst({
-    where: {
-      id: commentId,
-      deletedAt: null,
-    },
-  });
-
-  if (!comment) {
-    throw new AppError("Comment not found", 404, "COMMENT_NOT_FOUND");
-  }
-
-  // 投稿者確認
-  if (comment.userId !== userId) {
-    throw new AppError("comment forbidden", 403, "COMMENT_FORBIDDEN");
-  }
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const HISTORY_ACTION_UPDATE = 1;
+
+    // コメント存在確認
+    const comment = await prisma.comment.findFirst({
+      where: {
+        id: commentId,
+        deletedAt: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!comment) {
+      throw new AppError("Comment not found", 404, "COMMENT_NOT_FOUND");
+    }
+
+    // 投稿者確認
+    if (comment.userId !== userId) {
+      throw new AppError("comment forbidden", 403, "COMMENT_FORBIDDEN");
+    }
+
+    // 差分なし
+    if (comment.content === content) {
+      return comment;
+    }
+
     const updatedComment = await tx.comment.update({
       where: {
         id: commentId,
@@ -214,16 +231,24 @@ export const updateCommentService = async ({
       },
     });
 
-    // await tx.commentHistory.create({
-    //   data: {
-    //     commentId,
-    //     userId,
-    //     action: "UPDATE",
-    //     fieldName: "content",
-    //     oldValue: comment.content,
-    //     newValue: content,
-    //   },
-    // });
+    const histories = buildCommentHistories({
+      before: {
+        content: comment.content,
+      },
+      after: {
+        content,
+      },
+      commentId,
+      userId,
+      actionId: HISTORY_ACTION_UPDATE,
+    });
+
+    // 履歴保存
+    if (histories.length > 0) {
+      await tx.commentHistory.createMany({
+        data: histories,
+      });
+    }
 
     return updatedComment;
   });

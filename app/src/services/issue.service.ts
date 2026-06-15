@@ -321,65 +321,6 @@ export const updateIssueService = async ({
   userId,
   data,
 }: UpdateIssueInput) => {
-  // Issue存在確認
-  const issue = await prisma.issue.findFirst({
-    where: {
-      id: issueId,
-      deletedAt: null,
-    },
-
-    include: {
-      project: true,
-      status: true,
-    },
-  });
-
-  if (!issue) {
-    throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
-  }
-
-  // CLOSEDのIssueは更新不可
-  if (issue.status.name === "CLOSED") {
-    throw new AppError("issue closed", 403, "ISSUE_CLOSED");
-  }
-
-  // 削除済みProjectは更新不可
-  if (issue.project.deletedAt) {
-    throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
-  }
-
-  // Project参加確認
-  const member = await prisma.projectMember.findUnique({
-    where: {
-      projectId_userId: {
-        projectId: issue.projectId,
-        userId,
-      },
-    },
-
-    include: {
-      role: true,
-    },
-  });
-
-  if (!member) {
-    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
-  }
-
-  // Issue更新権限確認
-  const isAssignee = issue.assigneeId === userId;
-
-  const hasManagerRole = checkProjectRole({
-    memberRole: member.role.name,
-    allowedRoles: ["OWNER", "MANAGER"],
-  });
-
-  const canUpdate = isAssignee || hasManagerRole;
-
-  if (!canUpdate) {
-    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
-  }
-
   // FK存在確認
   const [status, priority] = await Promise.all([
     data.statusId !== undefined
@@ -407,80 +348,131 @@ export const updateIssueService = async ({
     throw new AppError("invalid priority", 404, "INVALID_PRIORITY");
   }
 
-  // Assignee所属確認
-  if (data.assigneeId !== undefined && data.assigneeId !== null) {
-    const assignee = await prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId: issue.projectId,
-          userId: data.assigneeId,
-        },
-      },
-    });
+  // レスポンス定義
+  const issueResponseSelect = {
+    id: true,
+    title: true,
+    description: true,
+    dueDate: true,
+    updatedAt: true,
 
-    if (!assignee) {
-      throw new AppError(
-        "assignee not project member",
-        400,
-        "ASSIGNEE_NOT_PROJECT_MEMBER",
-      );
-    }
-  }
+    status: {
+      select: {
+        id: true,
+        name: true,
+        label: true,
+      },
+    },
+
+    priority: {
+      select: {
+        id: true,
+        name: true,
+        label: true,
+      },
+    },
+
+    assignee: {
+      select: {
+        id: true,
+        name: true,
+      },
+    },
+  } satisfies Prisma.IssueSelect;
 
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    // 更新前Issue取得
-    const issue = await tx.issue.findUniqueOrThrow({
+    const HISTORY_ACTION_UPDATE = 1;
+    // Issue存在確認
+    const issue = await tx.issue.findFirst({
       where: {
         id: issueId,
+        deletedAt: null,
       },
 
       select: {
         id: true,
+        projectId: true,
+        assigneeId: true,
+
         title: true,
         description: true,
         dueDate: true,
-        assigneeId: true,
+
         statusId: true,
         priorityId: true,
-        updatedAt: true,
+
+        project: true,
+        status: true,
       },
     });
 
-    const HISTORY_ACTION_UPDATE = 1;
+    if (!issue) {
+      throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
+    }
 
-    // レスポンス定義
-    const issueResponseSelect = {
-      id: true,
-      title: true,
-      description: true,
-      dueDate: true,
-      updatedAt: true,
+    // CLOSEDのIssueは更新不可
+    if (issue.status.name === "CLOSED") {
+      throw new AppError("issue closed", 403, "ISSUE_CLOSED");
+    }
 
-      status: {
-        select: {
-          id: true,
-          name: true,
-          label: true,
+    // 削除済みProjectは更新不可
+    if (issue.project.deletedAt) {
+      throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
+    }
+
+    // Project参加確認
+    const member = await tx.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId: issue.projectId,
+          userId,
         },
       },
 
-      priority: {
-        select: {
-          id: true,
-          name: true,
-          label: true,
-        },
+      include: {
+        role: true,
       },
+    });
 
-      assignee: {
-        select: {
-          id: true,
-          name: true,
+    if (!member) {
+      throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+    }
+
+    // Issue更新権限確認
+    const isAssignee = issue.assigneeId === userId;
+
+    const hasManagerRole = checkProjectRole({
+      memberRole: member.role.name,
+      allowedRoles: ["OWNER", "MANAGER"],
+    });
+
+    const canUpdate = isAssignee || hasManagerRole;
+
+    if (!canUpdate) {
+      throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+    }
+
+    // Assignee所属確認
+    if (data.assigneeId !== undefined && data.assigneeId !== null) {
+      const assignee = await tx.projectMember.findUnique({
+        where: {
+          projectId_userId: {
+            projectId: issue.projectId,
+            userId: data.assigneeId,
+          },
         },
-      },
-    } satisfies Prisma.IssueSelect;
+      });
 
-    // 履歴生成
+      if (!assignee) {
+        throw new AppError(
+          "assignee not project member",
+          400,
+          "ASSIGNEE_NOT_PROJECT_MEMBER",
+        );
+      }
+    }
+
+    // 履歴生成（メモリ）
     const histories = buildIssueHistories({
       before: {
         title: issue.title,
@@ -509,16 +501,16 @@ export const updateIssueService = async ({
       return mapIssueResponse(current);
     }
 
-    await tx.issueHistory.createMany({
-      data: histories,
-    });
-
     const updatedIssue = await tx.issue.update({
       where: {
         id: issueId,
       },
       data,
       select: issueResponseSelect,
+    });
+
+    await tx.issueHistory.createMany({
+      data: histories,
     });
 
     return mapIssueResponse(updatedIssue);
