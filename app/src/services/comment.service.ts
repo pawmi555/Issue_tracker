@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
 import { requireRole } from "../middlewares/requireRoleMiddleware.js";
+import { checkProjectRole } from "../utils/role-check.js";
 import { buildCommentHistories } from "../utils/history.utils.js";
 
 export type CreateCommentInput = {
@@ -24,7 +25,10 @@ export type GetCommentsInput = {
 export type UpdateCommentInput = {
   commentId: number;
   userId: number;
-  content: string;
+
+  data: {
+    content: string;
+  };
 };
 
 export type DeleteCommentInput = {
@@ -177,38 +181,88 @@ export const getCommentsService = async ({
 export const updateCommentService = async ({
   commentId,
   userId,
-  content,
+  data,
 }: UpdateCommentInput) => {
+  // レスポンス定義
+  const commentResponseSelect = {
+    userId: true,
+    content: true,
+    updatedAt: true,
+    issue: {
+      select: {
+        projectId: true,
+      },
+    },
+  } satisfies Prisma.CommentSelect;
+
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const HISTORY_ACTION_UPDATE = 1;
 
     // コメント存在確認
-    const comment = await prisma.comment.findFirst({
+    const comment = await tx.comment.findFirst({
       where: {
         id: commentId,
         deletedAt: null,
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      select: commentResponseSelect,
     });
 
     if (!comment) {
       throw new AppError("Comment not found", 404, "COMMENT_NOT_FOUND");
     }
 
-    // 投稿者確認
-    if (comment.userId !== userId) {
+    // Project参加確認
+    const member = await tx.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId: comment.issue.projectId,
+          userId,
+        },
+      },
+
+      include: {
+        role: true,
+      },
+    });
+
+    if (!member) {
+      throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+    }
+
+    // コメント更新権限確認
+    const isOwner = comment.userId === userId;
+
+    const hasManagerRole = checkProjectRole({
+      memberRole: member.role.name,
+      allowedRoles: ["OWNER", "MANAGER"],
+    });
+
+    const canUpdate = isOwner || hasManagerRole;
+    console.log({
+      commentUserId: comment.userId,
+      requestUserId: userId,
+    });
+    console.log({
+      memberRole: member.role.name,
+    });
+
+    if (!canUpdate) {
       throw new AppError("comment forbidden", 403, "COMMENT_FORBIDDEN");
     }
 
+    // 履歴生成（メモリ）
+    const histories = buildCommentHistories({
+      before: {
+        content: comment.content,
+      },
+      after: data,
+      commentId,
+      userId,
+      actionId: HISTORY_ACTION_UPDATE,
+    });
+
     // 差分なし
-    if (comment.content === content) {
+    if (histories.length === 0) {
       return comment;
     }
 
@@ -216,39 +270,13 @@ export const updateCommentService = async ({
       where: {
         id: commentId,
       },
-
-      data: {
-        content,
-      },
-
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      data,
+      select: commentResponseSelect,
     });
 
-    const histories = buildCommentHistories({
-      before: {
-        content: comment.content,
-      },
-      after: {
-        content,
-      },
-      commentId,
-      userId,
-      actionId: HISTORY_ACTION_UPDATE,
+    await tx.commentHistory.createMany({
+      data: histories,
     });
-
-    // 履歴保存
-    if (histories.length > 0) {
-      await tx.commentHistory.createMany({
-        data: histories,
-      });
-    }
 
     return updatedComment;
   });

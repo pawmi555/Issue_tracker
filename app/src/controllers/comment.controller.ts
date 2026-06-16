@@ -51,7 +51,7 @@ export const updateComment = async (req: AuthRequest, res: Response) => {
   const comment = await updateCommentService({
     commentId,
     userId: req.user!.id,
-    content: data.content,
+    data,
   });
 
   res.status(200).json({
