@@ -69,6 +69,7 @@ model HistoryAction {
   projectHistories ProjectHistory[]
   issueHistories IssueHistory[]
   commentHistories CommentHistory[]
+  user_histories UserHistory[]
 
   @@map("history_actions")
 }
@@ -79,21 +80,26 @@ model HistoryAction {
 // =======================
 //
 enum HistoryField {
+  // User
+  USER_NAME
+  USER_EMAIL
+  USER_ROLE
+
   // Project
-  NAME
-  // DESCRIPTIONはIssueでも使用
-  DESCRIPTION
+  PROJECT_NAME
+  PROJECT_DESCRIPTION
 
   // Issue
-  TITLE
-  STATUS_ID
-  PRIORITY_ID
-  ASSIGNEE_ID
-  DUE_DATE
-  DELETED_AT
+  ISSUE_TITLE
+  ISSUE_DESCRIPTION
+  ISSUE_STATUS_ID
+  ISSUE_PRIORITY_ID
+  ISSUE_ASSIGNEE_ID
+  ISSUE_DUE_DATE
+  ISSUE_DELETED_AT
 
   // Comment
-  CONTENT
+  COMMENT_CONTENT
 }
 
 //
@@ -121,9 +127,12 @@ model User {
   assignedIssues Issue[]         @relation("Assignee")
   comments       Comment[]
 
-  issueHistories   IssueHistory[]
-  projectHistories ProjectHistory[]
-  commentHistories CommentHistory[]
+
+  userHistories     UserHistory[] @relation("UserHistoryTarget")
+  operatedHistories UserHistory[]  @relation("UserHistoryOperator")
+  projectHistories  ProjectHistory[]
+  issueHistories    IssueHistory[]
+  commentHistories  CommentHistory[]
 
   refreshTokens  RefreshToken[]
   apiRequestLogs ApiRequestLog[]
@@ -252,6 +261,34 @@ model Comment {
 
   @@index([issueId])
   @@map("comments")
+}
+
+//
+// =======================
+// User History
+// =======================
+//
+model UserHistory {
+  id          Int      @id @default(autoincrement())
+
+  userId       Int
+  operatedBy   Int
+
+  actionId     Int
+
+  fieldName    HistoryField
+  oldValue     Json?
+  newValue     Json?
+
+  createdAt    DateTime @default(now())
+
+  user         User          @relation("UserHistoryTarget", fields: [userId], references: [id])
+  operator     User          @relation("UserHistoryOperator", fields: [operatedBy], references: [id])
+  action       HistoryAction @relation(fields: [actionId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([operatedBy, createdAt])
+  @@map("user_histories")
 }
 
 //

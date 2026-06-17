@@ -1,5 +1,11 @@
 import { HistoryField } from "@prisma/client";
 
+type UserBefore = {
+  name: string;
+  email: string;
+  roleId: number;
+};
+
 type ProjectBefore = {
   name: string;
   description: string | null;
@@ -18,9 +24,67 @@ type CommentBefore = {
   content: string;
 };
 
+type UserUpdateInput = Partial<UserBefore>;
 type ProjectUpdateInput = Partial<ProjectBefore>;
 type IssueUpdateInput = Partial<IssueBefore>;
 type CommentUpdateInput = Partial<CommentBefore>;
+
+export const buildUserHistories = ({
+  before,
+  after,
+  userId,
+  operatedBy,
+  actionId,
+}: {
+  before: UserBefore;
+  after: UserUpdateInput;
+  userId: number;
+  operatedBy: number;
+  actionId: number;
+}) => {
+  const histories = [];
+
+  if (after.name !== undefined && after.name !== before.name) {
+    histories.push({
+      userId,
+      operatedBy,
+      actionId,
+
+      fieldName: HistoryField.NAME,
+
+      oldValue: before.name,
+      newValue: after.name,
+    });
+  }
+
+  if (after.email !== undefined && after.email !== before.email) {
+    histories.push({
+      userId,
+      operatedBy,
+      actionId,
+
+      fieldName: HistoryField.EMAIL,
+
+      oldValue: before.email,
+      newValue: after.email,
+    });
+  }
+
+  if (after.roleId !== undefined && after.roleId !== before.roleId) {
+    histories.push({
+      userId,
+      operatedBy,
+      actionId,
+
+      fieldName: HistoryField.ROLE,
+
+      oldValue: String(before.roleId),
+      newValue: String(after.roleId),
+    });
+  }
+
+  return histories;
+};
 
 export const buildProjectHistories = ({
   before,
