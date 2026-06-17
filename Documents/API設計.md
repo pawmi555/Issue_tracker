@@ -286,9 +286,74 @@ RESOURCE_REASON
 
 ---
 
+## Field Naming Rule
+
+履歴・監査ログで使用する内部フィールド名形式。
+
+形式:
+RESOURCE_COLUMN
+
+例:
+USER_NAME
+PROJECT_DESCRIPTION
+ISSUE_STATUS_ID
+COMMENT_CONTENT
+
+---
+
+## Internal Value Mapping
+
+内部値はDB保存時に変換しない。
+
+変換ルール:
+
+- 通常API: 表示用DTOへ変換して返却
+- 履歴API: oldValue/newValueを表示値へ変換して返却
+
+例（通常API）
+
+DB:
+priorityId = 2
+
+API:
+priority:
+{
+"id": 2,
+"name": "HIGH",
+"label": "高"
+}
+
+例（履歴API）
+
+DB:
+oldValue = 1
+newValue = 2
+
+API:
+oldValue = "OPEN"
+newValue = "IN_PROGRESS"
+
+---
+
+## Audit Data Policy
+
+監査データは内部値を保持する。
+
+参照系データは返却時に表示値へ変換する。
+
+例:
+statusId:
+DB: 1 → 2
+
+API:
+oldValue: "OPEN"
+newValue: "IN_PROGRESS"
+
+---
+
 # 4. Master定義
 
-### UserRole
+## UserRole
 
 | name  | 説明                                             |
 | ----- | ------------------------------------------------ |
@@ -297,7 +362,7 @@ RESOURCE_REASON
 
 ---
 
-### ProjectRole
+## ProjectRole
 
 | name    | 説明                          |
 | ------- | ----------------------------- |
@@ -308,7 +373,7 @@ RESOURCE_REASON
 
 ---
 
-### IssueStatus
+## IssueStatus
 
 | name        | 説明                 |
 | ----------- | -------------------- |
@@ -339,7 +404,7 @@ RESOURCE_REASON
 
 ---
 
-### IssuePriority
+## IssuePriority
 
 | name     | 説明           |
 | -------- | -------------- |
@@ -350,13 +415,59 @@ RESOURCE_REASON
 
 ---
 
-### HistoryAction
+# 5. History仕様
+
+## 共通ルール
+
+oldValue/newValue:
+JSON形式で保持
+
+ルール:
+
+- 単一値もJSONとして保存する
+- null変更は明示保存
+- 配列・Objectも保持可能
+
+---
+
+## HistoryAction
 
 | name    |
 | ------- |
 | UPDATE  |
 | DELETE  |
 | RESTORE |
+
+---
+
+## 共通レスポンス仕様
+
+changedBy:
+履歴作成ユーザーをUser参照して返却
+
+---
+
+### UserHistory
+
+ユーザー変更履歴を保持する。
+
+#### 保存対象
+
+- name
+- email
+
+#### 保存内容（DB）
+
+- action
+- fieldName
+- oldValue
+- newValue
+- userId
+- createdAt
+
+#### Response
+
+共通レスポンス仕様のとおり
 
 ---
 
@@ -380,7 +491,7 @@ RESOURCE_REASON
 
 #### Response
 
-changedByはUserを参照して返却する
+共通レスポンス仕様のとおり
 
 ---
 
@@ -409,22 +520,7 @@ Issue変更履歴を保持する。
 
 #### Response
 
-changedByはUserを参照して返却する
-
-#### 表示ルール
-
-履歴は内部値を保存する。
-API返却時は表示用に変換する。
-
-例：
-
-statusId:
-1 → OPEN
-2 → IN_PROGRESS
-
-priorityId:
-1 → LOW
-2 → MEDIUM
+共通レスポンス仕様のとおり
 
 ---
 
@@ -447,11 +543,11 @@ priorityId:
 
 #### Response
 
-changedByはUserを参照して返却する
+共通レスポンス仕様のとおり
 
 ---
 
-## 論理削除
+# 6. 論理削除
 
 ### 対象リソース
 
@@ -533,7 +629,7 @@ if (issue.project.deletedAt !== null) {
 
 ---
 
-## バリデーション方針
+# 7. バリデーション方針
 
 - Zod使用
 - DB存在チェック必須
@@ -541,7 +637,7 @@ if (issue.project.deletedAt !== null) {
 
 ---
 
-# 5. 認可設計
+# 8. 認可設計
 
 ## 原則
 
@@ -553,7 +649,7 @@ if (issue.project.deletedAt !== null) {
 
 ---
 
-# 6. トランザクション方針
+# 9. トランザクション方針
 
 以下はトランザクション必須：
 
@@ -565,11 +661,11 @@ if (issue.project.deletedAt !== null) {
 
 ---
 
-# 7. API一覧
+# 10. API一覧
 
-## 7.1 Auth API
+## 10.1 Auth API
 
-### 7.1.1 ユーザー登録
+### 10.1.1 ユーザー登録
 
 #### POST `/auth/register`
 
@@ -603,7 +699,7 @@ if (issue.project.deletedAt !== null) {
 
 ---
 
-### 7.1.2 ログイン
+### 10.1.2 ログイン
 
 #### POST `/auth/login`
 
@@ -638,7 +734,7 @@ if (issue.project.deletedAt !== null) {
 
 ---
 
-### 7.1.3 トークン再発行
+### 10.1.3 トークン再発行
 
 #### POST `/auth/refresh`
 
@@ -679,7 +775,7 @@ refresh_token=xxx
 
 ---
 
-### 7.1.4 ログアウト
+### 10.1.4 ログアウト
 
 #### POST `/auth/logout`
 
@@ -709,7 +805,7 @@ refresh_token=xxx
 
 ---
 
-### 7.1.5 自分情報取得
+### 10.1.5 自分情報取得
 
 #### GET `/auth/me`
 
@@ -734,9 +830,9 @@ refresh_token=xxx
 
 ---
 
-## 7.2. User API
+## 10.2. User API
 
-### 7.2.1 ユーザー一覧
+### 10.2.1 ユーザー一覧
 
 #### GET `/users?page=1&limit=20`
 
@@ -767,7 +863,7 @@ refresh_token=xxx
 
 ---
 
-### 7.2.2 ユーザー詳細
+### 10.2.2 ユーザー詳細
 
 #### GET `/users/:id`
 
@@ -795,7 +891,7 @@ refresh_token=xxx
 
 ---
 
-### 7.2.3 ユーザー更新
+### 10.2.3 ユーザー更新
 
 #### PATCH `/users/:id`
 
@@ -838,7 +934,7 @@ refresh_token=xxx
 
 ---
 
-### 7.2.4 ユーザー削除
+### 10.2.4 ユーザー削除
 
 #### DELETE `/users/:id`
 
@@ -855,9 +951,9 @@ refresh_token=xxx
 
 ---
 
-## 7.3 Project API
+## 10.3 Project API
 
-### 7.3.1 プロジェクト作成
+### 10.3.1 プロジェクト作成
 
 ### POST `/projects`
 
@@ -894,7 +990,7 @@ refresh_token=xxx
 
 ---
 
-### 7.3.2 プロジェクト一覧取得
+### 10.3.2 プロジェクト一覧取得
 
 ### GET `/projects?page=1&limit=20`
 
@@ -953,7 +1049,7 @@ refresh_token=xxx
 
 ---
 
-### 7.3.3 プロジェクト詳細
+### 10.3.3 プロジェクト詳細
 
 ### GET `/projects/:id`
 
@@ -987,7 +1083,7 @@ refresh_token=xxx
 
 ---
 
-### 7.3.4 プロジェクト更新
+### 10.3.4 プロジェクト更新
 
 ### PATCH `/projects/:id`
 
@@ -1026,7 +1122,7 @@ refresh_token=xxx
     "ownerId": 1,
     "name": "Updated Project",
     "description": "updated",
-    "createdAt": "2026-06-11T06:35:31.672Z",
+    "createdAt": "2026-06-11T06:35:31.6102Z",
     "updatedAt": "2026-06-11T06:35:40.013Z"
   }
 }
@@ -1034,7 +1130,7 @@ refresh_token=xxx
 
 ---
 
-### 7.3.5 プロジェクト削除
+### 10.3.5 プロジェクト削除
 
 ### DELETE `/projects/:id`
 
@@ -1051,9 +1147,9 @@ refresh_token=xxx
 
 ---
 
-## 7.4. Project Member API
+## 10.4. Project Member API
 
-### 7.4.1 メンバー追加
+### 10.4.1 メンバー追加
 
 ### POST `/projects/:id/members`
 
@@ -1099,7 +1195,7 @@ refresh_token=xxx
 
 ---
 
-### 7.4.2 メンバー一覧
+### 10.4.2 メンバー一覧
 
 ### GET `/projects/:id/members`
 
@@ -1140,7 +1236,7 @@ refresh_token=xxx
 
 ---
 
-### 7.4.3 メンバー権限変更
+### 10.4.3 メンバー権限変更
 
 ### PATCH `/projects/:id/members/:userId`
 
@@ -1185,7 +1281,7 @@ refresh_token=xxx
 
 ---
 
-### 7.4.4 メンバー削除
+### 10.4.4 メンバー削除
 
 ### DELETE `/projects/:id/members/:userId`
 
@@ -1205,9 +1301,9 @@ refresh_token=xxx
 
 ---
 
-## 7.5 Issue API
+## 10.5 Issue API
 
-### 7.5.1 Issue作成
+### 10.5.1 Issue作成
 
 ### POST `/projects/:projectId/issues`
 
@@ -1249,7 +1345,7 @@ refresh_token=xxx
 
 ---
 
-### 7.5.2 Issue一覧取得
+### 10.5.2 Issue一覧取得
 
 ### GET `/projects/:id/issues`
 
@@ -1270,7 +1366,7 @@ refresh_token=xxx
 
 ---
 
-### 7.5.3 Issue詳細取得
+### 10.5.3 Issue詳細取得
 
 ## GET `/issues/:id`
 
@@ -1280,7 +1376,7 @@ refresh_token=xxx
 
 ---
 
-### 7.5.4 Issue更新
+### 10.5.4 Issue更新
 
 ### PATCH `/issues/:id`
 
@@ -1291,6 +1387,8 @@ refresh_token=xxx
 - reporterId変更不可
 - status更新時は「Issue状態遷移」に従う
 - 不正な状態遷移は409 Conflictを返却
+- Issue変更履歴を作成
+- トランザクション必須
 
 #### 更新可能項目
 
@@ -1342,14 +1440,14 @@ refresh_token=xxx
       "id": 2,
       "name": "Test User"
     },
-    "updatedAt": "2026-06-13T13:32:27.151Z"
+    "updatedAt": "2026-06-13T13:32:210.151Z"
   }
 }
 ```
 
 ---
 
-### 7.5.5 Issue削除
+### 10.5.5 Issue削除
 
 ### DELETE `/issues/:id`
 
@@ -1364,7 +1462,7 @@ refresh_token=xxx
 
 ---
 
-### 7.5.6 Issue復元
+### 10.5.6 Issue復元
 
 ### POST `/issues/:id/restore`
 
@@ -1378,9 +1476,9 @@ refresh_token=xxx
 
 ---
 
-## 7.6 Comment API
+## 10.6 Comment API
 
-### 7.6.1 コメント投稿
+### 10.6.1 コメント投稿
 
 ### POST `/issues/:id/comments`
 
@@ -1398,7 +1496,7 @@ refresh_token=xxx
 
 ---
 
-### 7.6.2 コメント一覧
+### 10.6.2 コメント一覧
 
 ### GET `/issues/:id/comments?page=1&limit=20`
 
@@ -1409,7 +1507,7 @@ refresh_token=xxx
 
 ---
 
-### 7.6.3 コメント更新
+### 10.6.3 コメント更新
 
 ### PATCH `/comments/:id`
 
@@ -1429,7 +1527,7 @@ refresh_token=xxx
 
 ---
 
-### 7.6.4 コメント削除
+### 10.6.4 コメント削除
 
 ### DELETE `/comments/:id`
 
@@ -1446,7 +1544,7 @@ refresh_token=xxx
 
 ---
 
-## 7.7 History API
+## 10.7 History API
 
 ### 共通制約
 
@@ -1454,7 +1552,31 @@ refresh_token=xxx
 - 最新履歴を先頭に返却
 - Pagination適用
 
-### 7.7.1 Project履歴一覧
+### 10.7.1 User履歴一覧
+
+### GET `/users/:id/histories?page=1&limit=20`
+
+#### 制約
+
+- 自分 or ADMINのみ
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": [],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 1
+  }
+}
+```
+
+---
+
+### 10.7.2 Project履歴一覧
 
 ### GET `/projects/:id/histories?page=1&limit=20`
 
@@ -1488,7 +1610,7 @@ refresh_token=xxx
 }
 ```
 
-### 7.7.2 Issue履歴一覧
+### 10.7.3 Issue履歴一覧
 
 ### GET `/issues/:id/histories?page=1&limit=20`
 
@@ -1524,7 +1646,7 @@ refresh_token=xxx
 
 ---
 
-### 7.7.3 Comment履歴一覧
+### 10.7.4 Comment履歴一覧
 
 ### GET `/comments/:id/histories?page=1&limit=20`
 
@@ -1560,9 +1682,9 @@ refresh_token=xxx
 
 ---
 
-## 7.8 Internal API
+## 10.8 Internal API
 
-### 7.8.1 APIログ一覧
+### 10.8.1 APIログ一覧
 
 ### GET `/admin/logs?page=1&limit=50`
 
@@ -1582,7 +1704,7 @@ refresh_token=xxx
 
 ---
 
-# 8. セキュリティ
+# 11. セキュリティ
 
 - パスワードはハッシュ化
 - JWT短命 + RefreshToken
@@ -1591,7 +1713,7 @@ refresh_token=xxx
 
 ---
 
-# 9. 参考資料
+# 12. 参考資料
 
 ■ Prisma公式
 https://www.prisma.io/docs

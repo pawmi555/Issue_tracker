@@ -80,21 +80,26 @@ model HistoryAction {
 // =======================
 //
 enum HistoryField {
+  // User
+  USER_NAME
+  USER_EMAIL
+  USER_ROLE
+
   // Project
-  NAME
-  // DESCRIPTIONはIssueでも使用
-  DESCRIPTION
+  PROJECT_NAME
+  PROJECT_DESCRIPTION
 
   // Issue
-  TITLE
-  STATUS_ID
-  PRIORITY_ID
-  ASSIGNEE_ID
-  DUE_DATE
-  DELETED_AT
+  ISSUE_TITLE
+  ISSUE_DESCRIPTION
+  ISSUE_STATUS_ID
+  ISSUE_PRIORITY_ID
+  ISSUE_ASSIGNEE_ID
+  ISSUE_DUE_DATE
+  ISSUE_DELETED_AT
 
   // Comment
-  CONTENT
+  COMMENT_CONTENT
 }
 
 //
