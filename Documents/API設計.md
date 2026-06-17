@@ -455,6 +455,7 @@ changedBy:
 
 - name
 - email
+- roleId
 
 #### 保存内容（DB）
 
@@ -897,23 +898,27 @@ refresh_token=xxx
 
 #### 制約
 
-- 自分 or ADMINのみ
+- ADMINのみ
+- 最後のADMINは自身のroleをADMIN以外へ変更不可
+- 削除済みユーザーは更新不可
 
 #### 更新可能項目
 
 - name
 - email
+- role
 
 #### 更新不可項目
 
-- role
 - createdAt
 
 #### Request
 
 ```json
 {
-  "name": "New Name"
+  "name": "New Name",
+  "email": "test@example.com",
+  "roleId": 2
 }
 ```
 
@@ -926,7 +931,10 @@ refresh_token=xxx
     "id": 3,
     "name": "New Name",
     "email": "new@test.com",
-    "createdAt": "2026-05-01T10:00:00.000Z",
+    "role": {
+      "id": 2,
+      "name": "ADMIN"
+    },
     "updatedAt": "2026-06-09T06:40:16.979Z"
   }
 }

@@ -42,48 +42,37 @@ export const buildUserHistories = ({
   operatedBy: number;
   actionId: number;
 }) => {
-  const histories = [];
+  const rows = [];
 
-  if (after.name !== undefined && after.name !== before.name) {
-    histories.push({
+  const mappings = [
+    ["name", HistoryField.USER_NAME],
+    ["email", HistoryField.USER_EMAIL],
+    ["roleId", HistoryField.USER_ROLE],
+  ] as const;
+
+  for (const [key, fieldName] of mappings) {
+    const oldValue = before[key];
+    const newValue = after[key];
+
+    if (newValue === undefined) {
+      continue;
+    }
+
+    if (oldValue === newValue) {
+      continue;
+    }
+
+    rows.push({
       userId,
       operatedBy,
       actionId,
-
-      fieldName: HistoryField.NAME,
-
-      oldValue: before.name,
-      newValue: after.name,
+      fieldName,
+      oldValue,
+      newValue,
     });
   }
 
-  if (after.email !== undefined && after.email !== before.email) {
-    histories.push({
-      userId,
-      operatedBy,
-      actionId,
-
-      fieldName: HistoryField.EMAIL,
-
-      oldValue: before.email,
-      newValue: after.email,
-    });
-  }
-
-  if (after.roleId !== undefined && after.roleId !== before.roleId) {
-    histories.push({
-      userId,
-      operatedBy,
-      actionId,
-
-      fieldName: HistoryField.ROLE,
-
-      oldValue: String(before.roleId),
-      newValue: String(after.roleId),
-    });
-  }
-
-  return histories;
+  return rows;
 };
 
 export const buildProjectHistories = ({
@@ -102,11 +91,11 @@ export const buildProjectHistories = ({
   const rows = [];
 
   const mappings = [
-    ["name", HistoryField.NAME],
-    ["description", HistoryField.DESCRIPTION],
+    ["name", HistoryField.PROJECT_NAME],
+    ["description", HistoryField.PROJECT_DESCRIPTION],
   ] as const;
 
-  for (const [key, field] of mappings) {
+  for (const [key, fieldName] of mappings) {
     const oldValue = before[key];
     const newValue = after[key];
 
@@ -122,7 +111,7 @@ export const buildProjectHistories = ({
       projectId,
       userId,
       actionId,
-      fieldName: field,
+      fieldName,
       oldValue,
       newValue,
     });
@@ -147,15 +136,15 @@ export const buildIssueHistories = ({
   const rows = [];
 
   const mappings = [
-    ["title", HistoryField.TITLE],
-    ["description", HistoryField.DESCRIPTION],
-    ["statusId", HistoryField.STATUS_ID],
-    ["priorityId", HistoryField.PRIORITY_ID],
-    ["assigneeId", HistoryField.ASSIGNEE_ID],
-    ["dueDate", HistoryField.DUE_DATE],
+    ["title", HistoryField.ISSUE_TITLE],
+    ["description", HistoryField.ISSUE_DESCRIPTION],
+    ["statusId", HistoryField.ISSUE_STATUS_ID],
+    ["priorityId", HistoryField.ISSUE_PRIORITY_ID],
+    ["assigneeId", HistoryField.ISSUE_ASSIGNEE_ID],
+    ["dueDate", HistoryField.ISSUE_DUE_DATE],
   ] as const;
 
-  for (const [key, field] of mappings) {
+  for (const [key, fieldName] of mappings) {
     const oldValue = before[key];
     const newValue = after[key];
 
@@ -176,7 +165,7 @@ export const buildIssueHistories = ({
       issueId,
       userId,
       actionId,
-      fieldName: field,
+      fieldName,
       oldValue,
       newValue,
     });
@@ -200,9 +189,9 @@ export const buildCommentHistories = ({
 }) => {
   const rows = [];
 
-  const mappings = [["content", HistoryField.CONTENT]] as const;
+  const mappings = [["content", HistoryField.COMMENT_CONTENT]] as const;
 
-  for (const [key, field] of mappings) {
+  for (const [key, fieldName] of mappings) {
     const oldValue = before[key];
     const newValue = after[key];
 
@@ -218,7 +207,7 @@ export const buildCommentHistories = ({
       commentId,
       userId,
       actionId,
-      fieldName: field,
+      fieldName,
       oldValue,
       newValue,
     });

@@ -8,18 +8,11 @@ import {
   isIssueIncludeField,
 } from "../utils/issue-include.js";
 
-import {
-  checkProjectRole,
-  isProjectRoleName,
-  ISSUE_READ_ROLES,
-} from "../utils/role-check.js";
+import { checkProjectRole, isProjectRoleName } from "../utils/role-check.js";
 
 import { buildPagination } from "../utils/pagination.js";
 
-import {
-  IssueSortField,
-  ISSUE_HISTORY_FIELDS,
-} from "../constants/issue.constants.js";
+import { IssueSortField } from "../constants/issue.constants.js";
 
 import { requireRole } from "../middlewares/requireRoleMiddleware.js";
 

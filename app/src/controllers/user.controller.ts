@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { AuthRequest } from "../types/auth-request.js";
 import {
   getUsersService,
   getUserByIdService,
@@ -25,12 +26,15 @@ export const getUserById = async (req: Request, res: Response) => {
   });
 };
 
-export const updateUser = async (req: Request, res: Response) => {
+export const updateUser = async (req: AuthRequest, res: Response) => {
   const id = Number(req.params.id);
-  const { name } = req.body;
-  const user = await updateUserService(id, name);
+  const user = await updateUserService({
+    id,
+    operatedBy: req.user!.id,
+    data: req.body,
+  });
 
-  res.json({
+  res.status(200).json({
     success: true,
     data: user,
   });
