@@ -1,6 +1,7 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
 import compression from "compression";
@@ -40,10 +41,17 @@ app.use(helmet());
  */
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: process.env.FRONTEND_URL,
     credentials: true,
   }),
 );
+
+/**
+ * ---------------------------------------------------
+ * CookieParser
+ * ---------------------------------------------------
+ */
+app.use(cookieParser());
 
 /**
  * ---------------------------------------------------
