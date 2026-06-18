@@ -382,6 +382,7 @@ model CommentHistory {
 
 model RefreshToken {
   id              Int @id @default(autoincrement())
+  jti             String @unique
   userId          Int
 
   tokenHash       String    @unique
