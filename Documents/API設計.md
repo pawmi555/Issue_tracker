@@ -40,6 +40,8 @@ Issue管理システムのREST API設計書。
 Authorization: Bearer <access_token>
 ```
 
+---
+
 ### Token保存方針
 
 #### Access Token
@@ -54,14 +56,50 @@ Authorization: Bearer <access_token>
 - Token Rotation採用
 - Cookie設定は「Cookie Policy」に従う
 
+---
+
 ### Cookie Policy
 
 - Cookie名: refresh_token
 - HttpOnly=true
 - Secure=true（production）
 - Secure=false（development）
-- SameSite=Lax
+- SameSite=None（production）
+- SameSite=Lax（development）
 - Path=/
+- Max-Age=604800（7日）
+
+---
+
+### CORS Policy
+
+#### 制約
+
+- Cookie認証利用時はcredentials=true必須
+- Access-Control-Allow-Originに\*は使用不可
+- Access-Control-Allow-Originは単一Originを返却する
+- 許可Originは環境変数で管理
+- Access-Control-Allow-Credentials=true
+
+#### Development
+
+```txt
+Origin:
+http://localhost:3000
+```
+
+#### Production
+
+```txt
+Origin:
+https://app.example.com
+```
+
+#### Server Setting
+
+```txt
+Access-Control-Allow-Credentials: true
+```
 
 ---
 
