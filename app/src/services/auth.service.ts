@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { v4 as uuid } from "uuid";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../utils/app-error.js";
@@ -7,6 +8,9 @@ import type { User } from "@prisma/client";
 
 const ACCESS_EXPIRES = "1h";
 const REFRESH_EXPIRES = "7d";
+const REFRESH_EXPIRES_MS = 7 * 24 * 60 * 60 * 1000;
+
+const createExpiresAt = () => new Date(Date.now() + REFRESH_EXPIRES_MS);
 
 const createAccessToken = (userId: number) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET!, {
@@ -15,9 +19,15 @@ const createAccessToken = (userId: number) => {
 };
 
 const createRefreshToken = (userId: number) => {
-  return jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET!, {
+  const jti = uuid();
+  const token = jwt.sign({ userId, jti }, process.env.JWT_REFRESH_SECRET!, {
     expiresIn: REFRESH_EXPIRES,
   });
+
+  return {
+    token,
+    jti,
+  };
 };
 
 const verifyRefreshToken = (token: string): JwtPayload => {
@@ -40,6 +50,7 @@ const safeUser = (user: User) => ({
 
 type JwtPayload = {
   userId: number;
+  jti: string;
 };
 
 /**
@@ -62,8 +73,12 @@ export const register = async (
     where: { name: "USER" },
   });
 
+  if (!userRole) {
+    throw new AppError("Role not initialized", 500, "ROLE_NOT_INITIALIZED");
+  }
+
   const user = await prisma.user.create({
-    data: { name, email, passwordHash, roleId: userRole!.id },
+    data: { name, email, passwordHash, roleId: userRole.id },
   });
 
   return safeUser(user);
@@ -84,18 +99,18 @@ export const login = async (email: string, password: string) => {
     throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
 
   const accessToken = createAccessToken(user.id);
-  const refreshToken = createRefreshToken(user.id);
-  const tokenHash = await hashString(refreshToken);
+  const { token, jti } = createRefreshToken(user.id);
 
   await prisma.refreshToken.create({
     data: {
       userId: user.id,
-      tokenHash,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      jti,
+      tokenHash: await hashString(token),
+      expiresAt: createExpiresAt(),
     },
   });
 
-  return { user: safeUser(user), accessToken, refreshToken };
+  return { user: safeUser(user), accessToken, refreshToken: token };
 };
 
 /**
@@ -107,54 +122,68 @@ export const refresh = async (refreshToken: string) => {
     throw new AppError("Refresh token required", 400, "TOKEN_REQUIRED");
   }
 
-  const decoded = verifyRefreshToken(refreshToken);
-  const userId = decoded.userId;
+  const { userId, jti } = verifyRefreshToken(refreshToken);
 
-  const tokens = await prisma.refreshToken.findMany({
+  const current = await prisma.refreshToken.findUnique({
     where: {
-      userId,
-      revokedAt: null,
+      jti,
     },
   });
 
-  let matchedToken = null;
-
-  // DBにはハッシュ化したRefresh Tokenを保存しているため総当たりで照合
-  for (const t of tokens) {
-    const isMatch = await bcrypt.compare(refreshToken, t.tokenHash);
-    if (isMatch) {
-      matchedToken = t;
-      break;
-    }
-  }
-
-  if (!matchedToken) {
+  if (!current) {
     throw new AppError("Invalid refresh token", 401, "INVALID_REFRESH_TOKEN");
   }
 
-  const newAccessToken = createAccessToken(userId);
-  const newRefreshToken = createRefreshToken(userId);
-  const newHash = await hashString(newRefreshToken);
+  if (current.revokedAt) {
+    await prisma.refreshToken.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+
+    throw new AppError(
+      "Refresh token reuse detected",
+      401,
+      "TOKEN_REUSE_DETECTED",
+    );
+  }
+
+  if (current.expiresAt < new Date()) {
+    throw new AppError("Refresh token expired", 401, "TOKEN_EXPIRED");
+  }
+
+  const match = await bcrypt.compare(refreshToken, current.tokenHash);
+
+  if (!match) throw new AppError("Invalid", 401, "INVALID_REFRESH_TOKEN");
+
+  const accessToken = createAccessToken(userId);
+
+  const next = createRefreshToken(userId);
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // rotation（使ったtokenは無効化）
     await tx.refreshToken.update({
-      where: { id: matchedToken.id },
-      data: { revokedAt: new Date() },
+      where: { id: current.id },
+      data: { revokedAt: new Date(), replacedByTokenId: next.jti },
     });
 
     await tx.refreshToken.create({
       data: {
         userId,
-        tokenHash: newHash,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        jti: next.jti,
+        tokenHash: await hashString(next.token),
+        expiresAt: createExpiresAt(),
       },
     });
   });
 
   return {
-    accessToken: newAccessToken,
-    refreshToken: newRefreshToken,
+    accessToken,
+    refreshToken: next.token,
   };
 };
 
@@ -166,15 +195,20 @@ export const logout = async (refreshToken: string) => {
     throw new AppError("Refresh token required", 400, "TOKEN_REQUIRED");
   }
 
-  const decoded = verifyRefreshToken(refreshToken);
-  const userId = decoded.userId;
+  const payload = jwt.decode(refreshToken);
+
+  if (!payload || typeof payload !== "object" || !("jti" in payload)) {
+    throw new AppError("Invalid refresh token", 401, "INVALID_REFRESH_TOKEN");
+  }
+
+  const jti = String(payload.jti);
 
   // TODO:
   // 現在は全端末ログアウト。
   // 将来的には使用中のRefresh Tokenのみ無効化する実装へ変更する。
   await prisma.refreshToken.updateMany({
     where: {
-      userId,
+      jti,
       revokedAt: null,
     },
     data: {

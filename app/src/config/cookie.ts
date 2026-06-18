@@ -1,0 +1,9 @@
+import { CookieOptions } from "express";
+
+export const refreshCookie: CookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  path: "/api/v1/auth",
+  maxAge: 604800000,
+};

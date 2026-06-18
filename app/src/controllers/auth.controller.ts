@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as authService from "../services/auth.service.js";
 import { AuthRequest } from "../types/auth-request.js";
+import { refreshCookie } from "../config/cookie.js";
 
 export const register = async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
@@ -15,39 +16,45 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
   const result = await authService.login(email, password);
+  res.cookie("refresh_token", result.refreshToken, refreshCookie);
 
   res.status(200).json({
     success: true,
-    data: result,
+    data: {
+      user: result.user,
+      accessToken: result.accessToken,
+    },
   });
 };
 
 export const refresh = async (req: Request, res: Response) => {
-  const { refreshToken } = req.body;
-  const tokens = await authService.refresh(refreshToken);
-
+  const token = req.cookies.refresh_token;
+  const result = await authService.refresh(token);
+  res.cookie("refresh_token", result.refreshToken, refreshCookie);
   res.status(200).json({
     success: true,
-    data: tokens,
+    data: {
+      accessToken: result.accessToken,
+    },
   });
 };
 
 export const logout = async (req: Request, res: Response) => {
-  const { refreshToken } = req.body;
-  console.log("logout token:", refreshToken);
-  await authService.logout(refreshToken);
-
-  res.status(200).json({
-    success: true,
+  const token = req.cookies.refresh_token;
+  await authService.logout(token);
+  res.clearCookie("refresh_token", {
+    path: "/api/v1/auth",
   });
+
+  res.sendStatus(204);
 };
 
 export const me = async (req: AuthRequest, res: Response) => {
   const userId = req.user!.id;
-  const project = await authService.me(userId);
+  const user = await authService.me(userId);
 
   res.status(200).json({
     success: true,
-    data: project,
+    data: user,
   });
 };

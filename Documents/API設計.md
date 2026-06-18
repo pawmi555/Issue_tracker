@@ -66,7 +66,7 @@ Authorization: Bearer <access_token>
 - Secure=false（development）
 - SameSite=None（production）
 - SameSite=Lax（development）
-- Path=/
+- Path=/api/v1/auth
 - Max-Age=604800（7日）
 
 ---
