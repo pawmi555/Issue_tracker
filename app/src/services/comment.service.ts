@@ -2,9 +2,12 @@ import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
-import { requireRole } from "../middlewares/requireRoleMiddleware.js";
 import { buildCommentHistories } from "../utils/history.utils.js";
-import { hasProjectRole, isProjectRoleName } from "../utils/role-check.js";
+import {
+  hasProjectRole,
+  isProjectRoleName,
+  assertProjectRole,
+} from "../utils/role-check.js";
 
 export type CreateCommentInput = {
   issueId: number;
@@ -236,14 +239,16 @@ export const updateCommentService = async ({
       throw new AppError("invalid role", 500, "INVALID_ROLE");
     }
 
-    if (
-      !hasProjectRole({
-        memberRole: roleName,
-        minimumRole: "MANAGER",
-      })
-    ) {
-      throw new AppError("comment forbidden", 403, "COMMENT_FORBIDDEN");
+    const isAuthor = comment.userId === userId;
+
+    if (!isAuthor) {
+      throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
     }
+
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MANAGER",
+    });
 
     // 履歴生成（メモリ）
     const histories = buildCommentHistories({
@@ -330,13 +335,22 @@ export const deleteCommentService = async ({
   }
 
   // 削除権限確認
+  const roleName = member.role.name;
+
+  if (!isProjectRoleName(roleName)) {
+    throw new AppError("invalid role", 500, "INVALID_ROLE");
+  }
 
   const isAuthor = comment.userId === userId;
-  const canDelete = requireRole("MANAGER");
 
-  if (!isAuthor && !canDelete) {
+  if (!isAuthor) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
+
+  assertProjectRole({
+    memberRole: roleName,
+    minimumRole: "MANAGER",
+  });
 
   // Commentソフトデリート実行
   const deletedComment = await prisma.comment.update({
