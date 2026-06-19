@@ -8,12 +8,11 @@ import {
 } from "../validators/issue-include.validator.js";
 import { buildIssueInclude } from "./builders/build-issue-include.js";
 import { buildPagination } from "../utils/pagination.js";
-import { requireRole } from "../middlewares/requireRoleMiddleware.js";
 import { buildIssueHistories } from "../utils/history.utils.js";
 import { mapIssueResponse, toIssueDto } from "../mappers/issue.mapper.js";
 import { GetIssuesInput } from "../types/issue.types.js";
 import { buildIssueWhere } from "./builders/build-issue-where.js";
-import { hasProjectRole, isProjectRoleName } from "../utils/role-check.js";
+import { isProjectRoleName, assertProjectRole } from "../utils/role-check.js";
 
 type CreateIssueInput = {
   projectId: number;
@@ -192,14 +191,10 @@ export const getIssuesService = async ({
     throw new AppError("invalid role", 500, "INVALID_ROLE");
   }
 
-  if (
-    !hasProjectRole({
-      memberRole: roleName,
-      minimumRole: "MEMBER",
-    })
-  ) {
-    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
-  }
+  assertProjectRole({
+    memberRole: roleName,
+    minimumRole: "MEMBER",
+  });
 
   // 削除済みProjectは参照不可
   if (member.project.deletedAt) {
@@ -378,18 +373,16 @@ export const updateIssueService = async ({
     }
 
     // Issue更新権限確認
-    const isAssignee = issue.assigneeId === userId;
+    const roleName = member.role.name;
 
-    const hasManagerRole = checkProjectRole({
-      memberRole: member.role.name,
-      allowedRoles: ["OWNER", "MANAGER"],
-    });
-
-    const canUpdate = isAssignee || hasManagerRole;
-
-    if (!canUpdate) {
-      throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+    if (!isProjectRoleName(roleName)) {
+      throw new AppError("invalid role", 500, "INVALID_ROLE");
     }
+
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MANAGER",
+    });
 
     // Assignee所属確認
     if (data.assigneeId !== undefined && data.assigneeId !== null) {
@@ -599,11 +592,16 @@ export const deleteIssueService = async ({
   }
 
   // Issue削除権限確認
-  const canDelete = requireRole("MANAGER");
+  const roleName = member.role.name;
 
-  if (!canDelete) {
-    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+  if (!isProjectRoleName(roleName)) {
+    throw new AppError("invalid role", 500, "INVALID_ROLE");
   }
+
+  assertProjectRole({
+    memberRole: roleName,
+    minimumRole: "MANAGER",
+  });
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const now = new Date();
@@ -695,11 +693,16 @@ export const restoreIssueService = async ({
   }
 
   // Issue復元権限確認
-  const canRestore = requireRole("MANAGER");
+  const roleName = member.role.name;
 
-  if (!canRestore) {
-    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+  if (!isProjectRoleName(roleName)) {
+    throw new AppError("invalid role", 500, "INVALID_ROLE");
   }
+
+  assertProjectRole({
+    memberRole: roleName,
+    minimumRole: "MANAGER",
+  });
 
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // restore実行
