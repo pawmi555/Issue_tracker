@@ -3,22 +3,17 @@ import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 import { parseInclude } from "../utils/include-parser.js";
 import {
-  buildIssueInclude,
-  validateIssueIncludes,
   isIssueIncludeField,
-} from "../utils/issue-include.js";
-
-import { checkProjectRole, isProjectRoleName } from "../utils/role-check.js";
-
+  validateIssueIncludes,
+} from "../validators/issue-include.validator.js";
+import { buildIssueInclude } from "./builders/build-issue-include.js";
 import { buildPagination } from "../utils/pagination.js";
-
-import { IssueSortField } from "../constants/issue.constants.js";
-
 import { requireRole } from "../middlewares/requireRoleMiddleware.js";
-
 import { buildIssueHistories } from "../utils/history.utils.js";
-
-import { mapIssueResponse } from "../mappers/issue.mapper.js";
+import { mapIssueResponse, toIssueDto } from "../mappers/issue.mapper.js";
+import { GetIssuesInput } from "../types/issue.types.js";
+import { buildIssueWhere } from "./builders/build-issue-where.js";
+import { hasProjectRole, isProjectRoleName } from "../utils/role-check.js";
 
 type CreateIssueInput = {
   projectId: number;
@@ -31,23 +26,6 @@ type CreateIssueInput = {
     statusId: number;
     assigneeId?: number;
     dueDate?: Date;
-  };
-};
-
-type GetIssuesInput = {
-  projectId: number;
-  userId: number;
-
-  query: {
-    page?: number;
-    limit?: number;
-    statusId?: number;
-    priorityId?: number;
-    assigneeId?: number;
-    keyword?: string;
-    sort?: IssueSortField;
-    order?: "asc" | "desc";
-    include?: string;
   };
 };
 
@@ -214,7 +192,12 @@ export const getIssuesService = async ({
     throw new AppError("invalid role", 500, "INVALID_ROLE");
   }
 
-  if (!requireRole("MEMBER")) {
+  if (
+    !hasProjectRole({
+      memberRole: roleName,
+      minimumRole: "MEMBER",
+    })
+  ) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
 
@@ -230,52 +213,13 @@ export const getIssuesService = async ({
   });
 
   // 動的検索条件生成
-  const where: Prisma.IssueWhereInput = {
+  const where = buildIssueWhere({
     projectId,
-    deletedAt: null,
-  };
-
-  if (query.statusId !== undefined) {
-    where.statusId = query.statusId;
-  }
-
-  if (query.priorityId !== undefined) {
-    where.priorityId = query.priorityId;
-  }
-
-  if (query.assigneeId !== undefined) {
-    where.assigneeId = query.assigneeId;
-  }
-
-  if (query.keyword) {
-    where.OR = [
-      {
-        title: {
-          contains: query.keyword,
-          mode: "insensitive",
-        },
-      },
-
-      {
-        description: {
-          contains: query.keyword,
-          mode: "insensitive",
-        },
-      },
-    ];
-  }
+    query,
+  });
 
   // Include検証・生成
-  const includes = parseInclude(query.include);
-
-  if (includes.length > 3) {
-    throw new AppError("include limit exceeded", 400, "INCLUDE_LIMIT_EXCEEDED");
-  }
-
-  validateIssueIncludes(includes);
-
-  const safeIncludes = includes.filter(isIssueIncludeField);
-  const prismaInclude = buildIssueInclude(safeIncludes);
+  const prismaInclude = buildIssueInclude(query.include ?? []);
 
   // ソート条件生成
   const orderBy = {
@@ -285,10 +229,12 @@ export const getIssuesService = async ({
   const [issues, total] = await prisma.$transaction([
     prisma.issue.findMany({
       where,
-      include: prismaInclude,
+      ...(Object.keys(prismaInclude).length > 0 && {
+        include: prismaInclude,
+      }),
       orderBy,
       skip,
-      take: limit,
+      take,
     }),
 
     prisma.issue.count({
@@ -297,7 +243,7 @@ export const getIssuesService = async ({
   ]);
 
   return {
-    data: issues,
+    data: issues.map(toIssueDto),
     meta: {
       page,
       limit,
@@ -566,7 +512,7 @@ export const getIssueDetailService = async ({
   // Include検証・生成
   const includes = parseInclude(include);
 
-  validateIssueIncludes(includes);
+  validateIssueIncludes(includes, true);
 
   const safeIncludes = includes.filter(isIssueIncludeField);
   const prismaInclude = buildIssueInclude(safeIncludes);

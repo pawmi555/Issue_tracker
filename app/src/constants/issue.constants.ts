@@ -1,3 +1,6 @@
+import { Prisma } from "@prisma/client";
+import { IssueIncludeField } from "../types/issue.types.js";
+
 /**
  * Issue一覧取得で使用可能なソート項目
  */
@@ -17,6 +20,65 @@ export const ISSUE_INCLUDE_FIELDS = [
   "assignee",
   "reporter",
   "comments",
+  "project",
+  "status",
+  "priority",
 ] as const;
+
+/**
+ * include項目ごとのPrisma Include設定
+ */
+export const ISSUE_INCLUDE_MAP = {
+  assignee: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+
+  reporter: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+
+  comments: {
+    where: {
+      deletedAt: null,
+    },
+
+    select: {
+      id: true,
+      content: true,
+    },
+  },
+
+  project: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+
+  status: {
+    select: {
+      id: true,
+      name: true,
+      label: true,
+    },
+  },
+
+  priority: {
+    select: {
+      id: true,
+      name: true,
+      label: true,
+    },
+  },
+} satisfies Record<
+  IssueIncludeField,
+  Prisma.IssueInclude[keyof Prisma.IssueInclude]
+>;
 
 export type IssueSortField = (typeof ISSUE_SORT_FIELDS)[number];

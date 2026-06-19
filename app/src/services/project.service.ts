@@ -3,8 +3,8 @@ import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 import { type ProjectRoleName } from "../constants/project.constants.js";
 import { buildPagination } from "../utils/pagination.js";
-import { checkProjectRole } from "../utils/role-check.js";
 import { buildProjectHistories } from "../utils/history.utils.js";
+import { hasProjectRole, isProjectRoleName } from "../utils/role-check.js";
 
 export type GetProjectsInput = {
   userId: number;
@@ -291,12 +291,18 @@ export const updateProjectService = async ({
       throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
     }
 
-    const canUpdate = checkProjectRole({
-      memberRole: member.role.name,
-      allowedRoles: ["OWNER", "MANAGER"],
-    });
+    const roleName = member.role.name;
 
-    if (!canUpdate) {
+    if (!isProjectRoleName(roleName)) {
+      throw new AppError("invalid role", 500, "INVALID_ROLE");
+    }
+
+    if (
+      !hasProjectRole({
+        memberRole: roleName,
+        minimumRole: "MANAGER",
+      })
+    ) {
       throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
     }
 
