@@ -3,8 +3,8 @@ import { Prisma } from "@prisma/client";
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
 import { requireRole } from "../middlewares/requireRoleMiddleware.js";
-import { checkProjectRole } from "../utils/role-check.js";
 import { buildCommentHistories } from "../utils/history.utils.js";
+import { hasProjectRole, isProjectRoleName } from "../utils/role-check.js";
 
 export type CreateCommentInput = {
   issueId: number;
@@ -230,23 +230,18 @@ export const updateCommentService = async ({
     }
 
     // コメント更新権限確認
-    const isOwner = comment.userId === userId;
+    const roleName = member.role.name;
 
-    const hasManagerRole = checkProjectRole({
-      memberRole: member.role.name,
-      allowedRoles: ["OWNER", "MANAGER"],
-    });
+    if (!isProjectRoleName(roleName)) {
+      throw new AppError("invalid role", 500, "INVALID_ROLE");
+    }
 
-    const canUpdate = isOwner || hasManagerRole;
-    console.log({
-      commentUserId: comment.userId,
-      requestUserId: userId,
-    });
-    console.log({
-      memberRole: member.role.name,
-    });
-
-    if (!canUpdate) {
+    if (
+      !hasProjectRole({
+        memberRole: roleName,
+        minimumRole: "MANAGER",
+      })
+    ) {
       throw new AppError("comment forbidden", 403, "COMMENT_FORBIDDEN");
     }
 

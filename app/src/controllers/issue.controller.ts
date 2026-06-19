@@ -9,7 +9,14 @@ import {
   restoreIssueService,
 } from "../services/issue.service.js";
 
-import { createIssueSchema } from "../validators/issue.validation.js";
+import {
+  createIssueSchema,
+  getIssuesQuerySchema,
+} from "../validators/issue.validation.js";
+
+import { parseInclude } from "../utils/include-parser.js";
+import { validateIssueIncludes } from "../validators/issue-include.validator.js";
+import { IssueIncludeField } from "../types/issue.types.js";
 
 export const createIssue = async (req: AuthRequest, res: Response) => {
   const projectId = Number(req.params.projectId);
@@ -29,11 +36,18 @@ export const createIssue = async (req: AuthRequest, res: Response) => {
 export const getIssues = async (req: AuthRequest, res: Response) => {
   const projectId = Number(req.params.projectId);
   const userId = req.user!.id;
-  const query = req.query;
+  const query = getIssuesQuerySchema.parse(req.query);
+  const includes = parseInclude(query.include);
+
+  validateIssueIncludes(includes, false);
+
   const result = await getIssuesService({
     projectId,
     userId,
-    query,
+    query: {
+      ...query,
+      include: includes satisfies IssueIncludeField[],
+    },
   });
 
   res.status(200).json({

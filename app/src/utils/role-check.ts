@@ -16,7 +16,7 @@ export const ISSUE_READ_ROLES = ["OWNER", "MANAGER", "MEMBER"] as const;
 /**
  * プロジェクトロールの権限レベル
  */
-const PROJECT_ROLE_LEVEL = {
+const PROJECT_ROLE_LEVEL: Record<ProjectRoleName, number> = {
   VIEWER: 1,
   MEMBER: 2,
   MANAGER: 3,
@@ -40,21 +40,6 @@ export const hasProjectRole = ({
  * 利用可能なプロジェクトロールを表すUnion型
  */
 export type ProjectRoleName = (typeof PROJECT_ROLE_NAMES)[number];
-
-type CheckProjectRoleInput = {
-  memberRole: ProjectRoleName;
-  allowedRoles: readonly ProjectRoleName[];
-};
-
-/**
- * ユーザーのロールが許可ロール一覧に含まれているか判定する
- */
-export const checkProjectRole = ({
-  memberRole,
-  allowedRoles,
-}: CheckProjectRoleInput): boolean => {
-  return allowedRoles.includes(memberRole);
-};
 
 /**
  * 指定された文字列が有効なプロジェクトロールか判定する型ガード関数
