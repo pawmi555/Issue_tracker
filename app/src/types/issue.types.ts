@@ -19,6 +19,6 @@ export type GetIssuesInput = {
     keyword?: string;
     sort?: IssueSortField;
     order?: "asc" | "desc";
-    include?: IssueIncludeField[];
+    include?: string;
   };
 };

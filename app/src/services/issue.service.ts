@@ -214,7 +214,7 @@ export const getIssuesService = async ({
   });
 
   // Include検証・生成
-  const prismaInclude = buildIssueInclude(query.include ?? []);
+  const prismaInclude = buildIssueInclude(query.include, false);
 
   // ソート条件生成
   const orderBy = {
