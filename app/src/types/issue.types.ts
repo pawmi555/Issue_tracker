@@ -6,6 +6,20 @@ import { IssueSortField } from "../constants/issue.constants.js";
  */
 export type IssueIncludeField = (typeof ISSUE_INCLUDE_FIELDS)[number];
 
+export type CreateIssueInput = {
+  projectId: number;
+  userId: number;
+
+  data: {
+    title: string;
+    description?: string;
+    priorityId: number;
+    statusId: number;
+    assigneeId?: number;
+    dueDate?: Date;
+  };
+};
+
 export type GetIssuesInput = {
   projectId: number;
   userId: number;
@@ -21,4 +35,36 @@ export type GetIssuesInput = {
     order?: "asc" | "desc";
     include?: string;
   };
+};
+
+export type UpdateIssueInput = {
+  issueId: number;
+  userId: number;
+
+  data: {
+    title?: string;
+    description?: string | null;
+    statusId?: number;
+    priorityId?: number;
+    assigneeId?: number | null;
+    dueDate?: Date | null;
+  };
+};
+
+export type GetIssueDetailInput = {
+  issueId: number;
+  userId: number;
+
+  include?: string;
+  includeDeleted?: boolean;
+};
+
+export type DeleteIssueInput = {
+  issueId: number;
+  userId: number;
+};
+
+export type RestoreIssueInput = {
+  issueId: number;
+  userId: number;
 };

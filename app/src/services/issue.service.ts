@@ -9,56 +9,17 @@ import {
 import { buildIssueInclude } from "./builders/build-issue-include.js";
 import { buildPagination } from "../utils/pagination.js";
 import { buildIssueHistories } from "../utils/history.utils.js";
-import { mapIssueResponse, toIssueDto } from "../mappers/issue.mapper.js";
-import { GetIssuesInput } from "../types/issue.types.js";
+import { toIssueDto } from "../mappers/issue.mapper.js";
+import {
+  CreateIssueInput,
+  GetIssuesInput,
+  UpdateIssueInput,
+  GetIssueDetailInput,
+  DeleteIssueInput,
+  RestoreIssueInput,
+} from "../types/issue.types.js";
 import { buildIssueWhere } from "./builders/build-issue-where.js";
 import { isProjectRoleName, assertProjectRole } from "../utils/role-check.js";
-
-type CreateIssueInput = {
-  projectId: number;
-  userId: number;
-
-  data: {
-    title: string;
-    description?: string;
-    priorityId: number;
-    statusId: number;
-    assigneeId?: number;
-    dueDate?: Date;
-  };
-};
-
-type UpdateIssueInput = {
-  issueId: number;
-  userId: number;
-
-  data: {
-    title?: string;
-    description?: string | null;
-    statusId?: number;
-    priorityId?: number;
-    assigneeId?: number | null;
-    dueDate?: Date | null;
-  };
-};
-
-type GetIssueDetailInput = {
-  issueId: number;
-  userId: number;
-
-  include?: string;
-  includeDeleted?: boolean;
-};
-
-type DeleteIssueInput = {
-  issueId: number;
-  userId: number;
-};
-
-type RestoreIssueInput = {
-  issueId: number;
-  userId: number;
-};
 
 /**
  * Issue作成
@@ -154,7 +115,7 @@ export const createIssueService = async ({
       },
     });
 
-    return issue;
+    return toIssueDto(issue);
   });
 };
 
@@ -213,20 +174,19 @@ export const getIssuesService = async ({
     query,
   });
 
-  // Include検証・生成
-  const prismaInclude = buildIssueInclude(query.include, false);
-
   // ソート条件生成
-  const orderBy = {
+  const orderBy: Prisma.IssueOrderByWithRelationInput = {
     [query.sort ?? "createdAt"]: query.order ?? "desc",
   };
+
+  const prismaInclude = query.include
+    ? buildIssueInclude(query.include, false)
+    : undefined;
 
   const [issues, total] = await prisma.$transaction([
     prisma.issue.findMany({
       where,
-      ...(Object.keys(prismaInclude).length > 0 && {
-        include: prismaInclude,
-      }),
+      include: prismaInclude,
       orderBy,
       skip,
       take,
@@ -430,7 +390,7 @@ export const updateIssueService = async ({
         select: issueResponseSelect,
       });
 
-      return mapIssueResponse(current);
+      return toIssueDto(current);
     }
 
     const updatedIssue = await tx.issue.update({
@@ -445,7 +405,7 @@ export const updateIssueService = async ({
       data: histories,
     });
 
-    return mapIssueResponse(updatedIssue);
+    return toIssueDto(updatedIssue);
   });
 };
 
