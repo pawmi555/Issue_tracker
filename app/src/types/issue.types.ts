@@ -14,7 +14,6 @@ export type CreateIssueInput = {
     title: string;
     description?: string;
     priorityId: number;
-    statusId: number;
     assigneeId?: number;
     dueDate?: Date;
   };
@@ -23,6 +22,7 @@ export type CreateIssueInput = {
 export type GetIssuesInput = {
   projectId: number;
   userId: number;
+  includeDeleted?: boolean;
 
   query: {
     page?: number;
@@ -54,9 +54,19 @@ export type UpdateIssueInput = {
 export type GetIssueDetailInput = {
   issueId: number;
   userId: number;
-
-  include?: string;
   includeDeleted?: boolean;
+
+  query: {
+    page?: number;
+    limit?: number;
+    statusId?: number;
+    priorityId?: number;
+    assigneeId?: number;
+    keyword?: string;
+    sort?: IssueSortField;
+    order?: "asc" | "desc";
+    include?: string;
+  };
 };
 
 export type DeleteIssueInput = {

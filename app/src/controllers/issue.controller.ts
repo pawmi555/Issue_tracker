@@ -9,21 +9,13 @@ import {
   restoreIssueService,
 } from "../services/issue.service.js";
 
-import {
-  createIssueSchema,
-  getIssuesQuerySchema,
-} from "../validators/issue.validation.js";
-
-import { IssueIncludeField } from "../types/issue.types.js";
-import { buildIssueInclude } from "../services/builders/build-issue-include.js";
-
 export const createIssue = async (req: AuthRequest, res: Response) => {
   const projectId = Number(req.params.projectId);
-  const data = createIssueSchema.parse(req.body);
+  const userId = req.user!.id;
   const issue = await createIssueService({
     projectId,
-    userId: req.user!.id,
-    data,
+    userId,
+    data: req.body,
   });
 
   res.status(201).json({
@@ -35,12 +27,11 @@ export const createIssue = async (req: AuthRequest, res: Response) => {
 export const getIssues = async (req: AuthRequest, res: Response) => {
   const projectId = Number(req.params.projectId);
   const userId = req.user!.id;
-  const query = getIssuesQuerySchema.parse(req.query);
 
   const result = await getIssuesService({
     projectId,
     userId,
-    query,
+    query: req.query,
   });
 
   res.status(200).json({
@@ -51,10 +42,11 @@ export const getIssues = async (req: AuthRequest, res: Response) => {
 
 export const updateIssue = async (req: AuthRequest, res: Response) => {
   const issueId = Number(req.params.id);
+  const userId = req.user!.id;
 
   const issue = await updateIssueService({
     issueId,
-    userId: req.user!.id,
+    userId,
     data: req.body,
   });
 
@@ -65,10 +57,12 @@ export const updateIssue = async (req: AuthRequest, res: Response) => {
 };
 
 export const getIssueDetail = async (req: AuthRequest, res: Response) => {
+  const issueId = Number(req.params.id);
+  const userId = req.user!.id;
   const issue = await getIssueDetailService({
-    issueId: Number(req.params.id),
-    userId: req.user!.id,
-    include: req.query.include as string,
+    issueId,
+    userId,
+    query: req.query,
     includeDeleted: req.query.includeDeleted === "true",
   });
 
@@ -79,18 +73,22 @@ export const getIssueDetail = async (req: AuthRequest, res: Response) => {
 };
 
 export const deleteIssue = async (req: AuthRequest, res: Response) => {
+  const issueId = Number(req.params.id);
+  const userId = req.user!.id;
   await deleteIssueService({
-    issueId: Number(req.params.id),
-    userId: req.user!.id,
+    issueId,
+    userId,
   });
 
   res.sendStatus(204);
 };
 
 export const restoreIssue = async (req: AuthRequest, res: Response) => {
+  const issueId = Number(req.params.id);
+  const userId = req.user!.id;
   await restoreIssueService({
-    issueId: Number(req.params.id),
-    userId: req.user!.id,
+    issueId,
+    userId,
   });
 
   res.status(200).json({

@@ -15,7 +15,8 @@ import {
   getIssuesQuerySchema,
   updateIssueSchema,
   issueIdSchema,
-  getIssueQuerySchema,
+  projectIdSchema,
+  getIssueDetailQuerySchema,
 } from "../validators/issue.validation.js";
 
 const router = Router();
@@ -23,21 +24,21 @@ const router = Router();
 router.post(
   "/projects/:projectId/issues",
   authMiddleware,
-  validate({ body: createIssueSchema }),
+  validate({ params: projectIdSchema, body: createIssueSchema }),
   asyncHandler(createIssue),
 );
 
 router.get(
   "/projects/:projectId/issues",
   authMiddleware,
-  validate({ query: getIssuesQuerySchema }),
+  validate({ params: projectIdSchema, query: getIssuesQuerySchema }),
   asyncHandler(getIssues),
 );
 
 router.patch(
   "/issues/:id",
   authMiddleware,
-  validate({ body: updateIssueSchema }),
+  validate({ params: issueIdSchema, body: updateIssueSchema }),
   asyncHandler(updateIssue),
 );
 
@@ -46,7 +47,7 @@ router.get(
   authMiddleware,
   validate({
     params: issueIdSchema,
-    query: getIssueQuerySchema,
+    query: getIssueDetailQuerySchema,
   }),
   asyncHandler(getIssueDetail),
 );
