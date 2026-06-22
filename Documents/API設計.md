@@ -657,11 +657,11 @@ if (issue.project.deletedAt !== null) {
 
 | API                      | includeDeleted | 権限制御    |
 | ------------------------ | -------------- | ----------- |
-| GET /projects            | ○              | OWNER以上   |
-| GET /projects/:id        | ○              | MEMBER以上  |
+| GET /projects            | ○              | MANAGER以上 |
+| GET /projects/:id        | ○              | MANAGER以上 |
 | GET /projects/:id/issues | ○              | MANAGER以上 |
-| GET /issues/:id          | ○              | MEMBER以上  |
-| GET /issues/:id/comments | ○              | MEMBER以上  |
+| GET /issues/:id          | ○              | MANAGER以上 |
+| GET /issues/:id/comments | ○              | MANAGER以上 |
 | GET /users               | ○              | ADMIN       |
 | GET /histories           | ×              | 非対応      |
 |                          |                |             |
@@ -1355,6 +1355,7 @@ refresh_token=xxx
 
 #### 制約
 
+- MEMBER以上
 - projectメンバーのみ
 - assigneeはメンバー限定
 - priority/status存在チェック
@@ -1369,7 +1370,7 @@ refresh_token=xxx
   "description": "500 error",
   "priorityId": 1,
   "assigneeId": 2,
-  "dueDate": "2026-05-01"
+  "dueDate": "2026-06-13T13:32:210.151Z"
 }
 ```
 

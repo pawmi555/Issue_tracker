@@ -7,10 +7,14 @@ type BuildIssueWhereInput = Pick<GetIssuesInput, "projectId"> & {
 
 export const buildIssueWhere = (
   input: BuildIssueWhereInput,
+  includeDeleted: boolean,
 ): Prisma.IssueWhereInput => {
   return {
     projectId: input.projectId,
-    deletedAt: null,
+
+    ...(!includeDeleted && {
+      deletedAt: null,
+    }),
 
     ...(input.query.statusId !== undefined && {
       statusId: input.query.statusId,

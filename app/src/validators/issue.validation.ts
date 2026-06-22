@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AppError } from "../utils/app-error.js";
 
 const sortFields = ["createdAt", "dueDate"] as const;
 
@@ -34,17 +35,6 @@ export const createIssueSchema = z.object({
       error: "優先度を選択してください",
     }),
 
-  statusId: z
-    .number({
-      error: "ステータスIDは数値で入力してください",
-    })
-    .int({
-      error: "ステータスIDは整数で指定してください",
-    })
-    .positive({
-      error: "ステータスを選択してください",
-    }),
-
   assigneeId: z
     .number({
       error: "担当者IDは数値で入力してください",
@@ -57,10 +47,11 @@ export const createIssueSchema = z.object({
     })
     .optional(),
 
-  dueDate: z.coerce
-    .date({
-      error: "期限日は正しい日付形式で入力してください",
+  dueDate: z.iso
+    .datetime({
+      error: "期限日はISO-8601形式で入力してください",
     })
+    .transform((v) => new Date(v))
     .optional(),
 });
 
@@ -148,73 +139,82 @@ export const getIssuesQuerySchema = z.object({
     .default("desc"),
 
   include: z.string().optional(),
+
+  includeDeleted: z.coerce
+    .boolean({
+      error: "includeDeletedはtrueまたはfalseを指定してください",
+    })
+    .optional()
+    .default(false),
 });
 
-export const updateIssueSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(1, {
-      error: "タイトルを入力してください",
-    })
-    .max(255, {
-      error: "タイトルは255文字以内で入力してください",
-    })
-    .optional(),
+export const updateIssueSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(1, {
+        error: "タイトルを入力してください",
+      })
+      .max(255, {
+        error: "タイトルは255文字以内で入力してください",
+      })
+      .optional(),
 
-  description: z
-    .string()
-    .trim()
-    .max(5000, {
-      error: "説明は5000文字以内で入力してください",
-    })
-    .nullable()
-    .optional(),
+    description: z
+      .string()
+      .trim()
+      .max(5000, {
+        error: "説明は5000文字以内で入力してください",
+      })
+      .nullable()
+      .optional(),
 
-  statusId: z
-    .number({
-      error: "ステータスIDは数値で入力してください",
-    })
-    .int({
-      error: "ステータスIDは整数で指定してください",
-    })
-    .positive({
-      error: "ステータスを選択してください",
-    })
-    .optional(),
+    statusId: z
+      .number({
+        error: "ステータスIDは数値で入力してください",
+      })
+      .int({
+        error: "ステータスIDは整数で指定してください",
+      })
+      .positive({
+        error: "ステータスを選択してください",
+      })
+      .optional(),
 
-  priorityId: z
-    .number({
-      error: "優先度IDは数値で入力してください",
-    })
-    .int({
-      error: "優先度IDは整数で指定してください",
-    })
-    .positive({
-      error: "優先度を選択してください",
-    })
-    .optional(),
+    priorityId: z
+      .number({
+        error: "優先度IDは数値で入力してください",
+      })
+      .int({
+        error: "優先度IDは整数で指定してください",
+      })
+      .positive({
+        error: "優先度を選択してください",
+      })
+      .optional(),
 
-  assigneeId: z
-    .number({
-      error: "担当者IDは数値で入力してください",
-    })
-    .int({
-      error: "担当者IDは整数で指定してください",
-    })
-    .positive({
-      error: "担当者IDは1以上を指定してください",
-    })
-    .nullable()
-    .optional(),
+    assigneeId: z
+      .number({
+        error: "担当者IDは数値で入力してください",
+      })
+      .int({
+        error: "担当者IDは整数で指定してください",
+      })
+      .positive({
+        error: "担当者IDは1以上を指定してください",
+      })
+      .nullable()
+      .optional(),
 
-  dueDate: z.coerce
-    .date({
-      error: "期限日は正しい日付形式で入力してください",
-    })
-    .nullable()
-    .optional(),
-});
+    dueDate: z.coerce
+      .date({
+        error: "期限日は正しい日付形式で入力してください",
+      })
+      .nullable()
+      .optional(),
+  })
+  .strict();
 
 export const issueIdSchema = z.object({
   id: z.coerce
@@ -229,7 +229,20 @@ export const issueIdSchema = z.object({
     }),
 });
 
-export const getIssueQuerySchema = z.object({
+export const projectIdSchema = z.object({
+  projectId: z.coerce
+    .number({
+      error: "ProjectIDは数値で入力してください",
+    })
+    .int({
+      error: "ProjectIDは整数で入力してください",
+    })
+    .positive({
+      error: "ProjectIDは1以上を指定してください",
+    }),
+});
+
+export const getIssueDetailQuerySchema = z.object({
   include: z.string().optional(),
 
   includeDeleted: z.coerce
@@ -239,3 +252,26 @@ export const getIssueQuerySchema = z.object({
     .optional()
     .default(false),
 });
+
+type IssueStatusId = 1 | 2 | 3 | 4 | 5;
+
+export const isIssueStatusId = (value: number): value is IssueStatusId => {
+  return [1, 2, 3, 4, 5].includes(value);
+};
+
+export const validateIssueTransition = (
+  current: IssueStatusId,
+  next: IssueStatusId,
+) => {
+  const allowed: Record<IssueStatusId, IssueStatusId[]> = {
+    1: [2],
+    2: [3],
+    3: [4],
+    4: [5],
+    5: [],
+  };
+
+  if (!allowed[current]?.includes(next)) {
+    throw new AppError("invalid transition", 409, "ISSUE_INVALID_TRANSITION");
+  }
+};
