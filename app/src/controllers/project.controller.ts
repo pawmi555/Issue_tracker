@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { ProjectRequest } from "../types/auth-request.js";
+import { ProjectRequest, GetProjectsRequest } from "../types/auth-request.js";
 import {
   createProjectService,
   getProjectsService,
@@ -11,21 +11,11 @@ import {
   changeMemberRoleService,
   removeMemberService,
 } from "../services/project.service.js";
-import {
-  updateMemberRoleSchema,
-  getProjectsSchema,
-} from "../validators/project.validator.js";
 
 export const createProject = async (req: ProjectRequest, res: Response) => {
-  console.log("controller start");
   const { name, description } = req.body;
   const userId = req.user!.id;
-
-  console.log("before service");
-
   const project = await createProjectService(name, userId, description);
-
-  console.log("after service");
 
   res.status(201).json({
     success: true,
@@ -33,10 +23,9 @@ export const createProject = async (req: ProjectRequest, res: Response) => {
   });
 };
 
-export const getProjects = async (req: ProjectRequest, res: Response) => {
+export const getProjects = async (req: GetProjectsRequest, res: Response) => {
   const userId = req.user!.id;
-  const query = getProjectsSchema.parse(req.query);
-  const result = await getProjectsService({ userId, query });
+  const result = await getProjectsService({ userId, query: req.query });
 
   res.status(200).json({
     success: true,
@@ -44,7 +33,7 @@ export const getProjects = async (req: ProjectRequest, res: Response) => {
   });
 };
 
-export const getProjectDatail = async (req: ProjectRequest, res: Response) => {
+export const getProjectDetail = async (req: ProjectRequest, res: Response) => {
   const userId = req.user!.id;
   const id = Number(req.params.id);
   const project = await getProjectDatailService(id, userId);
@@ -98,7 +87,7 @@ export const getMembers = async (req: ProjectRequest, res: Response) => {
 };
 
 export const authorityChange = async (req: ProjectRequest, res: Response) => {
-  const { role } = updateMemberRoleSchema.parse(req.body);
+  const { role } = req.body;
   const userId = Number(req.params.userId);
   const projectId = Number(req.params.id);
 

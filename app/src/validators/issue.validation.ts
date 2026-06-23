@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AppError } from "../utils/app-error.js";
+import { ISSUE_INCLUDE_FIELDS } from "../constants/issue.constants.js";
 
 const sortFields = ["createdAt", "dueDate"] as const;
 
@@ -138,17 +139,42 @@ export const getIssuesQuerySchema = z.object({
     })
     .default("desc"),
 
-  include: z.string().optional(),
+  include: z
+    .string({
+      error: "includeは文字列で指定してください",
+    })
+    .trim()
+    .max(100, {
+      error: "includeは100文字以内で指定してください",
+    })
+    .optional(),
 
   includeDeleted: z.coerce
     .boolean({
       error: "includeDeletedはtrueまたはfalseを指定してください",
     })
-    .optional()
     .default(false),
 });
 
-export const updateIssueSchema = z
+export const getIssueDetailQuerySchema = z.object({
+  include: z
+    .string({
+      error: "includeは文字列で指定してください",
+    })
+    .trim()
+    .max(100, {
+      error: "includeは100文字以内で指定してください",
+    })
+    .optional(),
+
+  includeDeleted: z.coerce
+    .boolean({
+      error: "includeDeletedはtrueまたはfalseを指定してください",
+    })
+    .default(false),
+});
+
+export const updateIssueBodySchema = z
   .object({
     title: z
       .string()
@@ -207,27 +233,28 @@ export const updateIssueSchema = z
       .nullable()
       .optional(),
 
-    dueDate: z.coerce
-      .date({
-        error: "期限日は正しい日付形式で入力してください",
+    dueDate: z.iso
+      .datetime({
+        error: "期限日はISO-8601形式で入力してください",
       })
+      .transform((v) => new Date(v))
       .nullable()
       .optional(),
   })
   .strict();
 
-export const issueIdSchema = z.object({
-  id: z.coerce
-    .number({
-      error: "IssueIDは数値で入力してください",
-    })
-    .int({
-      error: "IssueIDは整数で入力してください",
-    })
-    .positive({
-      error: "IssueIDは1以上を指定してください",
-    }),
-});
+export const updateIssueSchema = updateIssueBodySchema.refine(
+  (data) =>
+    data.title !== undefined ||
+    data.description !== undefined ||
+    data.statusId !== undefined ||
+    data.priorityId !== undefined ||
+    data.assigneeId !== undefined ||
+    data.dueDate !== undefined,
+  {
+    error: "更新項目を1つ以上指定してください",
+  },
+);
 
 export const projectIdSchema = z.object({
   projectId: z.coerce
@@ -242,15 +269,17 @@ export const projectIdSchema = z.object({
     }),
 });
 
-export const getIssueDetailQuerySchema = z.object({
-  include: z.string().optional(),
-
-  includeDeleted: z.coerce
-    .boolean({
-      error: "includeDeletedはtrueまたはfalseを指定してください",
+export const issueIdSchema = z.object({
+  id: z.coerce
+    .number({
+      error: "IssueIDは数値で入力してください",
     })
-    .optional()
-    .default(false),
+    .int({
+      error: "IssueIDは整数で入力してください",
+    })
+    .positive({
+      error: "IssueIDは1以上を指定してください",
+    }),
 });
 
 type IssueStatusId = 1 | 2 | 3 | 4 | 5;

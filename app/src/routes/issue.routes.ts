@@ -5,18 +5,18 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import {
   createIssue,
   getIssues,
-  updateIssue,
   getIssueDetail,
+  updateIssue,
   deleteIssue,
   restoreIssue,
 } from "../controllers/issue.controller.js";
 import {
   createIssueSchema,
   getIssuesQuerySchema,
-  updateIssueSchema,
-  issueIdSchema,
-  projectIdSchema,
   getIssueDetailQuerySchema,
+  updateIssueSchema,
+  projectIdSchema,
+  issueIdSchema,
 } from "../validators/issue.validation.js";
 
 const router = Router();
@@ -35,13 +35,6 @@ router.get(
   asyncHandler(getIssues),
 );
 
-router.patch(
-  "/issues/:id",
-  authMiddleware,
-  validate({ params: issueIdSchema, body: updateIssueSchema }),
-  asyncHandler(updateIssue),
-);
-
 router.get(
   "/issues/:id",
   authMiddleware,
@@ -50,6 +43,13 @@ router.get(
     query: getIssueDetailQuerySchema,
   }),
   asyncHandler(getIssueDetail),
+);
+
+router.patch(
+  "/issues/:id",
+  authMiddleware,
+  validate({ params: issueIdSchema, body: updateIssueSchema }),
+  asyncHandler(updateIssue),
 );
 
 router.delete(

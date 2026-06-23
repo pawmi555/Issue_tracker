@@ -1,6 +1,7 @@
 import { Request } from "express";
+import { z } from "zod";
 import { ProjectRoleName } from "../constants/project.constants.js";
-
+import { getProjectsSchema } from "../validators/project.validator.js";
 export interface JwtUser {
   id: number;
 }
@@ -36,3 +37,15 @@ export interface AuthRequest extends Request {
 export interface ProjectRequest extends AuthRequest {
   projectMember?: ProjectMemberPayload;
 }
+
+type GetProjectsQuery = z.infer<typeof getProjectsSchema>;
+
+export type GetProjectsRequest = Request<
+  {}, // params
+  {}, // res body
+  {}, // req body
+  GetProjectsQuery // query
+> & {
+  user?: JwtUser;
+  projectMember?: ProjectMemberPayload;
+};
