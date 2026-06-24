@@ -1,24 +1,37 @@
 import { Router } from "express";
-import * as authController from "../controllers/auth.controller.js";
+
+import {
+  register,
+  login,
+  refresh,
+  logout,
+  me,
+} from "../controllers/auth.controller.js";
+
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
-import { authRegisterSchema } from "../validators/auth.validators.js";
+
 import { asyncHandler } from "../utils/asyncHandler.js";
+
+import {
+  authRegisterSchema,
+  authLoginSchema,
+} from "../validators/auth.validators.js";
 
 const router = Router();
 
 router.post(
   "/register",
   validate({ body: authRegisterSchema }),
-  asyncHandler(authController.register),
+  asyncHandler(register),
 );
 
-router.post("/login", asyncHandler(authController.login));
+router.post("/login", validate({ body: authLoginSchema }), asyncHandler(login));
 
-router.post("/refresh", asyncHandler(authController.refresh));
+router.post("/refresh", asyncHandler(refresh));
 
-router.post("/logout", asyncHandler(authController.logout));
+router.post("/logout", asyncHandler(logout));
 
-router.get("/me", authMiddleware, asyncHandler(authController.me));
+router.get("/me", authMiddleware, asyncHandler(me));
 
 export default router;

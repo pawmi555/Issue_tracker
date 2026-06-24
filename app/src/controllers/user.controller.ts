@@ -1,5 +1,11 @@
-import { Request, Response } from "express";
-import { AuthRequest } from "../types/auth-request.js";
+import type { z } from "zod";
+import { Response } from "express";
+
+import {
+  ValidatedRequest,
+  ValidatedAuthRequest,
+} from "../types/validated-request.js";
+
 import {
   getUsersService,
   getUserByIdService,
@@ -7,8 +13,17 @@ import {
   deleteUserService,
 } from "../services/user.service.js";
 
-export const getUsers = async (req: Request, res: Response) => {
-  const users = await getUsersService(req.query);
+import {
+  userIdSchema,
+  getUsersSchema,
+  updateUserSchema,
+} from "../validators/user.validation.js";
+
+export const getUsers = async (
+  req: ValidatedRequest<never, never, z.infer<typeof getUsersSchema>>,
+  res: Response,
+) => {
+  const users = await getUsersService(req.validatedQuery!);
 
   res.status(200).json({
     success: true,
@@ -16,9 +31,11 @@ export const getUsers = async (req: Request, res: Response) => {
   });
 };
 
-export const getUserById = async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
-  const user = await getUserByIdService(id);
+export const getUserById = async (
+  req: ValidatedRequest<z.infer<typeof userIdSchema>, never, never>,
+  res: Response,
+) => {
+  const user = await getUserByIdService(req.validatedParams!.id);
 
   res.status(200).json({
     success: true,
@@ -26,12 +43,18 @@ export const getUserById = async (req: Request, res: Response) => {
   });
 };
 
-export const updateUser = async (req: AuthRequest, res: Response) => {
-  const id = Number(req.params.id);
+export const updateUser = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof userIdSchema>,
+    never,
+    z.infer<typeof updateUserSchema>
+  >,
+  res: Response,
+) => {
   const user = await updateUserService({
-    id,
+    id: req.validatedParams!.id,
     operatedBy: req.user!.id,
-    data: req.body,
+    data: req.validatedBody!,
   });
 
   res.status(200).json({
@@ -40,9 +63,11 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const deleteUser = async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
-  await deleteUserService(id);
+export const deleteUser = async (
+  req: ValidatedAuthRequest<z.infer<typeof userIdSchema>, never, never>,
+  res: Response,
+) => {
+  await deleteUserService(req.validatedParams!.id);
 
   res.sendStatus(204);
 };

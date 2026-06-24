@@ -1,11 +1,12 @@
 import { Response, NextFunction } from "express";
-import { ValidatedRequest } from "../types/validated-request.js";
 import { ZodError, ZodType } from "zod";
 
-type ValidationSchemas = {
-  body?: ZodType;
-  query?: ZodType;
-  params?: ZodType;
+import { ValidatedAuthRequest } from "../types/validated-request.js";
+
+type ValidationSchemas<P = any, Q = any, B = any> = {
+  params?: ZodType<P>;
+  query?: ZodType<Q>;
+  body?: ZodType<B>;
 };
 
 /**
@@ -20,9 +21,8 @@ type ValidationSchemas = {
  * @param schemas 検証対象のSchema定義
  */
 export const validate =
-  (schemas: ValidationSchemas) =>
-  (req: ValidatedRequest, res: Response, next: NextFunction) => {
-    console.log("validate start");
+  <P = any, Q = any, B = any>(schemas: ValidationSchemas<P, Q, B>) =>
+  (req: ValidatedAuthRequest<P, Q, B>, res: Response, next: NextFunction) => {
     try {
       if (schemas.body) {
         req.validatedBody = schemas.body.parse(req.body);
@@ -46,5 +46,4 @@ export const validate =
 
       next(error);
     }
-    console.log("validate end");
   };

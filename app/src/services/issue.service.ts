@@ -1,10 +1,13 @@
-import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
+
+import { prisma } from "../lib/prisma.js";
+
 import { AppError } from "../utils/app-error.js";
-import { buildIssueInclude } from "./builders/build-issue-include.js";
 import { buildPagination } from "../utils/pagination.js";
 import { buildIssueHistories } from "../utils/history.utils.js";
 import { toIssueDto } from "../mappers/issue.mapper.js";
+import { buildIssueInclude } from "./builders/build-issue-include.js";
+
 import {
   CreateIssueInput,
   GetIssuesInput,
@@ -13,10 +16,12 @@ import {
   DeleteIssueInput,
   RestoreIssueInput,
 } from "../types/issue.types.js";
+
 import { buildIssueWhere } from "./builders/build-issue-where.js";
 import { buildIssueDetailWhere } from "./builders/build-issue-detail-where.js";
 import { isProjectRoleName, assertProjectRole } from "../utils/role-check.js";
 import { ISSUE_RESPONSE_SELECT } from "../constants/issue.constants.js";
+
 import {
   validateIssueTransition,
   isIssueStatusId,

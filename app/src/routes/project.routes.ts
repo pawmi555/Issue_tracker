@@ -11,9 +11,10 @@ import {
   authorityChange,
   removeMember,
 } from "../controllers/project.controller.js";
+
 import { projectRoleMiddleware } from "../middlewares/projectRole.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
+
 import {
   createProjectSchema,
   getProjectsSchema,
@@ -24,6 +25,9 @@ import {
   projectIdSchema,
   projectMemberSchema,
 } from "../validators/project.validator.js";
+
+import { asyncHandler } from "../utils/asyncHandler.js";
+
 const router = Router();
 
 router.post(

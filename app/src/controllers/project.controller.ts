@@ -1,5 +1,7 @@
+//TODO:ValidatedRequestへ統一
+
 import { Response } from "express";
-import { ProjectRequest, GetProjectsRequest } from "../types/auth-request.js";
+
 import {
   createProjectService,
   getProjectsService,
@@ -11,6 +13,19 @@ import {
   changeMemberRoleService,
   removeMemberService,
 } from "../services/project.service.js";
+
+import {
+  createProjectSchema,
+  getProjectsSchema,
+  getProjectDetailSchema,
+  updateProjectSchema,
+  addMemberSchema,
+  updateMemberRoleSchema,
+  projectMemberSchema,
+  projectIdSchema,
+} from "../validators/project.validator.js";
+
+import { ProjectRequest, GetProjectsRequest } from "../types/auth-request.js";
 
 export const createProject = async (req: ProjectRequest, res: Response) => {
   const { name, description } = req.body;

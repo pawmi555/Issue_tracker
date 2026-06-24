@@ -1,17 +1,27 @@
+import type { z } from "zod";
 import { Response } from "express";
-import { AuthRequest } from "../types/auth-request.js";
+
 import { getIssueHistoriesService } from "../services/history.service.js";
-import { getHistorySchema } from "../validators/history.validators.js";
 
-export const getIssueHistories = async (req: AuthRequest, res: Response) => {
-  const issueId = Number(req.params.id);
+import type {
+  getHistorySchema,
+  issueIdSchema,
+} from "../validators/history.validators.js";
 
-  const query = getHistorySchema.parse(req.query);
+import { ValidatedAuthRequest } from "../types/validated-request.js";
 
+export const getIssueHistories = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof issueIdSchema>,
+    z.infer<typeof getHistorySchema>,
+    never
+  >,
+  res: Response,
+) => {
   const result = await getIssueHistoriesService({
-    issueId,
+    issueId: req.validatedParams!.id,
     userId: req.user!.id,
-    query,
+    query: req.validatedQuery!,
   });
 
   res.status(200).json({

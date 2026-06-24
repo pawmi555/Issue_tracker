@@ -1,7 +1,7 @@
 import { Request } from "express";
-import { z } from "zod";
+
 import { ProjectRoleName } from "../constants/project.constants.js";
-import { getProjectsSchema } from "../validators/project.validator.js";
+
 export interface JwtUser {
   id: number;
 }
@@ -20,7 +20,7 @@ export interface ProjectMemberPayload {
 }
 
 /**
- * JWT認証後のユーザー情報を保持するRequest
+ * JWT認証後のユーザー情報を保持するRequest型
  *
  * 認証ミドルウェアで req.user が設定される
  */
@@ -29,7 +29,7 @@ export interface AuthRequest extends Request {
 }
 
 /**
- * プロジェクト権限チェック後のRequest
+ * プロジェクト権限チェック後のRequest型
  *
  * projectMemberには対象プロジェクトにおける
  * ユーザーのロール情報が格納される
@@ -37,15 +37,3 @@ export interface AuthRequest extends Request {
 export interface ProjectRequest extends AuthRequest {
   projectMember?: ProjectMemberPayload;
 }
-
-type GetProjectsQuery = z.infer<typeof getProjectsSchema>;
-
-export type GetProjectsRequest = Request<
-  {}, // params
-  {}, // res body
-  {}, // req body
-  GetProjectsQuery // query
-> & {
-  user?: JwtUser;
-  projectMember?: ProjectMemberPayload;
-};

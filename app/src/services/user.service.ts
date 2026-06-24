@@ -1,5 +1,7 @@
-import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
+
+import { prisma } from "../lib/prisma.js";
+
 import { buildPagination } from "../utils/pagination.js";
 import { AppError } from "../utils/app-error.js";
 import { buildUserHistories } from "../utils/history.utils.js";
@@ -47,11 +49,7 @@ export const getUsersService = async (query: GetUsersQuery) => {
  * ユーザー詳細取得
  */
 export const getUserByIdService = async (id: number) => {
-  if (Number.isNaN(id)) {
-    throw new AppError("invalid user id", 400, "INVALID_USER_ID");
-  }
-
-  const user = await prisma.user.findFirst({
+  const user = await prisma.user.findUnique({
     where: {
       id,
       deletedAt: null,
@@ -65,7 +63,7 @@ export const getUserByIdService = async (id: number) => {
   });
 
   if (!user) {
-    throw new AppError("User not found", 404, "USER_NOT_FOUND");
+    throw new AppError("user not found", 404, "USER_NOT_FOUND");
   }
 
   return user;
@@ -79,10 +77,6 @@ export const updateUserService = async ({
   operatedBy,
   data,
 }: UpdateUserInput) => {
-  if (Number.isNaN(id)) {
-    throw new AppError("invalid user id", 400, "INVALID_USER_ID");
-  }
-
   // レスポンス定義
   const userResponseSelect = {
     id: true,
@@ -100,33 +94,8 @@ export const updateUserService = async ({
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const HISTORY_ACTION_UPDATE = 1;
 
-    // 実行者存在確認
-    const operator = await tx.user.findFirst({
-      where: {
-        id: operatedBy,
-        deletedAt: null,
-      },
-
-      select: {
-        role: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-
-    if (!operator) {
-      throw new AppError("user not found", 404, "USER_NOT_FOUND");
-    }
-
-    // User更新権限確認
-    if (operator.role.name !== "ADMIN") {
-      throw new AppError("user forbidden", 403, "USER_FORBIDDEN");
-    }
-
     // ユーザー存在確認
-    const user = await tx.user.findFirst({
+    const user = await tx.user.findUnique({
       where: {
         id,
         deletedAt: null,
@@ -145,7 +114,7 @@ export const updateUserService = async ({
     });
 
     if (!user) {
-      throw new AppError("User not found", 404, "USER_NOT_FOUND");
+      throw new AppError("user not found", 404, "USER_NOT_FOUND");
     }
 
     // Role存在確認
@@ -236,11 +205,7 @@ export const updateUserService = async ({
  * ユーザー削除
  */
 export const deleteUserService = async (id: number) => {
-  if (Number.isNaN(id)) {
-    throw new AppError("invalid user id", 400, "INVALID_USER_ID");
-  }
-
-  const targetUser = await prisma.user.findFirst({
+  const targetUser = await prisma.user.findUnique({
     where: {
       id,
       deletedAt: null,
@@ -251,7 +216,7 @@ export const deleteUserService = async (id: number) => {
   });
 
   if (!targetUser) {
-    throw new AppError("User not found", 404, "USER_NOT_FOUND");
+    throw new AppError("user not found", 404, "USER_NOT_FOUND");
   }
 
   return prisma.user.update({

@@ -1,13 +1,11 @@
 import { prisma } from "../lib/prisma.js";
+
 import { Prisma } from "@prisma/client";
+
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
 import { buildCommentHistories } from "../utils/history.utils.js";
-import {
-  hasProjectRole,
-  isProjectRoleName,
-  assertProjectRole,
-} from "../utils/role-check.js";
+import { isProjectRoleName, assertProjectRole } from "../utils/role-check.js";
 
 export type CreateCommentInput = {
   issueId: number;

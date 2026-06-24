@@ -1,7 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
-import { validate } from "../middlewares/validate.middleware.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
+
 import {
   createIssue,
   getIssues,
@@ -10,6 +8,10 @@ import {
   deleteIssue,
   restoreIssue,
 } from "../controllers/issue.controller.js";
+
+import { validate } from "../middlewares/validate.middleware.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
+
 import {
   createIssueSchema,
   getIssuesQuerySchema,
@@ -18,6 +20,8 @@ import {
   projectIdSchema,
   issueIdSchema,
 } from "../validators/issue.validation.js";
+
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 const router = Router();
 
