@@ -1,6 +1,6 @@
 import { z } from "zod";
+
 import { AppError } from "../utils/app-error.js";
-import { ISSUE_INCLUDE_FIELDS } from "../constants/issue.constants.js";
 
 const sortFields = ["createdAt", "dueDate"] as const;
 
@@ -149,10 +149,17 @@ export const getIssuesQuerySchema = z.object({
     })
     .optional(),
 
-  includeDeleted: z.coerce
-    .boolean({
-      error: "includeDeletedはtrueまたはfalseを指定してください",
-    })
+  includeDeleted: z
+    .preprocess(
+      (value) => {
+        if (value === "true") return true;
+        if (value === "false") return false;
+        return value;
+      },
+      z.boolean({
+        error: "includeDeletedはtrueまたはfalseを指定してください",
+      }),
+    )
     .default(false),
 });
 
@@ -167,10 +174,17 @@ export const getIssueDetailQuerySchema = z.object({
     })
     .optional(),
 
-  includeDeleted: z.coerce
-    .boolean({
-      error: "includeDeletedはtrueまたはfalseを指定してください",
-    })
+  includeDeleted: z
+    .preprocess(
+      (value) => {
+        if (value === "true") return true;
+        if (value === "false") return false;
+        return value;
+      },
+      z.boolean({
+        error: "includeDeletedはtrueまたはfalseを指定してください",
+      }),
+    )
     .default(false),
 });
 

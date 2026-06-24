@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { PROJECT_ROLES } from "../constants/project.constants.js";
 
 const sortFields = ["createdAt", "dueDate"] as const;
@@ -95,18 +96,32 @@ export const getProjectsSchema = z.object({
 
   include: z.string().optional(),
 
-  includeDeleted: z.coerce
-    .boolean({
-      error: "includeDeletedはtrueまたはfalseを指定してください",
-    })
+  includeDeleted: z
+    .preprocess(
+      (value) => {
+        if (value === "true") return true;
+        if (value === "false") return false;
+        return value;
+      },
+      z.boolean({
+        error: "includeDeletedはtrueまたはfalseを指定してください",
+      }),
+    )
     .default(false),
 });
 
 export const getProjectDetailSchema = z.object({
-  includeDeleted: z.coerce
-    .boolean({
-      error: "includeDeletedはtrueまたはfalseを指定してください",
-    })
+  includeDeleted: z
+    .preprocess(
+      (value) => {
+        if (value === "true") return true;
+        if (value === "false") return false;
+        return value;
+      },
+      z.boolean({
+        error: "includeDeletedはtrueまたはfalseを指定してください",
+      }),
+    )
     .default(false),
 });
 

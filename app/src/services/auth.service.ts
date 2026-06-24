@@ -1,10 +1,13 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
+
 import { Prisma } from "@prisma/client";
-import { prisma } from "../lib/prisma.js";
-import { AppError } from "../utils/app-error.js";
 import type { User } from "@prisma/client";
+
+import { prisma } from "../lib/prisma.js";
+
+import { AppError } from "../utils/app-error.js";
 
 const ACCESS_EXPIRES = "1h";
 const REFRESH_EXPIRES = "7d";
@@ -57,7 +60,7 @@ type JwtPayload = {
  * ユーザー登録
  * 初期ロールとしてUSERを付与する
  */
-export const register = async (
+export const registerService = async (
   name: string,
   email: string,
   password: string,
@@ -87,7 +90,7 @@ export const register = async (
 /**
  * ログイン
  */
-export const login = async (email: string, password: string) => {
+export const loginService = async (email: string, password: string) => {
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user)
@@ -117,7 +120,7 @@ export const login = async (email: string, password: string) => {
  * アクセストークン更新
  * Refresh Token Rotationを行う
  */
-export const refresh = async (refreshToken: string) => {
+export const refreshService = async (refreshToken: string) => {
   if (!refreshToken) {
     throw new AppError("Refresh token required", 400, "TOKEN_REQUIRED");
   }
@@ -190,7 +193,7 @@ export const refresh = async (refreshToken: string) => {
 /**
  * ログアウト
  */
-export const logout = async (refreshToken: string) => {
+export const logoutService = async (refreshToken: string) => {
   if (!refreshToken) {
     throw new AppError("Refresh token required", 400, "TOKEN_REQUIRED");
   }
@@ -221,7 +224,7 @@ export const logout = async (refreshToken: string) => {
 /**
  * 自分の情報取得
  */
-export const me = async (userId: number) => {
+export const meService = async (userId: number) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
   });

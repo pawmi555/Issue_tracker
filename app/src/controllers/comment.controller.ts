@@ -1,24 +1,34 @@
+import type { z } from "zod";
 import { Response } from "express";
-import { AuthRequest } from "../types/auth-request.js";
+
 import {
   createCommentsService,
   getCommentsService,
   updateCommentService,
   deleteCommentService,
 } from "../services/comment.service.js";
+
 import {
   createCommentSchema,
   getCommentsSchema,
   updateCommentSchema,
+  issueIdSchema,
 } from "../validators/comment.validators.js";
 
-export const createComment = async (req: AuthRequest, res: Response) => {
-  const issueId = Number(req.params.id);
-  const data = createCommentSchema.parse(req.body);
+import { ValidatedAuthRequest } from "../types/validated-request.js";
+
+export const createComment = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof issueIdSchema>,
+    never,
+    z.infer<typeof createCommentSchema>
+  >,
+  res: Response,
+) => {
   const comment = await createCommentsService({
-    issueId,
+    issueId: req.validatedParams!.id,
     userId: req.user!.id,
-    content: data.content,
+    content: req.validatedBody!.content,
   });
 
   res.status(201).json({
@@ -27,14 +37,18 @@ export const createComment = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const getComments = async (req: AuthRequest, res: Response) => {
-  const issueId = Number(req.params.id);
-  const query = getCommentsSchema.parse(req.query);
-
+export const getComments = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof issueIdSchema>,
+    z.infer<typeof getCommentsSchema>,
+    never
+  >,
+  res: Response,
+) => {
   const result = await getCommentsService({
-    issueId,
+    issueId: req.validatedParams!.id,
     userId: req.user!.id,
-    query,
+    query: req.validatedQuery!,
   });
 
   res.status(200).json({
@@ -43,15 +57,18 @@ export const getComments = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const updateComment = async (req: AuthRequest, res: Response) => {
-  const commentId = Number(req.params.id);
-
-  const data = updateCommentSchema.parse(req.body);
-
+export const updateComment = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof issueIdSchema>,
+    never,
+    z.infer<typeof updateCommentSchema>
+  >,
+  res: Response,
+) => {
   const comment = await updateCommentService({
-    commentId,
+    commentId: req.validatedParams!.id,
     userId: req.user!.id,
-    data,
+    data: req.validatedBody!,
   });
 
   res.status(200).json({
@@ -60,11 +77,12 @@ export const updateComment = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const deleteComment = async (req: AuthRequest, res: Response) => {
-  const commentId = Number(req.params.id);
-
+export const deleteComment = async (
+  req: ValidatedAuthRequest<z.infer<typeof issueIdSchema>, never, never>,
+  res: Response,
+) => {
   await deleteCommentService({
-    commentId,
+    commentId: req.validatedParams!.id,
     userId: req.user!.id,
   });
 

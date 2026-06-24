@@ -1,6 +1,7 @@
-import { AppError } from "../utils/app-error.js";
-import { IssueIncludeField } from "../types/issue.types.js";
 import { ISSUE_INCLUDE_FIELDS } from "../constants/issue.constants.js";
+import type { IssueIncludeField } from "../types/issue.types.js";
+
+import { AppError } from "../utils/app-error.js";
 
 /**
  * 指定された文字列がIssueIncludeFieldに含まれるか判定する型ガード関数

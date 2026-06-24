@@ -1,7 +1,10 @@
-import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
-import { AppError } from "../utils/app-error.js";
+
+import { prisma } from "../lib/prisma.js";
+
 import { type ProjectRoleName } from "../constants/project.constants.js";
+
+import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
 import { buildProjectHistories } from "../utils/history.utils.js";
 import { hasProjectRole, isProjectRoleName } from "../utils/role-check.js";

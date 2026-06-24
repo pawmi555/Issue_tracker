@@ -29,4 +29,15 @@ export const getHistorySchema = z.object({
     .default(20),
 });
 
-export type GetHistoryQuery = z.infer<typeof getHistorySchema>;
+export const issueIdSchema = z.object({
+  id: z.coerce
+    .number({
+      error: "IssueIDは数値で入力してください",
+    })
+    .int({
+      error: "IssueIDは整数で入力してください",
+    })
+    .positive({
+      error: "IssueIDは1以上を指定してください",
+    }),
+});

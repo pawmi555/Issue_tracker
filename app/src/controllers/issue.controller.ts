@@ -1,5 +1,6 @@
+import type { z } from "zod";
 import { Response } from "express";
-import { AuthRequest } from "../types/auth-request.js";
+
 import {
   createIssueService,
   getIssuesService,
@@ -9,13 +10,29 @@ import {
   restoreIssueService,
 } from "../services/issue.service.js";
 
-export const createIssue = async (req: AuthRequest, res: Response) => {
-  const projectId = Number(req.params.projectId);
-  const userId = req.user!.id;
+import type {
+  projectIdSchema,
+  createIssueSchema,
+  getIssuesQuerySchema,
+  getIssueDetailQuerySchema,
+  updateIssueSchema,
+  issueIdSchema,
+} from "../validators/issue.validation.js";
+
+import { ValidatedAuthRequest } from "../types/validated-request.js";
+
+export const createIssue = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof projectIdSchema>,
+    never,
+    z.infer<typeof createIssueSchema>
+  >,
+  res: Response,
+) => {
   const issue = await createIssueService({
-    projectId,
-    userId,
-    data: req.body,
+    projectId: req.validatedParams!.projectId,
+    userId: req.user!.id,
+    data: req.validatedBody!,
   });
 
   res.status(201).json({
@@ -24,14 +41,18 @@ export const createIssue = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const getIssues = async (req: AuthRequest, res: Response) => {
-  const projectId = Number(req.params.projectId);
-  const userId = req.user!.id;
-
+export const getIssues = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof projectIdSchema>,
+    z.infer<typeof getIssuesQuerySchema>,
+    never
+  >,
+  res: Response,
+) => {
   const result = await getIssuesService({
-    projectId,
-    userId,
-    query: req.query,
+    projectId: req.validatedParams!.projectId,
+    userId: req.user!.id,
+    query: req.validatedQuery!,
   });
 
   res.status(200).json({
@@ -40,29 +61,18 @@ export const getIssues = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const updateIssue = async (req: AuthRequest, res: Response) => {
-  const issueId = Number(req.params.id);
-  const userId = req.user!.id;
-
-  const issue = await updateIssueService({
-    issueId,
-    userId,
-    data: req.body,
-  });
-
-  res.status(200).json({
-    success: true,
-    data: issue,
-  });
-};
-
-export const getIssueDetail = async (req: AuthRequest, res: Response) => {
-  const issueId = Number(req.params.id);
-  const userId = req.user!.id;
+export const getIssueDetail = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof issueIdSchema>,
+    z.infer<typeof getIssueDetailQuerySchema>,
+    never
+  >,
+  res: Response,
+) => {
   const issue = await getIssueDetailService({
-    issueId,
-    userId,
-    query: req.query,
+    issueId: req.validatedParams!.id,
+    userId: req.user!.id,
+    query: req.validatedQuery!,
     includeDeleted: req.query.includeDeleted === "true",
   });
 
@@ -72,23 +82,45 @@ export const getIssueDetail = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const deleteIssue = async (req: AuthRequest, res: Response) => {
-  const issueId = Number(req.params.id);
-  const userId = req.user!.id;
+export const updateIssue = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof issueIdSchema>,
+    never,
+    z.infer<typeof updateIssueSchema>
+  >,
+  res: Response,
+) => {
+  const issue = await updateIssueService({
+    issueId: req.validatedParams!.id,
+    userId: req.user!.id,
+    data: req.validatedBody!,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: issue,
+  });
+};
+
+export const deleteIssue = async (
+  req: ValidatedAuthRequest<z.infer<typeof issueIdSchema>, never, never>,
+  res: Response,
+) => {
   await deleteIssueService({
-    issueId,
-    userId,
+    issueId: req.validatedParams!.id,
+    userId: req.user!.id,
   });
 
   res.sendStatus(204);
 };
 
-export const restoreIssue = async (req: AuthRequest, res: Response) => {
-  const issueId = Number(req.params.id);
-  const userId = req.user!.id;
+export const restoreIssue = async (
+  req: ValidatedAuthRequest<z.infer<typeof issueIdSchema>, never, never>,
+  res: Response,
+) => {
   await restoreIssueService({
-    issueId,
-    userId,
+    issueId: req.validatedParams!.id,
+    userId: req.user!.id,
   });
 
   res.status(200).json({

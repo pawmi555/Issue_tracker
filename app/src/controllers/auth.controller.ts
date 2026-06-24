@@ -1,11 +1,32 @@
+import type { z } from "zod";
 import { Request, Response } from "express";
-import * as authService from "../services/auth.service.js";
-import { AuthRequest } from "../types/auth-request.js";
+
 import { refreshCookie } from "../config/cookie.js";
 
-export const register = async (req: Request, res: Response) => {
-  const { name, email, password } = req.body;
-  const result = await authService.register(name, email, password);
+import {
+  registerService,
+  loginService,
+  refreshService,
+  logoutService,
+  meService,
+} from "../services/auth.service.js";
+
+import {
+  authRegisterSchema,
+  authLoginSchema,
+} from "../validators/auth.validators.js";
+
+import { ValidatedRequest } from "../types/validated-request.js";
+
+import { AuthRequest } from "../types/auth-request.js";
+
+export const register = async (
+  req: ValidatedRequest<never, never, z.infer<typeof authRegisterSchema>>,
+  res: Response,
+) => {
+  const { name, email, password } = req.validatedBody!;
+
+  const result = await registerService(name, email, password);
 
   res.status(201).json({
     success: true,
@@ -13,9 +34,14 @@ export const register = async (req: Request, res: Response) => {
   });
 };
 
-export const login = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-  const result = await authService.login(email, password);
+export const login = async (
+  req: ValidatedRequest<never, never, z.infer<typeof authLoginSchema>>,
+  res: Response,
+) => {
+  const { email, password } = req.validatedBody!;
+
+  const result = await loginService(email, password);
+
   res.cookie("refresh_token", result.refreshToken, refreshCookie);
 
   res.status(200).json({
@@ -29,8 +55,11 @@ export const login = async (req: Request, res: Response) => {
 
 export const refresh = async (req: Request, res: Response) => {
   const token = req.cookies.refresh_token;
-  const result = await authService.refresh(token);
+
+  const result = await refreshService(token);
+
   res.cookie("refresh_token", result.refreshToken, refreshCookie);
+
   res.status(200).json({
     success: true,
     data: {
@@ -41,7 +70,8 @@ export const refresh = async (req: Request, res: Response) => {
 
 export const logout = async (req: Request, res: Response) => {
   const token = req.cookies.refresh_token;
-  await authService.logout(token);
+
+  await logoutService(token);
   res.clearCookie("refresh_token", {
     path: "/api/v1/auth",
   });
@@ -51,7 +81,8 @@ export const logout = async (req: Request, res: Response) => {
 
 export const me = async (req: AuthRequest, res: Response) => {
   const userId = req.user!.id;
-  const user = await authService.me(userId);
+
+  const user = await meService(userId);
 
   res.status(200).json({
     success: true,
