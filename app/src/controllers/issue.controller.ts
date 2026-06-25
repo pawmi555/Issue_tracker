@@ -73,7 +73,6 @@ export const getIssueDetail = async (
     issueId: req.validatedParams!.id,
     userId: req.user!.id,
     query: req.validatedQuery!,
-    includeDeleted: req.query.includeDeleted === "true",
   });
 
   res.status(200).json({

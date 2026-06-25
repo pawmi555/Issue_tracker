@@ -127,13 +127,9 @@ export const getProjectDetailSchema = z.object({
 
 const updateProjectBodySchema = z
   .object({
-    name: z
-      .string()
-      .trim()
-      .min(1, {
-        error: "プロジェクト名を入力してください",
-      })
-      .optional(),
+    name: z.string().trim().min(1, {
+      error: "プロジェクト名を入力してください",
+    }),
 
     description: z
       .string()
@@ -153,6 +149,17 @@ export const updateProjectSchema = updateProjectBodySchema.refine(
 );
 
 export const addMemberSchema = z.object({
+  userId: z.coerce
+    .number({
+      error: "userIdは数値で入力してください",
+    })
+    .int({
+      error: "userIdは整数で入力してください",
+    })
+    .positive({
+      error: "userIdは1以上を指定してください",
+    }),
+
   role: z.enum(PROJECT_ROLES, {
     error: "ロールが不正です",
   }),

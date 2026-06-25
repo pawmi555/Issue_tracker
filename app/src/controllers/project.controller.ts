@@ -1,5 +1,4 @@
-//TODO:ValidatedRequestへ統一
-
+import type { z } from "zod";
 import { Response } from "express";
 
 import {
@@ -25,10 +24,13 @@ import {
   projectIdSchema,
 } from "../validators/project.validator.js";
 
-import { ProjectRequest, GetProjectsRequest } from "../types/auth-request.js";
+import { ValidatedAuthRequest } from "../types/validated-request.js";
 
-export const createProject = async (req: ProjectRequest, res: Response) => {
-  const { name, description } = req.body;
+export const createProject = async (
+  req: ValidatedAuthRequest<never, never, z.infer<typeof createProjectSchema>>,
+  res: Response,
+) => {
+  const { name, description } = req.validatedBody!;
   const userId = req.user!.id;
   const project = await createProjectService(name, userId, description);
 
@@ -38,9 +40,15 @@ export const createProject = async (req: ProjectRequest, res: Response) => {
   });
 };
 
-export const getProjects = async (req: GetProjectsRequest, res: Response) => {
-  const userId = req.user!.id;
-  const result = await getProjectsService({ userId, query: req.query });
+export const getProjects = async (
+  req: ValidatedAuthRequest<never, z.infer<typeof getProjectsSchema>, never>,
+  res: Response,
+) => {
+  const result = await getProjectsService({
+    userId: req.user!.id,
+    query: req.validatedQuery!,
+    includeDeleted: req.validatedQuery!.includeDeleted,
+  });
 
   res.status(200).json({
     success: true,
@@ -48,23 +56,37 @@ export const getProjects = async (req: GetProjectsRequest, res: Response) => {
   });
 };
 
-export const getProjectDetail = async (req: ProjectRequest, res: Response) => {
+export const getProjectDetail = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof projectIdSchema>,
+    z.infer<typeof getProjectDetailSchema>,
+    never
+  >,
+  res: Response,
+) => {
   const userId = req.user!.id;
-  const id = Number(req.params.id);
-  const project = await getProjectDatailService(id, userId);
+  const id = req.validatedParams!.id;
+  const includeDeleted = req.validatedQuery!.includeDeleted;
+  const project = await getProjectDatailService(id, userId, includeDeleted);
 
-  res.json({
+  res.status(200).json({
     success: true,
     data: project,
   });
 };
 
-export const updateProject = async (req: ProjectRequest, res: Response) => {
-  const projectId = Number(req.params.id);
+export const updateProject = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof projectIdSchema>,
+    never,
+    z.infer<typeof updateProjectSchema>
+  >,
+  res: Response,
+) => {
   const project = await updateProjectService({
-    projectId,
+    projectId: req.validatedParams!.id,
     userId: req.user!.id,
-    data: req.body,
+    data: req.validatedBody!,
   });
 
   res.status(200).json({
@@ -73,16 +95,26 @@ export const updateProject = async (req: ProjectRequest, res: Response) => {
   });
 };
 
-export const deleteProject = async (req: ProjectRequest, res: Response) => {
-  const id = Number(req.params.id);
-  await deleteProjectService(id);
+export const deleteProject = async (
+  req: ValidatedAuthRequest<z.infer<typeof projectIdSchema>, never, never>,
+  res: Response,
+) => {
+  const projectId = req.validatedParams!.id;
+  await deleteProjectService(projectId);
 
   res.sendStatus(204);
 };
 
-export const addMember = async (req: ProjectRequest, res: Response) => {
-  const { userId, role } = req.body;
-  const projectId = Number(req.params.id);
+export const addMember = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof projectIdSchema>,
+    never,
+    z.infer<typeof addMemberSchema>
+  >,
+  res: Response,
+) => {
+  const { userId, role } = req.validatedBody!;
+  const projectId = req.validatedParams!.id;
   const project = await addMemberService(projectId, userId, role);
 
   res.status(201).json({
@@ -91,8 +123,11 @@ export const addMember = async (req: ProjectRequest, res: Response) => {
   });
 };
 
-export const getMembers = async (req: ProjectRequest, res: Response) => {
-  const projectId = Number(req.params.id);
+export const getMembers = async (
+  req: ValidatedAuthRequest<z.infer<typeof projectIdSchema>, never, never>,
+  res: Response,
+) => {
+  const projectId = req.validatedParams!.id;
   const project = await getMemberService(projectId);
 
   res.status(200).json({
@@ -101,22 +136,32 @@ export const getMembers = async (req: ProjectRequest, res: Response) => {
   });
 };
 
-export const authorityChange = async (req: ProjectRequest, res: Response) => {
-  const { role } = req.body;
-  const userId = Number(req.params.userId);
-  const projectId = Number(req.params.id);
+export const authorityChange = async (
+  req: ValidatedAuthRequest<
+    z.infer<typeof projectMemberSchema>,
+    never,
+    z.infer<typeof updateMemberRoleSchema>
+  >,
+  res: Response,
+) => {
+  const { role } = req.validatedBody!;
+  const userId = req.validatedParams!.userId;
+  const projectId = req.validatedParams!.id;
 
   const project = await changeMemberRoleService(projectId, userId, role);
 
-  res.json({
+  res.status(200).json({
     success: true,
     data: project,
   });
 };
 
-export const removeMember = async (req: ProjectRequest, res: Response) => {
-  const userId = Number(req.params.userId);
-  const projectId = Number(req.params.id);
+export const removeMember = async (
+  req: ValidatedAuthRequest<z.infer<typeof projectMemberSchema>, never, never>,
+  res: Response,
+) => {
+  const userId = req.validatedParams!.userId;
+  const projectId = req.validatedParams!.id;
 
   await removeMemberService(projectId, userId);
 
