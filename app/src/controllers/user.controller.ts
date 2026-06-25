@@ -20,7 +20,7 @@ import {
 } from "../validators/user.validation.js";
 
 export const getUsers = async (
-  req: ValidatedRequest<never, never, z.infer<typeof getUsersSchema>>,
+  req: ValidatedRequest<never, z.infer<typeof getUsersSchema>, never>,
   res: Response,
 ) => {
   const users = await getUsersService(req.validatedQuery!);

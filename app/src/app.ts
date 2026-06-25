@@ -111,7 +111,7 @@ app.use("/api/v1/auth", authRoutes);
  * ---------------------------------------------------
  */
 app.use("/api/v1/users", authMiddleware, userRoutes);
-// app.use("/api/v1/projects", authMiddleware, projectRoutes);
+app.use("/api/v1/projects", authMiddleware, projectRoutes);
 
 /**
  * ---------------------------------------------------

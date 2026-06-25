@@ -11,7 +11,7 @@ import { hasProjectRole, isProjectRoleName } from "../utils/role-check.js";
 
 export type GetProjectsInput = {
   userId: number;
-
+  includeDeleted: boolean;
   query: {
     page: number;
     limit: number;
@@ -134,6 +134,7 @@ export const createProjectService = async (
 export const getProjectsService = async ({
   userId,
   query,
+  includeDeleted = false,
 }: GetProjectsInput) => {
   // ページネーション設定
   const pagination = buildPagination({
@@ -200,7 +201,11 @@ export const getProjectsService = async ({
 /**
  * Project詳細取得
  */
-export const getProjectDatailService = async (id: number, userId: number) => {
+export const getProjectDatailService = async (
+  id: number,
+  userId: number,
+  includeDeleted = false,
+) => {
   const project = await prisma.project.findFirst({
     where: {
       id,
