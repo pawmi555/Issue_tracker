@@ -9,6 +9,7 @@ import { buildUserHistories } from "../utils/history.utils.js";
 type GetUsersQuery = {
   page?: number;
   limit?: number;
+  includeDeleted?: boolean;
 };
 
 type UpdateUserInput = {
@@ -25,40 +26,84 @@ type UpdateUserInput = {
  * ユーザー一覧取得
  */
 export const getUsersService = async (query: GetUsersQuery) => {
-  const { skip, take } = buildPagination({
+  const { skip, take, page, limit } = buildPagination({
     page: query.page,
     limit: query.limit,
   });
-  return prisma.user.findMany({
-    where: {
-      deletedAt: null,
+
+  const where = query.includeDeleted
+    ? {}
+    : {
+        deletedAt: null,
+      };
+
+  const [users, total] = await prisma.$transaction([
+    prisma.user.findMany({
+      where,
+      skip,
+      take,
+
+      select: {
+        id: true,
+        name: true,
+        email: true,
+
+        role: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+
+        createdAt: true,
+        deletedAt: true,
+      },
+    }),
+
+    prisma.user.count({
+      where,
+    }),
+  ]);
+
+  return {
+    items: users,
+
+    pagination: {
+      page,
+      limit,
+      total,
     },
-    skip,
-    take,
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-    },
-  });
+  };
 };
 
 /**
  * ユーザー詳細取得
  */
-export const getUserByIdService = async (id: number) => {
+export const getUserByIdService = async (
+  id: number,
+  includeDeleted = false,
+) => {
   const user = await prisma.user.findUnique({
     where: {
       id,
-      deletedAt: null,
+      ...(includeDeleted
+        ? {}
+        : {
+            deletedAt: null,
+          }),
     },
+
     select: {
       id: true,
       name: true,
       email: true,
-      role: true,
+
+      role: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   });
 
@@ -82,12 +127,14 @@ export const updateUserService = async ({
     id: true,
     name: true,
     email: true,
+
     role: {
       select: {
         id: true,
         name: true,
       },
     },
+
     updatedAt: true,
   } satisfies Prisma.UserSelect;
 
@@ -95,16 +142,18 @@ export const updateUserService = async ({
     const HISTORY_ACTION_UPDATE = 1;
 
     // ユーザー存在確認
-    const user = await tx.user.findUnique({
+    const user = await tx.user.findFirst({
       where: {
         id,
         deletedAt: null,
       },
+
       select: {
         id: true,
         name: true,
         email: true,
         roleId: true,
+
         role: {
           select: {
             name: true,
@@ -125,38 +174,36 @@ export const updateUserService = async ({
         where: {
           id: data.roleId,
         },
+
         select: {
           name: true,
         },
       });
 
       if (!nextRole) {
-        throw new AppError("invalid role", 404, "INVALID_ROLE");
+        throw new AppError("invalid role", 422, "INVALID_ROLE");
       }
     }
 
     // 最後のADMIN降格防止
-    if (id === operatedBy && nextRole) {
-      const isAdminDowngrade =
-        user.role.name === "ADMIN" && nextRole.name !== "ADMIN";
+    if (
+      id === operatedBy &&
+      nextRole &&
+      user.role.name === "ADMIN" &&
+      nextRole.name !== "ADMIN"
+    ) {
+      const adminCount = await tx.user.count({
+        where: {
+          deletedAt: null,
 
-      if (isAdminDowngrade) {
-        const adminCount = await tx.user.count({
-          where: {
-            deletedAt: null,
-            role: {
-              name: "ADMIN",
-            },
+          role: {
+            name: "ADMIN",
           },
-        });
+        },
+      });
 
-        if (adminCount <= 1) {
-          throw new AppError(
-            "last admin protected",
-            400,
-            "LAST_ADMIN_PROTECTED",
-          );
-        }
+      if (adminCount <= 1) {
+        throw new AppError("last admin protected", 400, "LAST_ADMIN_PROTECTED");
       }
     }
 
@@ -169,6 +216,7 @@ export const updateUserService = async ({
       },
 
       after: data,
+
       userId: id,
       operatedBy,
       actionId: HISTORY_ACTION_UPDATE,
@@ -176,10 +224,12 @@ export const updateUserService = async ({
 
     // 差分なし
     if (histories.length === 0) {
-      return tx.user.findUniqueOrThrow({
+      return tx.user.findFirstOrThrow({
         where: {
           id,
+          deletedAt: null,
         },
+
         select: userResponseSelect,
       });
     }
@@ -188,7 +238,9 @@ export const updateUserService = async ({
       where: {
         id,
       },
+
       data,
+
       select: userResponseSelect,
     });
 
@@ -205,24 +257,18 @@ export const updateUserService = async ({
  * ユーザー削除
  */
 export const deleteUserService = async (id: number) => {
-  const targetUser = await prisma.user.findUnique({
+  const result = await prisma.user.updateMany({
     where: {
       id,
       deletedAt: null,
     },
-    select: {
-      id: true,
-    },
-  });
 
-  if (!targetUser) {
-    throw new AppError("user not found", 404, "USER_NOT_FOUND");
-  }
-
-  return prisma.user.update({
-    where: { id },
     data: {
       deletedAt: new Date(),
     },
   });
+
+  if (result.count === 0) {
+    throw new AppError("user not found", 404, "USER_NOT_FOUND");
+  }
 };

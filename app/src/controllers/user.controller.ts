@@ -16,6 +16,7 @@ import {
 import {
   userIdSchema,
   getUsersSchema,
+  getUserDetailSchema,
   updateUserSchema,
 } from "../validators/user.validation.js";
 
@@ -32,10 +33,17 @@ export const getUsers = async (
 };
 
 export const getUserById = async (
-  req: ValidatedRequest<z.infer<typeof userIdSchema>, never, never>,
+  req: ValidatedRequest<
+    z.infer<typeof userIdSchema>,
+    z.infer<typeof getUserDetailSchema>,
+    never
+  >,
   res: Response,
 ) => {
-  const user = await getUserByIdService(req.validatedParams!.id);
+  const user = await getUserByIdService(
+    req.validatedParams!.id,
+    req.validatedQuery!.includeDeleted,
+  );
 
   res.status(200).json({
     success: true,

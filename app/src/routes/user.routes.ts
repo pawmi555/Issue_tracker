@@ -14,6 +14,7 @@ import { adminOrSelfMiddleware } from "../middlewares/userOwnerMiddleware.js";
 import {
   userIdSchema,
   getUsersSchema,
+  getUserDetailSchema,
   updateUserSchema,
 } from "../validators/user.validation.js";
 
@@ -30,22 +31,22 @@ router.get(
 
 router.get(
   "/:id",
-  validate({ params: userIdSchema }),
   adminOrSelfMiddleware,
+  validate({ params: userIdSchema, query: getUserDetailSchema }),
   asyncHandler(getUserById),
 );
 
 router.patch(
   "/:id",
-  validate({ params: userIdSchema, body: updateUserSchema }),
   adminMiddleware,
+  validate({ params: userIdSchema, body: updateUserSchema }),
   asyncHandler(updateUser),
 );
 
 router.delete(
   "/:id",
-  validate({ params: userIdSchema }),
   adminOrSelfMiddleware,
+  validate({ params: userIdSchema }),
   asyncHandler(deleteUser),
 );
 

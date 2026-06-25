@@ -42,6 +42,22 @@ export const getUsersSchema = z.object({
     .default(false),
 });
 
+export const getUserDetailSchema = z.object({
+  includeDeleted: z
+    .preprocess(
+      (value) => {
+        if (value === "true") return true;
+        if (value === "false") return false;
+        return value;
+      },
+
+      z.boolean({
+        error: "includeDeletedはtrueまたはfalseを指定してください",
+      }),
+    )
+    .default(false),
+});
+
 const updateUserBodySchema = z
   .object({
     name: z
