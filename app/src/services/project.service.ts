@@ -100,17 +100,6 @@ export const createProjectService = async (
         },
       });
 
-      // 作成履歴記録
-      // await tx.projectHistory.create({
-      //   data: {
-      //     projectId: project.id,
-      //     userId,
-      //     fieldName: PROJECT_HISTORY_EVENTS.CREATED,
-      //     oldValue: null,
-      //     newValue: true,
-      //   },
-      // });
-
       return project;
     });
   } catch (error) {
