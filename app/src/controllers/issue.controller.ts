@@ -52,6 +52,7 @@ export const getIssues = async (
   const result = await getIssuesService({
     projectId: req.validatedParams!.projectId,
     userId: req.user!.id,
+    includeDeleted: req.validatedQuery!.includeDeleted,
     query: req.validatedQuery!,
   });
 
@@ -72,6 +73,7 @@ export const getIssueDetail = async (
   const issue = await getIssueDetailService({
     issueId: req.validatedParams!.id,
     userId: req.user!.id,
+    includeDeleted: req.validatedQuery!.includeDeleted,
     query: req.validatedQuery!,
   });
 

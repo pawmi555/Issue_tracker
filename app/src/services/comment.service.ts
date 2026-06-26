@@ -16,6 +16,7 @@ export type CreateCommentInput = {
 export type GetCommentsInput = {
   issueId: number;
   userId: number;
+  includeDeleted?: boolean;
 
   query: {
     page: number;
@@ -101,17 +102,29 @@ export const getCommentsService = async ({
   issueId,
   userId,
   query,
+  includeDeleted = false,
 }: GetCommentsInput) => {
   // issue存在確認
   const issue = await prisma.issue.findFirst({
     where: {
       id: issueId,
-      deletedAt: null,
+
+      ...(!includeDeleted && {
+        deletedAt: null,
+      }),
+    },
+
+    include: {
+      project: true,
     },
   });
 
   if (!issue) {
     throw new AppError("Issue not found", 404, "ISSUE_NOT_FOUND");
+  }
+
+  if (issue.project.deletedAt) {
+    throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
   }
 
   // Project参加確認
@@ -122,11 +135,26 @@ export const getCommentsService = async ({
         userId,
       },
     },
+
+    include: {
+      role: true,
+    },
   });
 
   if (!member) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
+
+  const roleName = member.role.name;
+
+  if (!isProjectRoleName(roleName)) {
+    throw new AppError("invalid role", 500, "INVALID_ROLE");
+  }
+
+  assertProjectRole({
+    memberRole: roleName,
+    minimumRole: includeDeleted ? "MANAGER" : "MEMBER",
+  });
 
   // ページネーション設定
   const pagination = buildPagination({
@@ -134,19 +162,25 @@ export const getCommentsService = async ({
     limit: query.limit,
   });
 
+  const where: Prisma.CommentWhereInput = {
+    issueId,
+
+    ...(!includeDeleted && {
+      deletedAt: null,
+    }),
+  };
+
   const [comments, total] = await Promise.all([
     // コメント取得
     prisma.comment.findMany({
-      where: {
-        issueId,
-        deletedAt: null,
-      },
+      where,
       skip: pagination.skip,
       take: pagination.take,
 
       orderBy: {
         createdAt: "asc",
       },
+
       include: {
         user: {
           select: {
@@ -159,10 +193,7 @@ export const getCommentsService = async ({
 
     // コメントカウント
     prisma.comment.count({
-      where: {
-        issueId,
-        deletedAt: null,
-      },
+      where,
     }),
   ]);
 
@@ -240,13 +271,11 @@ export const updateCommentService = async ({
     const isAuthor = comment.userId === userId;
 
     if (!isAuthor) {
-      throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+      assertProjectRole({
+        memberRole: roleName,
+        minimumRole: "MANAGER",
+      });
     }
-
-    assertProjectRole({
-      memberRole: roleName,
-      minimumRole: "MANAGER",
-    });
 
     // 履歴生成（メモリ）
     const histories = buildCommentHistories({
@@ -351,14 +380,20 @@ export const deleteCommentService = async ({
   });
 
   // Commentソフトデリート実行
-  const deletedComment = await prisma.comment.update({
+  const deletedComment = await prisma.comment.updateMany({
     where: {
       id: commentId,
+      deletedAt: null,
     },
+
     data: {
       deletedAt: new Date(),
     },
   });
 
-  return deletedComment;
+  if (deletedComment.count === 0) {
+    throw new AppError("comment not found", 404, "COMMENT_NOT_FOUND");
+  }
+
+  return;
 };

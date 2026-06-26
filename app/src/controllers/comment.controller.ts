@@ -13,6 +13,7 @@ import {
   getCommentsSchema,
   updateCommentSchema,
   issueIdSchema,
+  commentIdSchema,
 } from "../validators/comment.validators.js";
 
 import { ValidatedAuthRequest } from "../types/validated-request.js";
@@ -48,6 +49,7 @@ export const getComments = async (
   const result = await getCommentsService({
     issueId: req.validatedParams!.id,
     userId: req.user!.id,
+    includeDeleted: req.validatedQuery!.includeDeleted,
     query: req.validatedQuery!,
   });
 
@@ -59,7 +61,7 @@ export const getComments = async (
 
 export const updateComment = async (
   req: ValidatedAuthRequest<
-    z.infer<typeof issueIdSchema>,
+    z.infer<typeof commentIdSchema>,
     never,
     z.infer<typeof updateCommentSchema>
   >,
@@ -78,7 +80,7 @@ export const updateComment = async (
 };
 
 export const deleteComment = async (
-  req: ValidatedAuthRequest<z.infer<typeof issueIdSchema>, never, never>,
+  req: ValidatedAuthRequest<z.infer<typeof commentIdSchema>, never, never>,
   res: Response,
 ) => {
   await deleteCommentService({

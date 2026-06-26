@@ -639,9 +639,12 @@ export const restoreIssueService = async ({
 
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // restore実行
-    const restoredIssue = await tx.issue.update({
+    const restoredIssue = await tx.issue.updateMany({
       where: {
         id: issueId,
+        NOT: {
+          deletedAt: null,
+        },
       },
 
       data: {
@@ -649,6 +652,14 @@ export const restoreIssueService = async ({
       },
     });
 
-    return restoredIssue;
+    if (restoredIssue.count === 0) {
+      throw new AppError(
+        "issue already restored",
+        409,
+        "ISSUE_ALREADY_RESTORED",
+      );
+    }
+
+    return;
   });
 };
