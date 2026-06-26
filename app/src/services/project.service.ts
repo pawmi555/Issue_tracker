@@ -11,10 +11,11 @@ import { hasProjectRole, isProjectRoleName } from "../utils/role-check.js";
 
 export type GetProjectsInput = {
   userId: number;
-  includeDeleted: boolean;
+
   query: {
     page: number;
     limit: number;
+    includeDeleted: boolean;
   };
 };
 
@@ -123,7 +124,6 @@ export const createProjectService = async (
 export const getProjectsService = async ({
   userId,
   query,
-  includeDeleted = false,
 }: GetProjectsInput) => {
   // ページネーション設定
   const pagination = buildPagination({
@@ -131,22 +131,31 @@ export const getProjectsService = async ({
     limit: query.limit,
   });
 
+  const where: Prisma.ProjectWhereInput = {
+    members: {
+      some: {
+        userId,
+      },
+    },
+
+    ...(query.includeDeleted
+      ? {}
+      : {
+          deletedAt: null,
+        }),
+  };
+
   const [projects, total] = await Promise.all([
     prisma.project.findMany({
-      where: {
-        deletedAt: null,
-        members: {
-          some: {
-            userId,
-          },
-        },
-      },
+      where,
+
       skip: pagination.skip,
       take: pagination.take,
 
       orderBy: {
         createdAt: "desc",
       },
+
       include: {
         owner: {
           select: {
@@ -155,6 +164,7 @@ export const getProjectsService = async ({
             email: true,
           },
         },
+
         _count: {
           select: {
             members: true,
@@ -166,19 +176,13 @@ export const getProjectsService = async ({
 
     // プロジェクトカウント
     prisma.project.count({
-      where: {
-        deletedAt: null,
-        members: {
-          some: {
-            userId,
-          },
-        },
-      },
+      where,
     }),
   ]);
 
   return {
     data: projects,
+
     meta: {
       page: pagination.page,
       limit: pagination.limit,
@@ -198,13 +202,20 @@ export const getProjectDatailService = async (
   const project = await prisma.project.findFirst({
     where: {
       id,
-      deletedAt: null,
+
+      ...(includeDeleted
+        ? {}
+        : {
+            deletedAt: null,
+          }),
+
       members: {
         some: {
           userId,
         },
       },
     },
+
     include: {
       owner: {
         select: {
@@ -213,6 +224,7 @@ export const getProjectDatailService = async (
           email: true,
         },
       },
+
       members: {
         include: {
           user: {
@@ -222,6 +234,7 @@ export const getProjectDatailService = async (
               email: true,
             },
           },
+
           role: {
             select: {
               name: true,
@@ -339,22 +352,20 @@ export const updateProjectService = async ({
  * Project削除（論理削除）
  */
 export const deleteProjectService = async (id: number) => {
-  const project = await prisma.project.findFirst({
+  const result = await prisma.project.updateMany({
     where: {
       id,
       deletedAt: null,
     },
-  });
 
-  if (!project) {
-    throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
-  }
-  return prisma.project.update({
-    where: { id },
     data: {
       deletedAt: new Date(),
     },
   });
+
+  if (result.count === 0) {
+    throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
+  }
 };
 
 /**

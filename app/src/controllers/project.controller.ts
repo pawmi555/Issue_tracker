@@ -47,7 +47,6 @@ export const getProjects = async (
   const result = await getProjectsService({
     userId: req.user!.id,
     query: req.validatedQuery!,
-    includeDeleted: req.validatedQuery!.includeDeleted,
   });
 
   res.status(200).json({

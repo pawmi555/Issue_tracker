@@ -34,20 +34,7 @@ export type GetIssuesInput = {
     sort?: IssueSortField;
     order?: "asc" | "desc";
     include?: string;
-  };
-};
-
-export type UpdateIssueInput = {
-  issueId: number;
-  userId: number;
-
-  data: {
-    title?: string;
-    description?: string | null;
-    statusId?: number;
-    priorityId?: number;
-    assigneeId?: number | null;
-    dueDate?: Date | null;
+    includeDeleted?: boolean;
   };
 };
 
@@ -66,6 +53,20 @@ export type GetIssueDetailInput = {
     sort?: IssueSortField;
     order?: "asc" | "desc";
     include?: string;
+  };
+};
+
+export type UpdateIssueInput = {
+  issueId: number;
+  userId: number;
+
+  data: {
+    title?: string;
+    description?: string | null;
+    statusId?: number;
+    priorityId?: number;
+    assigneeId?: number | null;
+    dueDate?: Date | null;
   };
 };
 
