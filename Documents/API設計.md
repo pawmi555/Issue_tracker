@@ -8,6 +8,8 @@ Issue管理システムのREST API設計書。
 
 ## 対象機能
 
+### 実装済み（Phase1）
+
 - 認証（JWT + Refresh Token）
 - ユーザー管理
 - プロジェクト管理
@@ -15,6 +17,10 @@ Issue管理システムのREST API設計書。
 - Issue管理
 - コメント管理
 - 履歴管理
+
+### 実装予定（Phase2）
+
+- Internal API
 - APIログ管理
 
 ---
@@ -104,6 +110,8 @@ Access-Control-Allow-Credentials: true
 ---
 
 ## 共通レスポンス
+
+204 No Content の場合、Response Bodyは返却しない。
 
 ### 成功
 
@@ -326,7 +334,8 @@ RESOURCE_REASON
 
 ## Field Naming Rule
 
-履歴・監査ログで使用する内部フィールド名形式。
+履歴・監査ログの内部保存で使用するフィールド名形式。
+APIレスポンスではMapperにより公開用フィールド名へ変換する。
 
 形式:
 RESOURCE_COLUMN
@@ -346,7 +355,10 @@ COMMENT_CONTENT
 変換ルール:
 
 - 通常API: 表示用DTOへ変換して返却
-- 履歴API: oldValue/newValueを表示値へ変換して返却
+
+- 履歴API:
+  fieldName → 表示用フィールド名へ変換
+  oldValue/newValueを表示値へ変換して返却
 
 例（通常API）
 
@@ -368,22 +380,55 @@ oldValue = 1
 newValue = 2
 
 API:
+fieldName: "ISSUE_STATUS_ID"
 oldValue = "OPEN"
 newValue = "IN_PROGRESS"
 
 ---
 
+### DTO Mapping Rule
+
+レスポンス整形はMapper層で行う。
+
+責務:
+
+- fieldName → fieldへ変換
+- oldValue/newValue → 表示値へ変換
+- 不要な内部フィールドを除外
+- API契約を維持する
+
+例:
+
+DB:
+{
+fieldName: "ISSUE_STATUS_ID",
+oldValue: 1,
+newValue: 2
+}
+
+↓
+
+API:
+{
+field: "status",
+oldValue: "OPEN",
+newValue: "DONE"
+}
+
+---
+
 ## Audit Data Policy
 
-監査データは内部値を保持する。
+監査データは内部値・内部フィールド名を保持する。
 
-参照系データは返却時に表示値へ変換する。
+API返却時のみ表示用DTOへ変換する。
 
 例:
 statusId:
 DB: 1 → 2
 
 API:
+field: "status"
 oldValue: "OPEN"
 newValue: "IN_PROGRESS"
 
@@ -459,6 +504,8 @@ newValue: "IN_PROGRESS"
 
 oldValue/newValue:
 JSON形式で保持
+型:
+string | number | boolean | null | object | array
 
 ルール:
 
@@ -482,6 +529,15 @@ JSON形式で保持
 
 changedBy:
 履歴作成ユーザーをUser参照して返却
+
+field:
+変更対象の表示用フィールド名
+
+oldValue:
+変更前の表示値
+
+newValue:
+変更後の表示値
 
 ---
 
@@ -681,7 +737,7 @@ if (issue.project.deletedAt !== null) {
 ## 原則
 
 - **ユーザーは所属プロジェクトのデータのみアクセス可能**
-- **ユーザー情報は自分 or ADMINのみ取得可能**
+- **一般ユーザーは自分情報のみ参照可能。ユーザー情報変更はADMINのみ許可する。**
 - **ADMINは全リソースアクセス可能**
 - **OWNERはプロジェクト削除可能**
 - **VIEWERは更新不可**
@@ -877,7 +933,7 @@ refresh_token=xxx
 
 #### 制約
 
-- ADMINのみ
+- UserRoleがADMINの場合のみ一覧取得可能
 
 #### Response
 
@@ -908,7 +964,7 @@ refresh_token=xxx
 
 #### 制約
 
-- 自分 or ADMINのみ
+- 自分またはUserRoleがADMINの場合のみ取得可能
 
 #### Response
 
@@ -936,7 +992,7 @@ refresh_token=xxx
 
 #### 制約
 
-- ADMINのみ
+- UserRoleがADMINの場合のみ更新可能
 - 最後のADMINは自身のroleをADMIN以外へ変更不可
 - 削除済みユーザーは更新不可
 
@@ -971,7 +1027,7 @@ refresh_token=xxx
     "email": "new@test.com",
     "role": {
       "id": 2,
-      "name": "ADMIN"
+      "name": "USER"
     },
     "updatedAt": "2026-06-09T06:40:16.979Z"
   }
@@ -987,7 +1043,7 @@ refresh_token=xxx
 #### 制約
 
 - 論理削除
-- ADMINのみ
+- UserRoleがADMINの場合のみ削除可能
 
 #### Response
 
@@ -1042,7 +1098,7 @@ refresh_token=xxx
 
 #### 制約
 
-- 自分が所属するプロジェクトのみ
+- 自分が所属するプロジェクトのみ一覧取得可能
 
 #### Response
 
@@ -1101,7 +1157,7 @@ refresh_token=xxx
 
 #### 制約
 
-- メンバーのみ
+- ProjectRoleがMEMBER以上のみ詳細取得可能
 
 #### Response
 
@@ -1135,7 +1191,7 @@ refresh_token=xxx
 
 #### 制約
 
-- MANAGER以上
+- ProjectRoleがMANAGER以上の場合のみ更新可能
 - Project変更履歴を作成
 - トランザクション必須
 
@@ -1182,7 +1238,7 @@ refresh_token=xxx
 
 #### 制約
 
-- OWNERのみ
+- ProjectRoleがOWNER以上の場合のみ削除可能
 - 論理削除
 
 #### Response
@@ -1355,7 +1411,7 @@ refresh_token=xxx
 
 #### 制約
 
-- MEMBER以上
+- ProjectRoleがMEMBER以上の場合のみ作成可能
 - projectメンバーのみ
 - assigneeはメンバー限定
 - priority/status存在チェック
@@ -1409,7 +1465,7 @@ refresh_token=xxx
 
 - sortホワイトリスト
 - include最大6件
-- MEMBER以上
+- ProjectRoleがMEMBER以上なら一覧取得可能
 
 ---
 
@@ -1419,7 +1475,7 @@ refresh_token=xxx
 
 #### 制約
 
-- プロジェクトメンバーのみ
+- プロジェクトメンバーのみ取得可能
 
 ---
 
@@ -1429,7 +1485,7 @@ refresh_token=xxx
 
 #### 制約
 
-- assignee or MANAGER以上
+- assigneeまたはProjectRoleがMANAGER以上の場合のみ更新可能
 - statusがCLOSEDは更新不可
 - reporterId変更不可
 - status更新時は「Issue状態遷移」に従う
@@ -1499,7 +1555,7 @@ refresh_token=xxx
 ### DELETE `/issues/:id`
 
 - 論理削除
-- MANAGER以上
+- ProjectRoleがMANAGER以上の場合のみ削除可能
 
 #### Response
 
@@ -1519,7 +1575,19 @@ refresh_token=xxx
 - project削除済みなら不可
 - 削除済みIssueのみ復元可能
 - CLOSEDは復元不可
-- MANAGER以上
+- ProjectRoleがMANAGER以上の場合のみ復元可能
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "deletedAt": null
+  }
+}
+```
 
 ---
 
@@ -1531,7 +1599,7 @@ refresh_token=xxx
 
 #### 制約
 
-- プロジェクトメンバーのみ
+- ProjectRoleがMEMBER以上のみ投稿可能
 
 #### Request
 
@@ -1560,7 +1628,7 @@ refresh_token=xxx
 
 #### 制約
 
-- 投稿者 or MANAGER以上
+- 投稿者または ProjectRoleがMANAGER以上の場合のみ可能
 - 更新時はCommentHistory作成
 - トランザクション必須
 
@@ -1580,7 +1648,7 @@ refresh_token=xxx
 
 #### 制約
 
-- 投稿者 or MANAGER以上
+- 投稿者またはProjectRoleがMANAGER以上の場合のみ削除可能
 - 論理削除
 
 #### Response
@@ -1605,14 +1673,26 @@ refresh_token=xxx
 
 #### 制約
 
-- 自分 or ADMINのみ
+- 自分またはADMINのみ取得可能
 
 #### Response
 
 ```json
 {
   "success": true,
-  "data": [],
+  "data": [
+    {
+      "action": "UPDATE",
+      "field": "role",
+      "oldValue": "USER",
+      "newValue": "ADMIN",
+      "changedBy": {
+        "id": 1,
+        "name": "Admin"
+      },
+      "createdAt": "2026-04-26T12:00:00Z"
+    }
+  ],
   "meta": {
     "page": 1,
     "limit": 20,
@@ -1629,7 +1709,7 @@ refresh_token=xxx
 
 #### 制約
 
-- プロジェクトメンバーのみ
+- プロジェクトメンバーのみ取得可能
 
 #### Response
 
@@ -1639,7 +1719,7 @@ refresh_token=xxx
   "data": [
     {
       "action": "UPDATE",
-      "fieldName": "description",
+      "field": "description",
       "oldValue": "Issue管理システム",
       "newValue": "社内Issue管理システム",
       "changedBy": {
@@ -1663,7 +1743,7 @@ refresh_token=xxx
 
 #### 制約
 
-- プロジェクトメンバーのみ
+- プロジェクトメンバーのみ取得可能
 
 #### Response
 
@@ -1673,7 +1753,7 @@ refresh_token=xxx
   "data": [
     {
       "action": "UPDATE",
-      "fieldName": "status",
+      "field": "status",
       "oldValue": "OPEN",
       "newValue": "DONE",
       "changedBy": {
@@ -1699,7 +1779,7 @@ refresh_token=xxx
 
 #### 制約
 
-- プロジェクトメンバーのみ
+- プロジェクトメンバーのみ取得可能
 
 #### Response
 
@@ -1709,7 +1789,7 @@ refresh_token=xxx
   "data": [
     {
       "action": "UPDATE",
-      "fieldName": "content",
+      "field": "content",
       "oldValue": "調査します",
       "newValue": "調査完了しました",
       "changedBy": {
@@ -1729,17 +1809,20 @@ refresh_token=xxx
 
 ---
 
-## 10.8 Internal API
+## 10.8 Internal API（実装予定）
 
-### 10.8.1 APIログ一覧
+本APIは監査・運用支援用途として設計済み。
+ポートフォリオ初期リリース（Phase1）では未実装とし、後続フェーズで追加予定。
+
+### 10.8.1 APIログ一覧（実装予定）
 
 ### GET `/admin/logs?page=1&limit=50`
 
-#### 制約
+#### 制約（予定）
 
-- ADMINのみ
+- ADMINのみ取得可能
 
-#### ログ方針
+#### ログ方針（予定）
 
 - 全API記録
 - requestId
@@ -1748,6 +1831,30 @@ refresh_token=xxx
 - userId
 - status
 - duration
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "requestId": "req_xxxxx",
+      "method": "GET",
+      "path": "/api/v1/projects",
+      "userId": 1,
+      "status": 200,
+      "duration": 35,
+      "createdAt": "2026-06-26T10:00:00Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 50,
+    "total": 100
+  }
+}
+```
 
 ---
 
