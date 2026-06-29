@@ -1,12 +1,12 @@
 import type { Prisma } from "@prisma/client";
 import { HistoryField } from "@prisma/client";
 
-type MasterMap = {
+export type MasterMap = {
   status: Record<number, string>;
   priority: Record<number, string>;
 };
 
-type HistoryRecord = Prisma.IssueHistoryGetPayload<{
+export type HistoryRecord = Prisma.IssueHistoryGetPayload<{
   include: {
     action: {
       select: {
@@ -23,46 +23,73 @@ type HistoryRecord = Prisma.IssueHistoryGetPayload<{
   };
 }>;
 
-export const mapIssueHistory = async (
-  history: HistoryRecord,
+const FIELD_MAP: Record<HistoryField, string> = {
+  ISSUE_TITLE: "title",
+  ISSUE_DESCRIPTION: "description",
+  ISSUE_STATUS_ID: "status",
+  ISSUE_PRIORITY_ID: "priority",
+  ISSUE_ASSIGNEE_ID: "assignee",
+  ISSUE_DUE_DATE: "dueDate",
+} satisfies Record<HistoryField, string>;
+
+/**
+ * 内部フィールド名を公開用フィールド名へ変換する
+ */
+const mapField = (fieldName: HistoryField) => {
+  return FIELD_MAP[fieldName];
+};
+
+/**
+ * 履歴値を表示用形式へ変換する
+ *
+ * マスタ参照値は名称へ変換し、nullはそのまま返却する。
+ * 変換対象外は元値を返却する。
+ */
+const mapValue = (
+  fieldName: HistoryField,
+  value: HistoryRecord["oldValue"],
   masters?: MasterMap,
 ) => {
-  let oldValue = history.oldValue;
-  let newValue = history.newValue;
-
-  if (history.fieldName === "STATUS_ID") {
-    oldValue =
-      typeof oldValue === "number"
-        ? (masters?.status[oldValue] ?? null)
-        : oldValue;
-
-    newValue =
-      typeof newValue === "number"
-        ? (masters?.status[newValue] ?? null)
-        : newValue;
+  if (value == null) {
+    return null;
   }
 
-  if (history.fieldName === "PRIORITY_ID") {
-    oldValue =
-      typeof oldValue === "number"
-        ? (masters?.priority[oldValue] ?? null)
-        : oldValue;
+  switch (fieldName) {
+    case "ISSUE_STATUS_ID":
+      return typeof value === "number"
+        ? (masters?.status[value] ?? null)
+        : value;
 
-    newValue =
-      typeof newValue === "number"
-        ? (masters?.priority[newValue] ?? null)
-        : newValue;
+    case "ISSUE_PRIORITY_ID":
+      return typeof value === "number"
+        ? (masters?.priority[value] ?? null)
+        : value;
+
+    default:
+      return value;
   }
+};
 
+/**
+ * Issue履歴をAPIレスポンスDTOへ変換する
+ *
+ * 内部フィールド名および内部値をAPI公開用形式へ変換して返却する。
+ */
+export const mapIssueHistory = (history: HistoryRecord, masters: MasterMap) => {
   return {
     action: history.action.name,
-    fieldName: history.fieldName.toLowerCase(),
-    oldValue,
-    newValue,
+
+    field: mapField(history.fieldName),
+
+    oldValue: mapValue(history.fieldName, history.oldValue, masters),
+
+    newValue: mapValue(history.fieldName, history.newValue, masters),
+
     changedBy: {
       id: history.user.id,
       name: history.user.name,
     },
+
     createdAt: history.createdAt,
   };
 };
