@@ -6,7 +6,7 @@ export type MasterMap = {
   priority: Record<number, string>;
 };
 
-export type HistoryRecord = Prisma.IssueHistoryGetPayload<{
+type HistoryInclude = {
   include: {
     action: {
       select: {
@@ -21,15 +21,40 @@ export type HistoryRecord = Prisma.IssueHistoryGetPayload<{
       };
     };
   };
-}>;
+};
+
+export type UserHistoryRecord = Prisma.UserHistoryGetPayload<HistoryInclude>;
+
+export type ProjectHistoryRecord =
+  Prisma.ProjectHistoryGetPayload<HistoryInclude>;
+
+export type IssueHistoryRecord = Prisma.IssueHistoryGetPayload<HistoryInclude>;
+
+export type CommentHistoryRecord =
+  Prisma.CommentHistoryGetPayload<HistoryInclude>;
+
+export type HistoryRecord =
+  | UserHistoryRecord
+  | ProjectHistoryRecord
+  | IssueHistoryRecord
+  | CommentHistoryRecord;
 
 const FIELD_MAP: Record<HistoryField, string> = {
+  USER_NAME: "name",
+  USER_EMAIL: "email",
+  USER_ROLE: "role",
+
+  PROJECT_NAME: "project",
+  PROJECT_DESCRIPTION: "description",
+
   ISSUE_TITLE: "title",
   ISSUE_DESCRIPTION: "description",
   ISSUE_STATUS_ID: "status",
   ISSUE_PRIORITY_ID: "priority",
   ISSUE_ASSIGNEE_ID: "assignee",
   ISSUE_DUE_DATE: "dueDate",
+
+  COMMENT_CONTENT: "content",
 } satisfies Record<HistoryField, string>;
 
 /**
@@ -71,25 +96,32 @@ const mapValue = (
 };
 
 /**
- * Issue履歴をAPIレスポンスDTOへ変換する
+ * 履歴をAPIレスポンスDTOへ変換する
  *
  * 内部フィールド名および内部値をAPI公開用形式へ変換して返却する。
  */
-export const mapIssueHistory = (history: HistoryRecord, masters: MasterMap) => {
-  return {
-    action: history.action.name,
+const mapHistory = (history: HistoryRecord, masters?: MasterMap) => ({
+  action: history.action.name,
 
-    field: mapField(history.fieldName),
+  field: mapField(history.fieldName),
 
-    oldValue: mapValue(history.fieldName, history.oldValue, masters),
+  oldValue: mapValue(history.fieldName, history.oldValue, masters),
 
-    newValue: mapValue(history.fieldName, history.newValue, masters),
+  newValue: mapValue(history.fieldName, history.newValue, masters),
 
-    changedBy: {
-      id: history.user.id,
-      name: history.user.name,
-    },
+  changedBy: {
+    id: history.user.id,
+    name: history.user.name,
+  },
 
-    createdAt: history.createdAt,
-  };
-};
+  createdAt: history.createdAt,
+});
+
+export const mapIssueHistory = (h: HistoryRecord, masters: MasterMap) =>
+  mapHistory(h, masters);
+
+export const mapUserHistory = mapHistory;
+
+export const mapProjectHistory = mapHistory;
+
+export const mapCommentHistory = mapHistory;

@@ -29,6 +29,32 @@ export const getHistorySchema = z.object({
     .default(20),
 });
 
+export const userIdSchema = z.object({
+  id: z.coerce
+    .number({
+      error: "UserIDは数値で入力してください",
+    })
+    .int({
+      error: "UserIDは整数で入力してください",
+    })
+    .positive({
+      error: "UserIDは1以上を指定してください",
+    }),
+});
+
+export const projectIdSchema = z.object({
+  id: z.coerce
+    .number({
+      error: "ProjectIDは数値で入力してください",
+    })
+    .int({
+      error: "ProjectIDは整数で入力してください",
+    })
+    .positive({
+      error: "ProjectIDは1以上を指定してください",
+    }),
+});
+
 export const issueIdSchema = z.object({
   id: z.coerce
     .number({
@@ -39,5 +65,18 @@ export const issueIdSchema = z.object({
     })
     .positive({
       error: "IssueIDは1以上を指定してください",
+    }),
+});
+
+export const commentIdSchema = z.object({
+  id: z.coerce
+    .number({
+      error: "CommentIDは数値で入力してください",
+    })
+    .int({
+      error: "CommentIDは整数で入力してください",
+    })
+    .positive({
+      error: "CommentIDは1以上を指定してください",
     }),
 });
