@@ -380,7 +380,7 @@ oldValue = 1
 newValue = 2
 
 API:
-fieldName: "ISSUE_STATUS_ID"
+field: "status"
 oldValue = "OPEN"
 newValue = "IN_PROGRESS"
 
@@ -1000,7 +1000,7 @@ refresh_token=xxx
 
 - name
 - email
-- role
+- roleId
 
 #### 更新不可項目
 
@@ -1666,6 +1666,16 @@ refresh_token=xxx
 - createdAt DESC
 - 最新履歴を先頭に返却
 - Pagination適用
+
+#### レスポンス変換ルール
+
+履歴データは内部値を保持し、API返却時にMapperで表示用DTOへ変換する。
+
+変換ルール:
+
+- マスタ値（statusId、priorityId 等）は表示値へ変換して返却する
+- 参照系フィールド（assigneeId 等）は識別子を返却する
+- fieldNameは公開用フィールド名（field）へ変換する
 
 ### 10.7.1 User履歴一覧
 
