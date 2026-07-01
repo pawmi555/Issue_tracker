@@ -66,9 +66,9 @@ export const getUsersService = async (query: GetUsersQuery) => {
   ]);
 
   return {
-    items: users,
+    data: users,
 
-    pagination: {
+    meta: {
       page,
       limit,
       total,
