@@ -28,7 +28,7 @@ export const getUsers = async (
 
   res.status(200).json({
     success: true,
-    data: users,
+    ...users,
   });
 };
 
