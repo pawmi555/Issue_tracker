@@ -46,4 +46,17 @@ export const seedUsers = async () => {
       roleId: userRole.id,
     },
   });
+
+  await prisma.user.upsert({
+    where: {
+      email: "viewer@example.com",
+    },
+    update: {},
+    create: {
+      name: "viewer User",
+      email: "viewer@example.com",
+      passwordHash,
+      roleId: userRole.id,
+    },
+  });
 };
