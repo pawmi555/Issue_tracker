@@ -109,6 +109,437 @@ Access-Control-Allow-Credentials: true
 
 ---
 
+## Response DTO
+
+APIレスポンスはDTOを返却する。
+
+- ControllerはDTOのみ返却する
+- DTOへの変換はMapper層で行う
+- DB Entity・ORMモデルはAPIレスポンスへ直接返却しない
+- DTOはAPI契約（Response Contract）として扱う
+
+---
+
+### UserSummaryDto
+
+一覧取得および関連リソース参照で使用する簡易DTO。必要最小限の項目のみを保持し、詳細情報は保持しない。
+| Field | Type | Description |
+| ----- | ------ | ----------- |
+| id | number | ユーザーID |
+| name | string | ユーザー名 |
+| deletedAt（includeDeleted=trueのみ） | ISO8601 \| null |
+
+#### Example
+
+```json
+{
+  "id": 1,
+  "name": "Admin User"
+}
+```
+
+---
+
+### UserDto
+
+詳細取得・作成・更新APIで使用するDTO。リソースの詳細情報を保持する。
+| Field | Type |
+| --------- | ------- |
+| id | number |
+| name | string |
+| email | string |
+| role | RoleDto |
+| createdAt | ISO8601 |
+| updatedAt | ISO8601 |
+| deletedAt（includeDeleted=trueのみ） | ISO8601 \| null |
+
+#### Example
+
+```json
+{
+  "id": 1,
+  "name": "Admin User",
+  "email": "admin@example.com",
+  "role": {
+    "id": 1,
+    "name": "ADMIN",
+    "label": "管理者"
+  },
+  "createdAt": "2026-06-04T11:30:59.329Z",
+  "updatedAt": "2026-06-09T06:40:16.979Z"
+}
+```
+
+---
+
+### LoginResponseDto
+
+ログインAPIレスポンス
+| Field | Type |
+| ----------- | -------------- |
+| user | UserDto |
+| accessToken | string |
+
+#### Example
+
+```json
+{
+  "user": {
+    "id": 1,
+    "name": "Admin User",
+    "email": "admin@example.com",
+    "role": {
+      "id": 1,
+      "name": "ADMIN",
+      "label": "管理者"
+    },
+    "createdAt": "2026-06-04T11:30:59.329Z",
+    "updatedAt": "2026-06-09T06:40:16.979Z"
+  },
+  "accessToken": "jwt..."
+}
+```
+
+---
+
+### RefreshTokenDto
+
+アクセストークン再発行APIレスポンス
+| Field | Type |
+| ----------- | ------ |
+| accessToken | string |
+
+#### Example
+
+```json
+{
+  "accessToken": "jwt..."
+}
+```
+
+---
+
+### RegisterResponseDto
+
+ユーザー登録APIレスポンス
+| Field | Type |
+| ----------- | ------ |
+| user | UserDto |
+
+#### Example
+
+```json
+{
+  "user": {
+    "id": 1,
+    "name": "Admin User",
+    "email": "admin@example.com",
+    "role": {
+      "id": 1,
+      "name": "ADMIN",
+      "label": "管理者"
+    },
+    "createdAt": "2026-06-04T11:30:59.329Z",
+    "updatedAt": "2026-06-09T06:40:16.979Z"
+  }
+}
+```
+
+---
+
+### RoleDto
+
+ロール情報（UserRole / ProjectRole）
+| Field | Type |
+| ----- | ------ |
+| id | number |
+| name | string |
+| label | string |
+
+#### Example
+
+```json
+{
+  "id": 1,
+  "name": "ADMIN",
+  "label": "管理者"
+}
+```
+
+---
+
+### StatusDto
+
+Issueステータス情報
+| Field | Type |
+|------|------|
+| id | number |
+| name | string |
+| label | string |
+
+#### Example
+
+```json
+{
+  "id": 1,
+  "name": "OPEN",
+  "label": "未着手"
+}
+```
+
+---
+
+### PriorityDto
+
+Issue優先度情報
+| Field | Type |
+|------|------|
+| id | number |
+| name | string |
+| label | string |
+
+#### Example
+
+```json
+{
+  "id": 1,
+  "name": "HIGH",
+  "label": "高"
+}
+```
+
+---
+
+### CountDto
+
+関連リソースの集計情報
+
+Prismaの \_count は公開しない。
+APIでは CountDtoへ変換して返却する。
+| Field | Type |
+|------|------|
+| members | number |
+| issues | number |
+
+#### Example
+
+```json
+{
+  "members": 2,
+  "issues": 10
+}
+```
+
+---
+
+### ProjectSummaryDto
+
+一覧取得および関連リソース参照で使用する簡易DTO。必要最小限の項目のみを保持し、詳細情報は保持しない。
+
+| Field                                | Type            |
+| ------------------------------------ | --------------- |
+| id                                   | number          |
+| name                                 | string          |
+| description                          | string          |
+| owner                                | UserSummaryDto  |
+| counts                               | CountDto        |
+| createdAt                            | ISO8601         |
+| updatedAt                            | ISO8601         |
+| deletedAt（includeDeleted=trueのみ） | ISO8601 \| null |
+
+---
+
+### ProjectDto
+
+詳細取得・作成・更新APIで使用するDTO。リソースの詳細情報を保持する。
+
+ProjectSummaryDtoを拡張したDTO
+
+| Field   | Type               |
+| ------- | ------------------ |
+| ownerId | number             |
+| members | ProjectMemberDto[] |
+
+---
+
+### ProjectReferenceDto
+
+IssueAPIで使用するDTO。
+
+| Field | Type   |
+| ----- | ------ |
+| id    | number |
+| name  | string |
+
+---
+
+### ProjectMemberDto
+
+プロジェクトメンバー情報
+| Field | Type |
+| --------- | -------------- |
+| id | number |
+| role | RoleDto |
+| user | UserSummaryDto |
+| createdAt | ISO8601 |
+| updatedAt | ISO8601 |
+
+---
+
+### IssueSummaryDto
+
+一覧取得および関連リソース参照で使用する簡易DTO。必要最小限の項目のみを保持し、詳細情報は保持しない。
+関連リソースはinclude指定時のみ返却する。
+| Field | Type |
+| -------------------------------- | -------------- |
+| id | number |
+| title | string |
+| dueDate | ISO8601 \| null |
+| createdAt | ISO8601 |
+| updatedAt | ISO8601 |
+| deletedAt（includeDeleted=trueのみ） | ISO8601 \| null |
+| project（include指定時のみ） | ProjectReferenceDto \| null |
+| assignee（include指定時のみ） | UserSummaryDto \| null |
+| reporter（include指定時のみ） | UserSummaryDto \| null |
+
+---
+
+### IssueDto
+
+詳細取得・作成・更新・復元APIで使用するDTO。リソースの詳細情報を保持する。
+
+IssueSummaryDtoを拡張したDTO。
+
+詳細取得時の基本情報を保持し、
+関連リソースはinclude指定時のみ返却する。
+
+追加フィールド
+
+| Field                         | Type           |
+| ----------------------------- | -------------- |
+| description                   | string \| null |
+| status                        | StatusDto      |
+| priority                      | PriorityDto    |
+| comments（include指定時のみ） | CommentDto[]   |
+
+---
+
+### CommentDto
+
+コメント情報
+| Field | Type |
+| --------- | -------------- |
+| id | number |
+| content | string |
+| user | UserSummaryDto |
+| createdAt | ISO8601 |
+| updatedAt | ISO8601 |
+| deletedAt（includeDeleted=trueのみ） | ISO8601 \| null |
+
+---
+
+### HistoryDto
+
+変更履歴情報
+| Field | Type |
+| --------- | ------------------------------------------------------ |
+| action | HistoryActionDto |
+| field | HistoryFieldDto |
+| oldValue | HistoryValueDto |
+| newValue | HistoryValueDto |
+| changedBy | UserSummaryDto |
+| createdAt | ISO8601 |
+
+---
+
+### HistoryActionDto
+
+変更履歴の操作種別
+| Value | Type |
+| ------- | ------ |
+| CREATE | string |
+| UPDATE | string |
+| DELETE | string |
+| RESTORE | string |
+
+---
+
+### HistoryValueDto
+
+変更履歴の型
+| Value | Type |
+| ------- | ------ |
+| string | string |
+| number | string |
+| boolean | string |
+| object | string |
+| unknown[] | string |
+| null | string |
+
+---
+
+### HistoryFieldDto
+
+変更対象フィールドを表す公開用DTO。
+
+内部で使用する `HistoryField` は公開せず、APIではクライアント向けのフィールド名へ変換して返却する。
+| Value |Type |
+| ----------- |
+| name | string |
+| email | string |
+| role | string |
+| project | string |
+| description | string |
+| title | string |
+| status | string |
+| priority | string |
+| assignee | string |
+| dueDate | string |
+| deletedAt | string |
+| content | string |
+
+---
+
+### ApiLogDto
+
+APIアクセスログ情報
+
+| Field     | Type    |
+| --------- | ------- |
+| requestId | string  |
+| method    | string  |
+| path      | string  |
+| userId    | number  |
+| status    | number  |
+| duration  | number  |
+| createdAt | ISO8601 |
+
+---
+
+### PaginationMetaDto
+
+ページネーション情報
+
+| Field      | Type   | Description |
+| ---------- | ------ | ----------- |
+| page       | number | 現在ページ  |
+| limit      | number | 取得件数    |
+| total      | number | 総件数      |
+| totalPages | number | 総ページ数  |
+
+#### Example
+
+```json
+{
+  "page": 1,
+  "limit": 20,
+  "total": 100,
+  "totalPages": 5
+}
+```
+
+---
+
 ## 共通レスポンス
 
 204 No Content の場合、Response Bodyは返却しない。
@@ -121,6 +552,27 @@ Access-Control-Allow-Credentials: true
   "data": {}
 }
 ```
+
+---
+
+### ページング取得
+
+```json
+{
+  "success": true,
+  "data": [],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 100,
+    "totalPages": 5
+  }
+}
+```
+
+※metaは PaginationMetaDto とする。
+
+---
 
 ### 失敗
 
@@ -204,7 +656,16 @@ RESOURCE_REASON
 
 ## Pagination
 
+### Query Parameter
+
+| Name  | Type   | Default | Max |
+| ----- | ------ | ------- | --- |
+| page  | number | 1       | -   |
+| limit | number | 20      | 100 |
+
 #### Response
+
+一覧取得APIは PaginationMetaDto を返却する。
 
 ```json
 {
@@ -213,7 +674,8 @@ RESOURCE_REASON
   "meta": {
     "page": 1,
     "limit": 20,
-    "total": 100
+    "total": 100,
+    "totalPages": 5
   }
 }
 ```
@@ -248,69 +710,70 @@ RESOURCE_REASON
 - GET /issues/:id
 
 ```http
-?include=assignee,reporter,comments,project,status,priority
+?include=assignee,reporter,comments,project
 ```
 
 #### 制約
 
 - ホワイトリスト制
-- 最大6件
+- 最大4件
 - 重複指定不可
 - 不正なinclude指定時は422を返却
 - commentsはIssue詳細取得時のみ指定可能
 
-#### include whitelist
+#### Include Resource
 
-| resource |
-| -------- |
-| assignee |
-| reporter |
-| comments |
-| project  |
-| status   |
-| priority |
+| Include Resource | Response                                         |
+| ---------------- | ------------------------------------------------ |
+| assignee         | object (id, name)                                |
+| reporter         | object (id, name)                                |
+| comments         | object (id, content)                             |
+| project          | object (id, content, user, createdAt, updatedAt) |
 
-#### Response
+#### Example Response
 
 ```json
 {
-  "id": 1,
-  "title": "ログインできない",
-  "description": "500 error",
-
-  "status": {
+  "success": true,
+  "data": {
     "id": 1,
-    "name": "OPEN",
-    "label": "未着手"
-  },
-
-  "priority": {
-    "id": 2,
-    "name": "HIGH",
-    "label": "高"
-  },
-
-  "project": {
-    "id": 1,
-    "name": "Issue Tracker"
-  },
-
-  "assignee": {
-    "id": 1,
-    "name": "Tanaka"
-  },
-
-  "reporter": {
-    "id": 2,
-    "name": "Suzuki"
-  },
-
-  "comments": [
-    {
+    "title": "ログインできない",
+    "description": "500 error",
+    "status": {
       "id": 1,
-      "content": "調査します"
-    }
-  ]
+      "name": "OPEN",
+      "label": "未着手"
+    },
+    "priority": {
+      "id": 2,
+      "name": "HIGH",
+      "label": "高"
+    },
+    "project": {
+      "id": 1,
+      "name": "Issue Tracker"
+    },
+    "assignee": {
+      "id": 1,
+      "name": "Tanaka"
+    },
+    "reporter": {
+      "id": 2,
+      "name": "Suzuki"
+    },
+    "comments": [
+      {
+        "id": 1,
+        "content": "調査します",
+        "user": {
+          "id": 2,
+          "name": "Suzuki"
+        },
+        "createdAt": "2026-05-01T10:00:00Z",
+        "updatedAt": "2026-05-01T10:00:00Z"
+      }
+    ]
+  }
 }
 ```
 
@@ -779,15 +1242,28 @@ if (issue.project.deletedAt !== null) {
 - email UNIQUE
 - password >= 8
 
-#### Response
+#### Response DTO
+
+RegisterResponseDto
+
+#### Example Response
 
 ```json
 {
   "success": true,
   "data": {
-    "id": 1,
-    "name": "string (1-50)",
-    "email": "email"
+    "user": {
+      "id": 1,
+      "name": "string (1-50)",
+      "email": "email",
+      "role": {
+        "id": 2,
+        "name": "USER",
+        "label": "一般ユーザー"
+      },
+      "createdAt": "2026-06-04T11:30:59.329Z",
+      "updatedAt": "2026-06-04T11:30:59.329Z"
+    }
   }
 }
 ```
@@ -807,7 +1283,11 @@ if (issue.project.deletedAt !== null) {
 }
 ```
 
-#### Response
+#### Response DTO
+
+LoginResponseDto
+
+#### Example Response
 
 ```json
 {
@@ -816,7 +1296,14 @@ if (issue.project.deletedAt !== null) {
     "user": {
       "id": 1,
       "name": "Admin User",
-      "email": "admin@example.com"
+      "email": "admin@example.com",
+      "role": {
+        "id": 1,
+        "name": "ADMIN",
+        "label": "管理者"
+      },
+      "createdAt": "2026-06-04T11:30:59.329Z",
+      "updatedAt": "2026-06-09T06:40:16.979Z"
     },
     "accessToken": "jwt..."
   }
@@ -851,7 +1338,11 @@ Cookie:
 refresh_token=xxx
 ```
 
-#### Response
+#### Response DTO
+
+RefreshTokenDto
+
+#### Example Response
 
 新しいAccess Tokenを返却する（Refresh TokenはResponse Cookieで更新）
 
@@ -864,7 +1355,7 @@ refresh_token=xxx
 }
 ```
 
-### Response Cookie
+#### Response Cookie
 
 共通仕様「Cookie Policy」に従い、refresh_token を更新する
 
@@ -910,7 +1401,11 @@ refresh_token=xxx
 - Authorization Header必須
 - Access Tokenからログインユーザーを取得
 
-#### Response
+#### Response DTO
+
+UserDto
+
+#### Example Response
 
 ```json
 {
@@ -918,7 +1413,14 @@ refresh_token=xxx
   "data": {
     "id": 1,
     "name": "Admin User",
-    "email": "admin@example.com"
+    "email": "admin@example.com",
+    "role": {
+      "id": 1,
+      "name": "ADMIN",
+      "label": "管理者"
+    },
+    "createdAt": "2026-06-04T11:30:59.329Z",
+    "updatedAt": "2026-06-09T06:40:16.979Z"
   }
 }
 ```
@@ -935,7 +1437,12 @@ refresh_token=xxx
 
 - UserRoleがADMINの場合のみ一覧取得可能
 
-#### Response
+#### Response DTO
+
+data : UserSummaryDto[]
+meta : PaginationMetaDto
+
+#### Example Response
 
 ```json
 {
@@ -943,16 +1450,15 @@ refresh_token=xxx
   "data": [
     {
       "id": 1,
-      "name": "Admin User",
-      "email": "admin@example.com",
-      "role": {
-        "id": 1,
-        "name": "ADMIN",
-        "label": "管理者"
-      },
-      "createdAt": "2026-06-04T11:30:59.329Z"
+      "name": "Admin User"
     }
-  ]
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "totalPages": 1
+  }
 }
 ```
 
@@ -966,7 +1472,11 @@ refresh_token=xxx
 
 - 自分またはUserRoleがADMINの場合のみ取得可能
 
-#### Response
+#### Response DTO
+
+UserDto
+
+#### Example Response
 
 ```json
 {
@@ -979,7 +1489,9 @@ refresh_token=xxx
       "id": 2,
       "name": "USER",
       "label": "一般ユーザー"
-    }
+    },
+    "createdAt": "2026-06-04T11:30:59.329Z",
+    "updatedAt": "2026-06-09T06:40:16.979Z"
   }
 }
 ```
@@ -1016,7 +1528,11 @@ refresh_token=xxx
 }
 ```
 
-#### Response
+#### Response DTO
+
+UserDto
+
+#### Example Response
 
 ```json
 {
@@ -1027,8 +1543,10 @@ refresh_token=xxx
     "email": "new@test.com",
     "role": {
       "id": 2,
-      "name": "USER"
+      "name": "USER",
+      "label": "一般ユーザー"
     },
+    "createdAt": "2026-06-09T06:35:10.123Z",
     "updatedAt": "2026-06-09T06:40:16.979Z"
   }
 }
@@ -1074,18 +1592,46 @@ refresh_token=xxx
 }
 ```
 
-#### Response
+#### Response DTO
+
+ProjectDto
+
+#### Example Response
 
 ```json
 {
   "success": true,
   "data": {
-    "id": 1,
+    "id": 6,
+    "name": "application1",
+    "description": "Sample project",
     "ownerId": 1,
-    "name": "Issue Tracker",
-    "description": "社内管理ツール",
-    "createdAt": "2026-06-10T05:18:59.669Z",
-    "updatedAt": "2026-06-10T05:18:59.669Z"
+    "owner": {
+      "id": 1,
+      "name": "Admin User"
+    },
+    "counts": {
+      "members": 1,
+      "issues": 0
+    },
+    "createdAt": "2026-07-08T14:50:39.024Z",
+    "updatedAt": "2026-07-08T14:50:39.024Z",
+    "members": [
+      {
+        "id": 7,
+        "role": {
+          "id": 1,
+          "name": "OWNER",
+          "label": "プロジェクト作成者。全権限"
+        },
+        "user": {
+          "id": 1,
+          "name": "Admin User"
+        },
+        "createdAt": "2026-07-08T14:50:39.024Z",
+        "updatedAt": "2026-07-08T14:50:39.024Z"
+      }
+    ]
   }
 }
 ```
@@ -1100,7 +1646,12 @@ refresh_token=xxx
 
 - 自分が所属するプロジェクトのみ一覧取得可能
 
-#### Response
+#### Response DTO
+
+data : ProjectSummaryDto[]
+meta : PaginationMetaDto
+
+#### Example Response
 
 ```json
 {
@@ -1108,43 +1659,40 @@ refresh_token=xxx
   "data": [
     {
       "id": 5,
-      "ownerId": 1,
       "name": "sample application",
       "description": "Sample project",
-      "createdAt": "2026-06-10T13:06:41.080Z",
-      "updatedAt": "2026-06-10T13:06:41.080Z",
       "owner": {
         "id": 1,
-        "name": "Admin User",
-        "email": "admin@example.com"
+        "name": "Admin User"
       },
-      "_count": {
+      "counts": {
         "members": 1,
         "issues": 0
-      }
+      },
+      "createdAt": "2026-06-10T13:06:41.080Z",
+      "updatedAt": "2026-06-10T13:06:41.080Z"
     },
     {
       "id": 1,
-      "ownerId": 1,
       "name": "Issue Tracker",
       "description": "Sample project",
-      "createdAt": "2026-06-10T11:05:56.661Z",
-      "updatedAt": "2026-06-10T11:05:56.661Z",
       "owner": {
         "id": 1,
-        "name": "Admin User",
-        "email": "admin@example.com"
+        "name": "Admin User"
       },
-      "_count": {
+      "counts": {
         "members": 2,
         "issues": 1
-      }
+      },
+      "createdAt": "2026-06-10T11:05:56.661Z",
+      "updatedAt": "2026-06-10T11:05:56.661Z"
     }
   ],
   "meta": {
     "page": 1,
     "limit": 20,
-    "total": 2
+    "total": 2,
+    "totalPages": 1
   }
 }
 ```
@@ -1159,26 +1707,46 @@ refresh_token=xxx
 
 - ProjectRoleがMEMBER以上のみ詳細取得可能
 
-#### Response
+#### Response DTO
+
+ProjectDto
+
+#### Example Response
 
 ```json
 {
   "success": true,
   "data": {
-    "id": 1,
-    "ownerId": 1,
-    "name": "Issue Tracker",
+    "id": 6,
+    "name": "application1",
     "description": "Sample project",
-    "createdAt": "...",
-    "updatedAt": "...",
+    "ownerId": 1,
     "owner": {
       "id": 1,
       "name": "Admin User"
     },
-    "_count": {
-      "members": 2,
-      "issues": 1
-    }
+    "counts": {
+      "members": 1,
+      "issues": 0
+    },
+    "createdAt": "2026-07-08T14:50:39.024Z",
+    "updatedAt": "2026-07-08T14:50:39.024Z",
+    "members": [
+      {
+        "id": 7,
+        "role": {
+          "id": 1,
+          "name": "OWNER",
+          "label": "プロジェクト作成者。全権限"
+        },
+        "user": {
+          "id": 1,
+          "name": "Admin User"
+        },
+        "createdAt": "2026-07-08T14:50:39.024Z",
+        "updatedAt": "2026-07-08T14:50:39.024Z"
+      }
+    ]
   }
 }
 ```
@@ -1214,18 +1782,46 @@ refresh_token=xxx
 }
 ```
 
-#### Response
+#### Response DTO
+
+ProjectDto
+
+#### Example Response
 
 ```json
 {
   "success": true,
   "data": {
-    "id": 1,
+    "id": 6,
+    "name": "application1",
+    "description": "Sample project",
     "ownerId": 1,
-    "name": "Updated Project",
-    "description": "updated",
-    "createdAt": "2026-06-11T06:35:31.6102Z",
-    "updatedAt": "2026-06-11T06:35:40.013Z"
+    "owner": {
+      "id": 1,
+      "name": "Admin User"
+    },
+    "counts": {
+      "members": 1,
+      "issues": 0
+    },
+    "createdAt": "2026-07-08T14:50:39.024Z",
+    "updatedAt": "2026-07-08T14:50:39.024Z",
+    "members": [
+      {
+        "id": 7,
+        "role": {
+          "id": 1,
+          "name": "OWNER",
+          "label": "プロジェクト作成者。全権限"
+        },
+        "user": {
+          "id": 1,
+          "name": "Admin User"
+        },
+        "createdAt": "2026-07-08T14:50:39.024Z",
+        "updatedAt": "2026-07-08T14:50:39.024Z"
+      }
+    ]
   }
 }
 ```
@@ -1271,7 +1867,11 @@ refresh_token=xxx
 }
 ```
 
-#### Response
+### Response DTO
+
+ProjectMemberDto
+
+#### Example Response
 
 ```json
 {
@@ -1279,11 +1879,8 @@ refresh_token=xxx
   "data": {
     "id": 7,
     "userId": 3,
-    "projectId": 1,
-    "role": {
-      "id": 3,
-      "name": "MEMBER"
-    },
+    "projectId": 6,
+    "roleId": 3,
     "createdAt": "2026-06-11T06:50:51.435Z",
     "updatedAt": "2026-06-11T06:50:51.435Z",
     "user": {
@@ -1305,7 +1902,11 @@ refresh_token=xxx
 
 - ログインユーザーが対象ProjectのMANAGER以上であること
 
-#### Response
+### Response DTO
+
+ProjectMemberDto[]
+
+#### Example Response
 
 ```json
 {
@@ -1313,26 +1914,19 @@ refresh_token=xxx
   "data": [
     {
       "id": 1,
-      "userId": 1,
-      "projectId": 1,
-      "createdAt": "2026-06-10T11:05:56.661Z",
-      "updatedAt": "2026-06-10T11:05:56.661Z",
       "user": {
         "id": 1,
-        "name": "Admin User",
-        "email": "admin@example.com"
+        "name": "Admin User"
       },
       "role": {
         "id": 1,
-        "name": "OWNER"
-      }
+        "name": "OWNER",
+        "label": "オーナー"
+      },
+      "createdAt": "2026-06-10T11:05:56.661Z",
+      "updatedAt": "2026-06-10T11:05:56.661Z"
     }
-  ],
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 1
-  }
+  ]
 }
 ```
 
@@ -1357,26 +1951,29 @@ refresh_token=xxx
 }
 ```
 
-#### Response
+### Response DTO
+
+ProjectMemberDto
+
+#### Example Response
 
 ```json
 {
   "success": true,
   "data": {
-    "id": 7,
-    "userId": 3,
-    "projectId": 1,
-    "createdAt": "2026-06-11T06:50:51.435Z",
-    "updatedAt": "2026-06-11T06:52:34.266Z",
-    "role": {
-      "id": 3,
-      "name": "MEMBER"
-    },
+    "id": 1,
     "user": {
-      "id": 3,
-      "name": "test",
-      "email": "test@example.com"
-    }
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@example.com"
+    },
+    "role": {
+      "id": 1,
+      "name": "OWNER",
+      "label": "オーナー"
+    },
+    "createdAt": "2026-06-10T11:05:56.661Z",
+    "updatedAt": "2026-06-10T11:05:56.661Z"
   }
 }
 ```
@@ -1430,18 +2027,32 @@ refresh_token=xxx
 }
 ```
 
-#### Response
+#### Response DTO
+
+IssueDto
+
+#### Example Response
 
 ```json
 {
   "success": true,
   "data": {
-    "id": 1,
-    "title": "...",
+    "id": 5,
+    "title": "ログインできない12",
+    "description": "500 error",
+    "dueDate": "2026-05-01T00:00:00.000Z",
+    "createdAt": "2026-07-10T00:13:27.901Z",
+    "updatedAt": "2026-07-10T00:13:27.901Z",
     "status": {
-      "name": "OPEN"
+      "id": 1,
+      "name": "OPEN",
+      "label": "未着手"
     },
-    "createdAt": "..."
+    "priority": {
+      "id": 1,
+      "name": "LOW",
+      "label": "低"
+    }
   }
 }
 ```
@@ -1467,6 +2078,34 @@ refresh_token=xxx
 - include最大6件
 - ProjectRoleがMEMBER以上なら一覧取得可能
 
+#### Response DTO
+
+data : IssueSummaryDto[]
+meta : PaginationMetaDto
+
+#### Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "title": "Login Bug",
+      "dueDate": null,
+      "createdAt": "2026-07-08T03:29:57.665Z",
+      "updatedAt": "2026-07-08T03:32:25.021Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
 ---
 
 ### 10.5.3 Issue詳細取得
@@ -1476,6 +2115,36 @@ refresh_token=xxx
 #### 制約
 
 - プロジェクトメンバーのみ取得可能
+
+#### Response DTO
+
+IssueDto
+
+#### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 3,
+    "title": "修正",
+    "description": "500 error",
+    "dueDate": "2026-05-01T00:00:00.000Z",
+    "createdAt": "2026-07-08T15:01:25.312Z",
+    "updatedAt": "2026-07-09T23:01:51.533Z",
+    "status": {
+      "id": 2,
+      "name": "IN_PROGRESS",
+      "label": "対応中"
+    },
+    "priority": {
+      "id": 1,
+      "name": "LOW",
+      "label": "低"
+    }
+  }
+}
+```
 
 ---
 
@@ -1514,36 +2183,37 @@ refresh_token=xxx
 ```json
 {
   "title": "修正",
-  "statusId": 1,
-  "assigneeId": 3
+  "statusId": 2,
+  "assigneeId": 1
 }
 ```
 
-#### Response
+#### Response DTO
+
+IssueDto
+
+#### Example Response
 
 ```json
 {
   "success": true,
   "data": {
-    "id": 2,
+    "id": 5,
     "title": "修正",
-    "description": "Cannot login with test account",
-    "dueDate": null,
+    "description": "500 error",
+    "dueDate": "2026-05-01T00:00:00.000Z",
+    "createdAt": "2026-07-10T00:13:27.901Z",
+    "updatedAt": "2026-07-10T00:19:41.308Z",
     "status": {
-      "id": 1,
-      "name": "OPEN",
-      "label": "未着手"
+      "id": 2,
+      "name": "IN_PROGRESS",
+      "label": "対応中"
     },
     "priority": {
-      "id": 3,
-      "name": "HIGH",
-      "label": "高"
-    },
-    "assignee": {
-      "id": 2,
-      "name": "Test User"
-    },
-    "updatedAt": "2026-06-13T13:32:210.151Z"
+      "id": 1,
+      "name": "LOW",
+      "label": "低"
+    }
   }
 }
 ```
@@ -1581,11 +2251,7 @@ refresh_token=xxx
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": 1,
-    "deletedAt": null
-  }
+  "success": true
 }
 ```
 
@@ -1609,6 +2275,28 @@ refresh_token=xxx
 }
 ```
 
+#### Response DTO
+
+CommentDto
+
+#### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "content": "修正",
+    "user": {
+      "id": 1,
+      "name": "Admin User"
+    },
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
+}
+```
+
 ---
 
 ### 10.6.2 コメント一覧
@@ -1619,6 +2307,37 @@ refresh_token=xxx
 
 - プロジェクトメンバーのみ
 - ソート順は createdAt ASC
+
+#### Response DTO
+
+data : CommentDto[]
+meta : PaginationMetaDto
+
+#### Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "content": "修正",
+      "user": {
+        "id": 1,
+        "name": "Admin User"
+      },
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 100,
+    "totalPages": 5
+  }
+}
+```
 
 ---
 
@@ -1637,6 +2356,28 @@ refresh_token=xxx
 ```json
 {
   "content": "修正版コメント"
+}
+```
+
+#### Response DTO
+
+CommentDto
+
+#### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "content": "修正版コメント",
+    "user": {
+      "id": 1,
+      "name": "Admin User"
+    },
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
 }
 ```
 
@@ -1685,7 +2426,12 @@ refresh_token=xxx
 
 - 自分またはADMINのみ取得可能
 
-#### Response
+#### Response DTO
+
+data : HistoryDto[]
+meta : PaginationMetaDto
+
+#### Example Response
 
 ```json
 {
@@ -1706,7 +2452,8 @@ refresh_token=xxx
   "meta": {
     "page": 1,
     "limit": 20,
-    "total": 1
+    "total": 100,
+    "totalPages": 5
   }
 }
 ```
@@ -1721,7 +2468,12 @@ refresh_token=xxx
 
 - プロジェクトメンバーのみ取得可能
 
-#### Response
+#### Response DTO
+
+data : HistoryDto[]
+meta : PaginationMetaDto
+
+#### Example Response
 
 ```json
 {
@@ -1742,7 +2494,8 @@ refresh_token=xxx
   "meta": {
     "page": 1,
     "limit": 20,
-    "total": 1
+    "total": 100,
+    "totalPages": 5
   }
 }
 ```
@@ -1755,7 +2508,12 @@ refresh_token=xxx
 
 - プロジェクトメンバーのみ取得可能
 
-#### Response
+#### Response DTO
+
+data : HistoryDto[]
+meta : PaginationMetaDto
+
+#### Example Response
 
 ```json
 {
@@ -1776,7 +2534,8 @@ refresh_token=xxx
   "meta": {
     "page": 1,
     "limit": 20,
-    "total": 1
+    "total": 100,
+    "totalPages": 5
   }
 }
 ```
@@ -1791,7 +2550,12 @@ refresh_token=xxx
 
 - プロジェクトメンバーのみ取得可能
 
-#### Response
+#### Response DTO
+
+data : HistoryDto[]
+meta : PaginationMetaDto
+
+#### Example Response
 
 ```json
 {
@@ -1812,7 +2576,8 @@ refresh_token=xxx
   "meta": {
     "page": 1,
     "limit": 20,
-    "total": 1
+    "total": 100,
+    "totalPages": 5
   }
 }
 ```
@@ -1842,7 +2607,12 @@ refresh_token=xxx
 - status
 - duration
 
-#### Response
+#### Response DTO
+
+data : ApiLogDto[]
+meta : PaginationMetaDto
+
+#### Example Response
 
 ```json
 {
@@ -1860,8 +2630,9 @@ refresh_token=xxx
   ],
   "meta": {
     "page": 1,
-    "limit": 50,
-    "total": 100
+    "limit": 20,
+    "total": 100,
+    "totalPages": 5
   }
 }
 ```
@@ -1902,9 +2673,14 @@ https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation
 - JWT + RefreshToken Rotation採用
 - RBAC採用
 - 論理削除採用
-- Issue変更履歴管理
-- Comment変更履歴管理
+- User、Project、Issue、Comment変更履歴管理
 - 状態遷移制御
 - 実務運用を想定した監査性を重視
+- DTO + MapperによりAPI契約を維持
+
+## DTO採用方針
+
+APIレスポンスはDTOを返却する。
+DBスキーマ変更の影響をAPI利用者へ与えないことを目的とし、レスポンス整形はMapper層が担当する。
 
 ---

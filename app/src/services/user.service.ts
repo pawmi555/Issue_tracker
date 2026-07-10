@@ -6,6 +6,14 @@ import { buildPagination } from "../utils/pagination.js";
 import { AppError } from "../utils/app-error.js";
 import { buildUserHistories } from "../utils/history.utils.js";
 
+import { mapUser, mapUseSummary } from "../mappers/user/user.mapper.js";
+import {
+  userDtoSelect,
+  userSummarySelect,
+  userHistorySelect,
+} from "../selects/user.select.js";
+import { buildPaginationMeta } from "../utils/pagination-meta.js";
+
 type GetUsersQuery = {
   page?: number;
   limit?: number;
@@ -26,6 +34,7 @@ type UpdateUserInput = {
  * ユーザー一覧取得
  */
 export const getUsersService = async (query: GetUsersQuery) => {
+  // ページネーション設定
   const { skip, take, page, limit } = buildPagination({
     page: query.page,
     limit: query.limit,
@@ -43,21 +52,7 @@ export const getUsersService = async (query: GetUsersQuery) => {
       skip,
       take,
 
-      select: {
-        id: true,
-        name: true,
-        email: true,
-
-        role: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-
-        createdAt: true,
-        deletedAt: true,
-      },
+      select: userSummarySelect,
     }),
 
     prisma.user.count({
@@ -66,13 +61,17 @@ export const getUsersService = async (query: GetUsersQuery) => {
   ]);
 
   return {
-    data: users,
+    data: users.map((user) =>
+      mapUseSummary(user, {
+        includeDeleted: query.includeDeleted,
+      }),
+    ),
 
-    meta: {
+    meta: buildPaginationMeta({
       page,
       limit,
       total,
-    },
+    }),
   };
 };
 
@@ -93,25 +92,16 @@ export const getUserByIdService = async (
           }),
     },
 
-    select: {
-      id: true,
-      name: true,
-      email: true,
-
-      role: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
+    select: userDtoSelect,
   });
 
   if (!user) {
     throw new AppError("user not found", 404, "USER_NOT_FOUND");
   }
 
-  return user;
+  return mapUser(user, {
+    includeDeleted,
+  });
 };
 
 /**
@@ -122,22 +112,6 @@ export const updateUserService = async ({
   operatedBy,
   data,
 }: UpdateUserInput) => {
-  // レスポンス定義
-  const userResponseSelect = {
-    id: true,
-    name: true,
-    email: true,
-
-    role: {
-      select: {
-        id: true,
-        name: true,
-      },
-    },
-
-    updatedAt: true,
-  } satisfies Prisma.UserSelect;
-
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const HISTORY_ACTION_UPDATE = 1;
 
@@ -148,18 +122,7 @@ export const updateUserService = async ({
         deletedAt: null,
       },
 
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        roleId: true,
-
-        role: {
-          select: {
-            name: true,
-          },
-        },
-      },
+      select: userHistorySelect,
     });
 
     if (!user) {
@@ -224,14 +187,16 @@ export const updateUserService = async ({
 
     // 差分なし
     if (histories.length === 0) {
-      return tx.user.findFirstOrThrow({
+      const currentUser = await tx.user.findFirstOrThrow({
         where: {
           id,
           deletedAt: null,
         },
 
-        select: userResponseSelect,
+        select: userDtoSelect,
       });
+
+      return mapUser(currentUser);
     }
 
     const updatedUser = await tx.user.update({
@@ -241,7 +206,7 @@ export const updateUserService = async ({
 
       data,
 
-      select: userResponseSelect,
+      select: userDtoSelect,
     });
 
     // 履歴保存
@@ -249,7 +214,7 @@ export const updateUserService = async ({
       data: histories,
     });
 
-    return updatedUser;
+    return mapUser(updatedUser);
   });
 };
 

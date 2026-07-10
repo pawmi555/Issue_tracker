@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 import { HistoryField } from "@prisma/client";
 
 type UserBefore = {
@@ -67,8 +69,8 @@ export const buildUserHistories = ({
       operatedBy,
       actionId,
       fieldName,
-      oldValue,
-      newValue,
+      oldValue: oldValue === null ? Prisma.JsonNull : oldValue,
+      newValue: newValue === null ? Prisma.JsonNull : newValue,
     });
   }
 
@@ -112,8 +114,8 @@ export const buildProjectHistories = ({
       userId,
       actionId,
       fieldName,
-      oldValue,
-      newValue,
+      oldValue: oldValue === null ? Prisma.JsonNull : oldValue,
+      newValue: newValue === null ? Prisma.JsonNull : newValue,
     });
   }
 
@@ -166,8 +168,8 @@ export const buildIssueHistories = ({
       userId,
       actionId,
       fieldName,
-      oldValue,
-      newValue,
+      oldValue: oldValue === null ? Prisma.JsonNull : oldValue,
+      newValue: newValue === null ? Prisma.JsonNull : newValue,
     });
   }
 
@@ -208,8 +210,8 @@ export const buildCommentHistories = ({
       userId,
       actionId,
       fieldName,
-      oldValue,
-      newValue,
+      oldValue: oldValue === null ? Prisma.JsonNull : oldValue,
+      newValue: newValue === null ? Prisma.JsonNull : newValue,
     });
   }
 

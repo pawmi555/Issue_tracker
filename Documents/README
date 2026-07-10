@@ -1,0 +1,333 @@
+Issue Tracker
+
+# 1. Overview
+
+チーム開発におけるIssue管理を想定したWebアプリケーションです。
+Issue管理、プロジェクト管理、ユーザー権限管理、コメント管理、変更履歴管理を提供します。
+Backend APIでは、JWT認証、Refresh Token Rotation、RBACによる認可、DTO/MapperによるAPI契約管理、Issue状態遷移制御など、実運用を想定した設計・実装を行っています。
+単純なCRUD APIではなく、複数ユーザーが利用する業務システムを想定し、セキュリティ・保守性・拡張性を重視して開発しました。
+
+# 2. Features
+
+## Authentication
+
+- JWT Access Token認証
+- Refresh Token Rotation
+- Refresh TokenのHash保存
+- 失効済みRefresh Token再利用検知
+- HttpOnly CookieによるRefresh Token管理
+
+## Authorization
+
+- RBAC(Role Based Access Control)
+- User Roleによる権限制御
+- Project Roleによるプロジェクト単位の権限制御
+
+Project Role:
+
+| Role    | Permission                    |
+| ------- | ----------------------------- |
+| OWNER   | プロジェクト作成者。全権限    |
+| MANAGER | メンバー管理・Issue管理が可能 |
+| MEMBER  | Issue作成・更新・コメント可能 |
+| VIEWER  | 閲覧のみ                      |
+
+## Project Management
+
+- Project CRUD
+- Project Member管理
+- Member Role変更
+- Project単位アクセス制御
+
+## Issue Management
+
+- Issue CRUD
+- Issue Status管理
+- Status Transition制御
+- Priority管理
+- Assignee管理
+
+## Comment Management
+
+- Comment CRUD
+
+## Audit / History
+
+- User、Project、Issue、Comment変更履歴管理
+- 更新前後データ保存
+- 表示用データへのMapper変換
+
+## Data Management
+
+- Pagination
+- Soft Delete
+- Restore
+- Include Query
+- Validation
+
+# 3. Tech Stack
+
+## Backend
+
+| Technology | Purpose                 |
+| ---------- | ----------------------- |
+| TypeScript | Type Safety             |
+| Node.js    | Runtime                 |
+| Express    | REST API Framework      |
+| Prisma     | ORM                     |
+| PostgreSQL | Database                |
+| Zod        | Validation              |
+| JWT        | Authentication          |
+| Docker     | Development Environment |
+
+## Frontend
+
+| Technology | Purpose     |
+| ---------- | ----------- |
+| React      | UI          |
+| TypeScript | Type Safety |
+
+## Development Tools
+
+| Tool           | Purpose           |
+| -------------- | ----------------- |
+| Postman        | API Testing       |
+| Docker Compose | Local Environment |
+| Git            | Version Control   |
+
+# 4. Architecture
+
+## System Architecture
+
+```mermaid
+flowchart LR
+
+Client[React Client]
+
+API[Express API]
+
+Service[Service Layer]
+
+Prisma[Prisma ORM]
+
+DB[(PostgreSQL)]
+
+Client --> API
+API --> Service
+Service --> Prisma
+Prisma --> DB
+```
+
+## Backend Layer
+
+```mermaid
+flowchart TD
+
+Controller
+--> Service
+--> Repository
+--> Prisma
+--> Database
+```
+
+責務分離:
+
+- Controller
+  - HTTP Request / Response管理
+
+- Service
+  - Business Logic
+
+- Repository
+  - Database Access
+
+- Mapper
+  - EntityからDTOへの変換
+
+# 5. Backend Design
+
+# 6. Authentication / Authorization
+
+## JWT Authentication
+
+Access TokenとRefresh Tokenを分離しています。
+
+### Access Token
+
+- API Authorization Headerで送信
+- 短期間有効
+- Client Memoryで保持
+
+### Refresh Token
+
+- HttpOnly Cookie保存
+- DBにはHash化して保存
+- Token Rotation採用
+
+## Refresh Token Rotation
+
+Refresh Token更新時:
+
+1. 既存Tokenを失効
+2. 新しいRefresh Token発行
+3. Token Chainを保存
+4. 不正な再利用を検知した場合はToken revoke
+
+## Authorization
+
+RBACを採用しています。
+
+User Role:
+
+- ADMIN
+- USER
+
+Project Role:
+
+- OWNER
+- MANAGER
+- MEMBER
+- VIEWER
+
+ユーザー権限だけではなく、プロジェクト単位でアクセス制御を行っています。
+
+# 7. Database Design
+
+Database:
+
+- PostgreSQL
+
+ORM:
+
+- Prisma
+
+主要Entity:
+
+- User
+- UserRole
+- Project
+- ProjectMember
+- Issue
+- Comment
+- IssueHistory
+- CommentHistory
+- RefreshToken
+
+設計方針:
+
+- Role管理をMaster Table化
+- Project Memberによるアクセス制御
+- History Tableによる監査情報保持
+- Refresh TokenをDB管理
+- Soft Deleteによるデータ保持
+
+# 8. API Design
+
+REST APIとして設計しています。
+
+Base URL:
+
+```
+/api/v1
+```
+
+主なAPI:
+
+| Resource  | Description              |
+| --------- | ------------------------ |
+| Auth      | Login / Refresh / Logout |
+| Users     | User Management          |
+| Projects  | Project Management       |
+| Issues    | Issue Management         |
+| Comments  | Comment Management       |
+| Histories | Audit History            |
+
+設計方針:
+
+- DTOによるResponse Contract管理
+- MapperによるResponse整形
+- ZodによるRequest Validation
+- 共通Error Response
+- Pagination対応
+
+# 9. Testing
+
+API Testing:
+
+Tool:
+Postman
+
+Test Coverage:
+
+Issue Tracker Collection
+│
+├ 00 Setup
+│ ├ Reset DB
+│ └ Get Access Token
+│
+├ 01 Auth
+│ ├ Login
+│ ├ Refresh
+│ ├ Me
+│ └ Logout
+│
+├ 02 Projects
+│ ├ Create
+│ ├ List
+│ ├ Detail
+│ └ Detail (includeDeleted)
+│
+├ 03 Issues
+│ ├ Create
+│ ├ Update Success
+│ ├ Update Invalid Transition
+│ ├ Delete
+│ ├ Restore
+│ ├ Detail
+│ ├ Detail (include)
+│ ├ Prepare Closed Issue
+│ │ ├ Move To REVIEW
+│ │ ├ Move To DONE
+│ │ └ Move To CLOSED
+│ └ Update Closed Issue
+│
+└ 04 Histories
+└ Issue History
+
+### テスト実行前
+
+アプリケーション側でDBを初期化します。
+
+```bash
+npm run db:refresh
+```
+
+テストでは正常系だけではなく、
+
+権限エラー
+不正状態遷移
+論理削除状態
+Token更新
+
+など業務システムで発生するケースを確認しています。
+
+# 10. Environment Setup
+
+# 11. Future Improvements
+
+# Future Improvements
+
+## Phase2
+
+- API Request Log
+- Admin Dashboard
+- Operation Monitoring
+
+## Additional
+
+- Automated Test
+- CI/CD Pipeline
+- Notification Feature
+- Real-time Update(WebSocket)
+
+# 12. Author

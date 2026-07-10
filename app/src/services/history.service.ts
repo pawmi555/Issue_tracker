@@ -1,4 +1,5 @@
 import { buildPagination } from "../utils/pagination.js";
+import { buildPaginationMeta } from "../utils/pagination-meta.js";
 
 import {
   assertProjectHistoryReadable,
@@ -23,7 +24,7 @@ import {
   mapProjectHistory,
   mapIssueHistory,
   mapCommentHistory,
-} from "../mappers/history.mapper.js";
+} from "../mappers/history/history.mapper.js";
 
 type GetUserHistoriesInput = {
   targetUserId: number;
@@ -81,11 +82,10 @@ export const getUserHistoriesService = async ({
   return {
     data: histories.map((v) => mapUserHistory(v)),
 
-    meta: {
-      page: pagination.page,
-      limit: pagination.limit,
+    meta: buildPaginationMeta({
+      ...pagination,
       total,
-    },
+    }),
   };
 };
 
@@ -117,11 +117,10 @@ export const getProjectHistoriesService = async ({
   return {
     data: histories.map((v) => mapProjectHistory(v)),
 
-    meta: {
-      page: pagination.page,
-      limit: pagination.limit,
+    meta: buildPaginationMeta({
+      ...pagination,
       total,
-    },
+    }),
   };
 };
 
@@ -155,11 +154,10 @@ export const getIssueHistoriesService = async ({
   return {
     data: histories.map((v) => mapIssueHistory(v, masters)),
 
-    meta: {
-      page: pagination.page,
-      limit: pagination.limit,
+    meta: buildPaginationMeta({
+      ...pagination,
       total,
-    },
+    }),
   };
 };
 
@@ -191,10 +189,9 @@ export const getCommentHistoriesService = async ({
   return {
     data: histories.map((v) => mapCommentHistory(v)),
 
-    meta: {
-      page: pagination.page,
-      limit: pagination.limit,
+    meta: buildPaginationMeta({
+      ...pagination,
       total,
-    },
+    }),
   };
 };
