@@ -21,7 +21,7 @@ projects {
   int id PK
   int ownerId FK
   string name
-  string description
+  string description "nullable"
   datetime createdAt
   datetime updatedAt
   datetime deletedAt
@@ -46,7 +46,7 @@ issues {
   int id PK
   int projectId FK
   int reporterId FK
-  int assigneeId FK
+  int assigneeId FK "nullable"
   int statusId FK
   int priorityId FK
   string title
