@@ -21,7 +21,7 @@ projects {
   int id PK
   int ownerId FK
   string name
-  string description
+  string description "nullable"
   datetime createdAt
   datetime updatedAt
   datetime deletedAt
@@ -46,7 +46,7 @@ issues {
   int id PK
   int projectId FK
   int reporterId FK
-  int assigneeId FK
+  int assigneeId FK "nullable"
   int statusId FK
   int priorityId FK
   string title
@@ -81,10 +81,29 @@ comments {
   datetime deletedAt
 }
 
+history_actions {
+  int id PK
+  string name
+  string label
+  int sortOrder
+}
+
+user_histories {
+  int id PK
+  int userId FK
+  int operatedBy FK
+  int actionId FK
+  string fieldName
+  json oldValue
+  json newValue
+  datetime createdAt
+}
+
 project_histories{
   int id PK
   int projectId FK
   int userId FK
+  int actionId FK
   string fieldName
   json oldValue
   json newValue
@@ -95,6 +114,7 @@ issue_histories {
   int id PK
   int issueId FK
   int userId FK
+  int actionId FK
   string fieldName
   json oldValue
   json newValue
@@ -105,6 +125,7 @@ comment_histories{
   int id PK
   int commentId FK
   int userId FK
+  int actionId FK
   string fieldName
   json oldValue
   json newValue
@@ -113,16 +134,18 @@ comment_histories{
 
 refresh_tokens {
   int id PK
+  string jti
   int userId FK
   string tokenHash
   datetime expiresAt
-  string replacedByToken
+  string replacedByTokenId
   datetime revokedAt
   datetime createdAt
 }
 
 api_logs {
   int id PK
+  string requestId
   int userId FK
   string method
   string path
@@ -148,14 +171,21 @@ issue_priorities ||--o{ issues : defines
 issues ||--o{ comments : has
 users ||--o{ comments : writes
 
+users ||--o{ user_histories : target
+users ||--o{ user_histories : operates
+history_actions ||--o{ user_histories : defines
+
 projects ||--o{ project_histories : has
 users ||--o{ project_histories : has
+history_actions ||--o{ project_histories : defines
 
 issues ||--o{ issue_histories : has
 users ||--o{ issue_histories : has
+history_actions ||--o{ issue_histories : defines
 
 comments ||--o{ comment_histories : has
 users ||--o{ comment_histories : has
+history_actions ||--o{ comment_histories : defines
 
 users ||--o{ refresh_tokens : has
 
