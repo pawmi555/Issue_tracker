@@ -484,7 +484,7 @@ IssueSummaryDtoを拡張したDTO。
 
 内部で使用する `HistoryField` は公開せず、APIではクライアント向けのフィールド名へ変換して返却する。
 | Value |Type |
-| ----------- |
+| ------|----- |
 | name | string |
 | email | string |
 | role | string |
@@ -723,12 +723,12 @@ RESOURCE_REASON
 
 #### Include Resource
 
-| Include Resource | Response                                         |
-| ---------------- | ------------------------------------------------ |
-| assignee         | object (id, name)                                |
-| reporter         | object (id, name)                                |
-| comments         | object (id, content)                             |
-| project          | object (id, content, user, createdAt, updatedAt) |
+| Include Resource | Response                                           |
+| ---------------- | -------------------------------------------------- |
+| project          | object (id, name)                                  |
+| assignee         | object (id, name)                                  |
+| reporter         | object (id, name)                                  |
+| comments         | object[] (id, content, user, createdAt, updatedAt) |
 
 #### Example Response
 
@@ -737,15 +737,18 @@ RESOURCE_REASON
   "success": true,
   "data": {
     "id": 1,
-    "title": "ログインできない",
-    "description": "500 error",
+    "title": "Login Bug",
+    "description": "Cannot login with test account",
+    "dueDate": null,
+    "createdAt": "2026-07-10T11:15:14.661Z",
+    "updatedAt": "2026-07-10T11:15:14.661Z",
     "status": {
       "id": 1,
       "name": "OPEN",
       "label": "未着手"
     },
     "priority": {
-      "id": 2,
+      "id": 3,
       "name": "HIGH",
       "label": "高"
     },
@@ -754,23 +757,23 @@ RESOURCE_REASON
       "name": "Issue Tracker"
     },
     "assignee": {
-      "id": 1,
-      "name": "Tanaka"
+      "id": 2,
+      "name": "Test User"
     },
     "reporter": {
-      "id": 2,
-      "name": "Suzuki"
+      "id": 1,
+      "name": "Admin User"
     },
     "comments": [
       {
         "id": 1,
         "content": "調査します",
         "user": {
-          "id": 2,
-          "name": "Suzuki"
+          "id": 1,
+          "name": "Admin User"
         },
-        "createdAt": "2026-05-01T10:00:00Z",
-        "updatedAt": "2026-05-01T10:00:00Z"
+        "createdAt": "2026-07-10T11:16:54.103Z",
+        "updatedAt": "2026-07-10T11:16:54.103Z"
       }
     ]
   }
@@ -1244,7 +1247,7 @@ if (issue.project.deletedAt !== null) {
 
 #### Response DTO
 
-RegisterResponseDto
+data : RegisterResponseDto
 
 #### Example Response
 
@@ -1285,7 +1288,7 @@ RegisterResponseDto
 
 #### Response DTO
 
-LoginResponseDto
+data : LoginResponseDto
 
 #### Example Response
 
@@ -1340,7 +1343,7 @@ refresh_token=xxx
 
 #### Response DTO
 
-RefreshTokenDto
+data : RefreshTokenDto
 
 #### Example Response
 
@@ -1474,7 +1477,7 @@ meta : PaginationMetaDto
 
 #### Response DTO
 
-UserDto
+data : UserDto
 
 #### Example Response
 
@@ -1530,7 +1533,7 @@ UserDto
 
 #### Response DTO
 
-UserDto
+data : UserDto
 
 #### Example Response
 
@@ -1594,7 +1597,7 @@ UserDto
 
 #### Response DTO
 
-ProjectDto
+data : ProjectDto
 
 #### Example Response
 
@@ -1709,7 +1712,7 @@ meta : PaginationMetaDto
 
 #### Response DTO
 
-ProjectDto
+data : ProjectDto
 
 #### Example Response
 
@@ -1784,7 +1787,7 @@ ProjectDto
 
 #### Response DTO
 
-ProjectDto
+data : ProjectDto
 
 #### Example Response
 
@@ -1869,7 +1872,7 @@ ProjectDto
 
 ### Response DTO
 
-ProjectMemberDto
+data : ProjectMemberDto
 
 #### Example Response
 
@@ -1904,7 +1907,7 @@ ProjectMemberDto
 
 ### Response DTO
 
-ProjectMemberDto[]
+data : ProjectMemberDto[]
 
 #### Example Response
 
@@ -1953,7 +1956,7 @@ ProjectMemberDto[]
 
 ### Response DTO
 
-ProjectMemberDto
+data : ProjectMemberDto
 
 #### Example Response
 
@@ -2029,7 +2032,7 @@ ProjectMemberDto
 
 #### Response DTO
 
-IssueDto
+data : IssueDto
 
 #### Example Response
 
@@ -2118,7 +2121,7 @@ meta : PaginationMetaDto
 
 #### Response DTO
 
-IssueDto
+data : IssueDto
 
 #### Example Response
 
@@ -2190,7 +2193,7 @@ IssueDto
 
 #### Response DTO
 
-IssueDto
+data : IssueDto
 
 #### Example Response
 
@@ -2277,7 +2280,7 @@ IssueDto
 
 #### Response DTO
 
-CommentDto
+data : CommentDto
 
 #### Example Response
 
@@ -2361,7 +2364,7 @@ meta : PaginationMetaDto
 
 #### Response DTO
 
-CommentDto
+data : CommentDto
 
 #### Example Response
 
