@@ -6,7 +6,7 @@ import type {
   IssueHistoryRecord,
   CommentHistoryRecord,
   MasterMap,
-} from "../mappers/history.mapper.js";
+} from "../mappers/history/history.mapper.js";
 
 type MasterRecord = {
   id: number;

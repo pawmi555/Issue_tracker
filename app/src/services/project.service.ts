@@ -7,7 +7,17 @@ import { type ProjectRoleName } from "../constants/project.constants.js";
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
 import { buildProjectHistories } from "../utils/history.utils.js";
+import { mapProject } from "../mappers/project/project.mapper.js";
+import { mapProjectSummary } from "../mappers/project/project-summary.mapper.js";
+import {
+  projectDtoSelect,
+  projectSummarySelect,
+  projectHistorySelect,
+} from "../selects/project.select.js";
+import { mapProjectMember } from "../mappers/project/project-member-mapper.js";
 import { hasProjectRole, isProjectRoleName } from "../utils/role-check.js";
+
+import { buildPaginationMeta } from "../utils/pagination-meta.js";
 
 export type GetProjectsInput = {
   userId: number;
@@ -64,44 +74,10 @@ export const createProjectService = async (
           },
         },
 
-        include: {
-          owner: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-
-          members: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-
-              role: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-
-          _count: {
-            select: {
-              members: true,
-              issues: true,
-            },
-          },
-        },
+        select: projectDtoSelect,
       });
 
-      return project;
+      return mapProject(project);
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -126,7 +102,7 @@ export const getProjectsService = async ({
   query,
 }: GetProjectsInput) => {
   // ページネーション設定
-  const pagination = buildPagination({
+  const { skip, take, page, limit } = buildPagination({
     page: query.page,
     limit: query.limit,
   });
@@ -149,29 +125,14 @@ export const getProjectsService = async ({
     prisma.project.findMany({
       where,
 
-      skip: pagination.skip,
-      take: pagination.take,
+      skip,
+      take,
 
       orderBy: {
         createdAt: "desc",
       },
 
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-
-        _count: {
-          select: {
-            members: true,
-            issues: true,
-          },
-        },
-      },
+      select: projectSummarySelect,
     }),
 
     // プロジェクトカウント
@@ -181,13 +142,17 @@ export const getProjectsService = async ({
   ]);
 
   return {
-    data: projects,
+    data: projects.map((project) =>
+      mapProjectSummary(project, {
+        includeDeleted: query.includeDeleted,
+      }),
+    ),
 
-    meta: {
-      page: pagination.page,
-      limit: pagination.limit,
+    meta: buildPaginationMeta({
+      page,
+      limit,
       total,
-    },
+    }),
   };
 };
 
@@ -216,40 +181,16 @@ export const getProjectDatailService = async (
       },
     },
 
-    include: {
-      owner: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-
-      members: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-
-          role: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      },
-    },
+    select: projectDtoSelect,
   });
 
   if (!project) {
     throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
   }
 
-  return project;
+  return mapProject(project, {
+    includeDeleted,
+  });
 };
 
 /**
@@ -260,14 +201,6 @@ export const updateProjectService = async ({
   userId,
   data,
 }: UpdateProjectsInput) => {
-  // レスポンス定義
-  const projectResponseSelect = {
-    id: true,
-    name: true,
-    description: true,
-    updatedAt: true,
-  } satisfies Prisma.ProjectSelect;
-
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const HISTORY_ACTION_UPDATE = 1;
     // Project存在確認
@@ -276,7 +209,7 @@ export const updateProjectService = async ({
         id: projectId,
         deletedAt: null,
       },
-      select: projectResponseSelect,
+      select: projectHistorySelect,
     });
 
     if (!project) {
@@ -331,20 +264,32 @@ export const updateProjectService = async ({
 
     // 差分なし
     if (histories.length === 0) {
-      return project;
+      const currentProject = await tx.project.findUnique({
+        where: {
+          id: projectId,
+        },
+
+        select: projectDtoSelect,
+      });
+
+      if (!currentProject) {
+        throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
+      }
+
+      return mapProject(currentProject);
     }
 
     const updatedProject = await tx.project.update({
       where: { id: projectId },
       data,
-      select: projectResponseSelect,
+      select: projectDtoSelect,
     });
 
     await tx.projectHistory.createMany({
       data: histories,
     });
 
-    return updatedProject;
+    return mapProject(updatedProject);
   });
 };
 
@@ -387,7 +332,7 @@ export const addMemberService = async (
     if (!project) {
       throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
     }
-    return await prisma.projectMember.create({
+    const member = await prisma.projectMember.create({
       data: {
         project: {
           connect: {
@@ -415,8 +360,17 @@ export const addMemberService = async (
             email: true,
           },
         },
+        role: {
+          select: {
+            id: true,
+            name: true,
+            label: true,
+          },
+        },
       },
     });
+
+    return mapProjectMember(member);
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -433,7 +387,7 @@ export const addMemberService = async (
  * メンバー一覧取得
  */
 export const getMemberService = async (projectId: number) => {
-  return prisma.projectMember.findMany({
+  const members = await prisma.projectMember.findMany({
     where: {
       projectId,
     },
@@ -447,7 +401,9 @@ export const getMemberService = async (projectId: number) => {
       },
       role: {
         select: {
+          id: true,
           name: true,
+          label: true,
         },
       },
     },
@@ -455,6 +411,7 @@ export const getMemberService = async (projectId: number) => {
       createdAt: "asc",
     },
   });
+  return members.map(mapProjectMember);
 };
 
 /**
@@ -508,7 +465,7 @@ export const changeMemberRoleService = async (
     }
   }
 
-  return prisma.projectMember.update({
+  const updatedMember = await prisma.projectMember.update({
     where: {
       projectId_userId: {
         projectId,
@@ -534,6 +491,8 @@ export const changeMemberRoleService = async (
       },
     },
   });
+
+  return mapProjectMember(updatedMember);
 };
 
 /**

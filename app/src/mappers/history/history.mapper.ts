@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { HistoryField } from "@prisma/client";
+import { HistoryFieldDto } from "../../dto/history/history-field.dto.js";
+import { HistoryDto } from "../../dto/history/history.dto.js";
 
 export type MasterMap = {
   status: Record<number, string>;
@@ -39,7 +41,7 @@ export type HistoryRecord =
   | IssueHistoryRecord
   | CommentHistoryRecord;
 
-const FIELD_MAP: Record<HistoryField, string> = {
+const FIELD_MAP: Record<HistoryField, HistoryFieldDto> = {
   USER_NAME: "name",
   USER_EMAIL: "email",
   USER_ROLE: "role",
@@ -53,9 +55,10 @@ const FIELD_MAP: Record<HistoryField, string> = {
   ISSUE_PRIORITY_ID: "priority",
   ISSUE_ASSIGNEE_ID: "assignee",
   ISSUE_DUE_DATE: "dueDate",
+  ISSUE_DELETED_AT: "deletedAt",
 
   COMMENT_CONTENT: "content",
-} satisfies Record<HistoryField, string>;
+};
 
 /**
  * 内部フィールド名を公開用フィールド名へ変換する
@@ -100,7 +103,10 @@ const mapValue = (
  *
  * 内部フィールド名および内部値をAPI公開用形式へ変換して返却する。
  */
-const mapHistory = (history: HistoryRecord, masters?: MasterMap) => ({
+const mapHistory = (
+  history: HistoryRecord,
+  masters?: MasterMap,
+): HistoryDto => ({
   action: history.action.name,
 
   field: mapField(history.fieldName),

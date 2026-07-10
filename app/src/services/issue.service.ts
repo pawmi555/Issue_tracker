@@ -4,9 +4,17 @@ import { prisma } from "../lib/prisma.js";
 
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
+import { buildPaginationMeta } from "../utils/pagination-meta.js";
 import { buildIssueHistories } from "../utils/history.utils.js";
-import { toIssueDto } from "../mappers/issue.mapper.js";
-import { buildIssueInclude } from "./builders/build-issue-include.js";
+import { mapIssue } from "../mappers/issue/issue.mapper.js";
+import { mapIssueSummary } from "../mappers/issue/issue-summary.mapper.js";
+import { mapIssueSummaryWithRelation } from "../mappers/issue/issue-summary-with-relation.mapper.js";
+import {
+  issueDtoSelect,
+  issueSummarySelect,
+  issueHistorySelect,
+  buildIssueRelationSelect,
+} from "../selects/issue.select.js";
 
 import {
   CreateIssueInput,
@@ -17,10 +25,11 @@ import {
   RestoreIssueInput,
 } from "../types/issue.types.js";
 
+import { IssueMapperInput } from "../mappers/issue/issue-mapper.type.js";
+
 import { buildIssueWhere } from "./builders/build-issue-where.js";
 import { buildIssueDetailWhere } from "./builders/build-issue-detail-where.js";
 import { isProjectRoleName, assertProjectRole } from "../utils/role-check.js";
-import { ISSUE_RESPONSE_SELECT } from "../constants/issue.constants.js";
 
 import {
   validateIssueTransition,
@@ -104,15 +113,10 @@ export const createIssueService = async ({
         dueDate: data.dueDate,
       },
 
-      include: {
-        assignee: true,
-        reporter: true,
-        priority: true,
-        status: true,
-      },
+      select: issueDtoSelect,
     });
 
-    return toIssueDto(issue);
+    return mapIssue(issue);
   });
 };
 
@@ -180,17 +184,23 @@ export const getIssuesService = async ({
     [query.sort ?? "createdAt"]: query.order ?? "desc",
   };
 
-  const prismaInclude = query.include
-    ? buildIssueInclude(query.include, false)
-    : undefined;
+  const relationSelect = query.include
+    ? buildIssueRelationSelect(query.include, false)
+    : null;
+
+  const hasRelation = relationSelect && Object.keys(relationSelect).length > 0;
 
   const [issues, total] = await prisma.$transaction([
     prisma.issue.findMany({
       where,
-      include: prismaInclude,
       orderBy,
       skip,
       take,
+
+      select: {
+        ...issueSummarySelect,
+        ...(relationSelect ?? {}),
+      },
     }),
 
     prisma.issue.count({
@@ -199,12 +209,22 @@ export const getIssuesService = async ({
   ]);
 
   return {
-    data: issues.map(toIssueDto),
-    meta: {
+    data: hasRelation
+      ? issues.map((issue) =>
+          mapIssueSummaryWithRelation(issue, {
+            includeDeleted,
+          }),
+        )
+      : issues.map((issue) =>
+          mapIssueSummary(issue, {
+            includeDeleted,
+          }),
+        ),
+    meta: buildPaginationMeta({
       page,
       limit,
       total,
-    },
+    }),
   };
 };
 
@@ -252,21 +272,7 @@ export const updateIssueService = async ({
         deletedAt: null,
       },
 
-      select: {
-        id: true,
-        projectId: true,
-        assigneeId: true,
-
-        title: true,
-        description: true,
-        dueDate: true,
-
-        statusId: true,
-        priorityId: true,
-
-        project: true,
-        status: true,
-      },
+      select: issueHistorySelect,
     });
 
     if (!issue) {
@@ -369,10 +375,10 @@ export const updateIssueService = async ({
         where: {
           id: issueId,
         },
-        select: ISSUE_RESPONSE_SELECT,
+        select: issueDtoSelect,
       });
 
-      return toIssueDto(current);
+      return mapIssue(current);
     }
 
     const updatedIssue = await tx.issue.update({
@@ -380,14 +386,14 @@ export const updateIssueService = async ({
         id: issueId,
       },
       data,
-      select: ISSUE_RESPONSE_SELECT,
+      select: issueDtoSelect,
     });
 
     await tx.issueHistory.createMany({
       data: histories,
     });
 
-    return toIssueDto(updatedIssue);
+    return mapIssue(updatedIssue);
   });
 };
 
@@ -408,25 +414,21 @@ export const getIssueDetailService = async ({
 
   // Include検証・生成
   const prismaInclude = query.include
-    ? buildIssueInclude(query.include, true)
+    ? buildIssueRelationSelect(query.include, true)
     : undefined;
 
   // Issue詳細取得
   const issue = await prisma.issue.findFirst({
     where,
-    include: {
-      ...prismaInclude,
-
-      project: {
-        select: {
-          id: true,
-          deletedAt: true,
-        },
-      },
-
-      status: true,
-      priority: true,
+    select: {
+      ...issueDtoSelect,
+      projectId: true,
+      ...(prismaInclude ?? {}),
     },
+  });
+
+  console.dir(issue, {
+    depth: null,
   });
 
   if (!issue) {
@@ -434,7 +436,16 @@ export const getIssueDetailService = async ({
   }
 
   // 削除済みProjectは参照不可
-  if (issue.project.deletedAt) {
+  const project = await prisma.project.findUnique({
+    where: {
+      id: issue.projectId,
+    },
+    select: {
+      deletedAt: true,
+    },
+  });
+
+  if (!project || project.deletedAt) {
     throw new AppError("project not found", 404, "PROJECT_NOT_FOUND");
   }
 
@@ -466,8 +477,10 @@ export const getIssueDetailService = async ({
     memberRole: roleName,
     minimumRole: includeDeleted ? "MANAGER" : "MEMBER",
   });
-
-  return toIssueDto(issue);
+  //Prismaは動的selectの戻り値を正確に推論できないためキャストする
+  return mapIssue(issue as unknown as IssueMapperInput, {
+    includeDeleted,
+  });
 };
 
 /**

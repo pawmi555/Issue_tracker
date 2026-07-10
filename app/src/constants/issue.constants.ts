@@ -21,8 +21,6 @@ export const ISSUE_INCLUDE_FIELDS = [
   "reporter",
   "comments",
   "project",
-  "status",
-  "priority",
 ] as const;
 
 /**
@@ -51,6 +49,14 @@ export const ISSUE_INCLUDE_MAP = {
     select: {
       id: true,
       content: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      createdAt: true,
+      updatedAt: true,
     },
   },
 
@@ -60,57 +66,9 @@ export const ISSUE_INCLUDE_MAP = {
       name: true,
     },
   },
-
-  status: {
-    select: {
-      id: true,
-      name: true,
-      label: true,
-    },
-  },
-
-  priority: {
-    select: {
-      id: true,
-      name: true,
-      label: true,
-    },
-  },
 } satisfies Record<
   IssueIncludeField,
   Prisma.IssueInclude[keyof Prisma.IssueInclude]
 >;
-
-export const ISSUE_RESPONSE_SELECT = {
-  id: true,
-  title: true,
-  description: true,
-  dueDate: true,
-  createdAt: true,
-  updatedAt: true,
-
-  status: {
-    select: {
-      id: true,
-      name: true,
-      label: true,
-    },
-  },
-
-  priority: {
-    select: {
-      id: true,
-      name: true,
-      label: true,
-    },
-  },
-
-  assignee: {
-    select: {
-      id: true,
-      name: true,
-    },
-  },
-} satisfies Prisma.IssueSelect;
 
 export type IssueSortField = (typeof ISSUE_SORT_FIELDS)[number];

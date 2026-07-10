@@ -49,4 +49,34 @@ export const seedProjects = async () => {
       },
     },
   });
+
+  await prisma.project.upsert({
+    where: {
+      ownerId_name: {
+        ownerId: adminUser.id,
+        name: "Issue Tracker Deleted",
+      },
+    },
+    update: {},
+    create: {
+      ownerId: adminUser.id,
+      name: "Issue Tracker Deleted",
+      description: "Deleted project",
+      deletedAt: new Date(),
+      members: {
+        create: {
+          user: {
+            connect: {
+              id: adminUser.id,
+            },
+          },
+          role: {
+            connect: {
+              name: "OWNER",
+            },
+          },
+        },
+      },
+    },
+  });
 };

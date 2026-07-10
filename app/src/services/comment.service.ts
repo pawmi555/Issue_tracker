@@ -4,8 +4,14 @@ import { Prisma } from "@prisma/client";
 
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
+import { buildPaginationMeta } from "../utils/pagination-meta.js";
 import { buildCommentHistories } from "../utils/history.utils.js";
 import { isProjectRoleName, assertProjectRole } from "../utils/role-check.js";
+import { mapComment } from "../mappers/comment/comment.mapper.js";
+import {
+  commentDtoSelect,
+  commentHistorySelect,
+} from "../selects/comment.select.js";
 
 export type CreateCommentInput = {
   issueId: number;
@@ -82,17 +88,10 @@ export const createCommentsService = async ({
       content,
     },
 
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
+    select: commentDtoSelect,
   });
 
-  return comment;
+  return mapComment(comment);
 };
 
 /**
@@ -157,7 +156,7 @@ export const getCommentsService = async ({
   });
 
   // ページネーション設定
-  const pagination = buildPagination({
+  const { page, limit, skip, take } = buildPagination({
     page: query.page,
     limit: query.limit,
   });
@@ -174,21 +173,14 @@ export const getCommentsService = async ({
     // コメント取得
     prisma.comment.findMany({
       where,
-      skip: pagination.skip,
-      take: pagination.take,
+      skip,
+      take,
 
       orderBy: {
         createdAt: "asc",
       },
 
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      select: commentDtoSelect,
     }),
 
     // コメントカウント
@@ -198,12 +190,16 @@ export const getCommentsService = async ({
   ]);
 
   return {
-    data: comments,
-    meta: {
-      page: pagination.page,
-      limit: pagination.limit,
+    data: comments.map((comment) =>
+      mapComment(comment, {
+        includeDeleted,
+      }),
+    ),
+    meta: buildPaginationMeta({
+      page,
+      limit,
       total,
-    },
+    }),
   };
 };
 
@@ -215,18 +211,6 @@ export const updateCommentService = async ({
   userId,
   data,
 }: UpdateCommentInput) => {
-  // レスポンス定義
-  const commentResponseSelect = {
-    userId: true,
-    content: true,
-    updatedAt: true,
-    issue: {
-      select: {
-        projectId: true,
-      },
-    },
-  } satisfies Prisma.CommentSelect;
-
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const HISTORY_ACTION_UPDATE = 1;
 
@@ -236,7 +220,7 @@ export const updateCommentService = async ({
         id: commentId,
         deletedAt: null,
       },
-      select: commentResponseSelect,
+      select: commentHistorySelect,
     });
 
     if (!comment) {
@@ -298,14 +282,14 @@ export const updateCommentService = async ({
         id: commentId,
       },
       data,
-      select: commentResponseSelect,
+      select: commentDtoSelect,
     });
 
     await tx.commentHistory.createMany({
       data: histories,
     });
 
-    return updatedComment;
+    return mapComment(updatedComment);
   });
 };
 

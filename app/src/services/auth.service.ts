@@ -3,11 +3,17 @@ import jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
 
 import { Prisma } from "@prisma/client";
-import type { User } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
 
 import { AppError } from "../utils/app-error.js";
+
+import { mapUser } from "../mappers/user/user.mapper.js";
+import {
+  mapRegisterResponse,
+  mapLoginResponse,
+  mapRefreshToken,
+} from "../mappers/auth/auth.mapper.js";
 
 const ACCESS_EXPIRES = "1h";
 const REFRESH_EXPIRES = "7d";
@@ -45,12 +51,6 @@ const hashString = async (token: string) => {
   return bcrypt.hash(token, 10);
 };
 
-const safeUser = (user: User) => ({
-  id: user.id,
-  name: user.name,
-  email: user.email,
-});
-
 type JwtPayload = {
   userId: number;
   jti: string;
@@ -82,16 +82,24 @@ export const registerService = async (
 
   const user = await prisma.user.create({
     data: { name, email, passwordHash, roleId: userRole.id },
+    include: {
+      role: true,
+    },
   });
 
-  return safeUser(user);
+  return mapRegisterResponse(user);
 };
 
 /**
  * ログイン
  */
 export const loginService = async (email: string, password: string) => {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: {
+      role: true,
+    },
+  });
 
   if (!user)
     throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
@@ -112,8 +120,7 @@ export const loginService = async (email: string, password: string) => {
       expiresAt: createExpiresAt(),
     },
   });
-
-  return { user: safeUser(user), accessToken, refreshToken: token };
+  return { dto: mapLoginResponse(user, accessToken), refreshToken: token };
 };
 
 /**
@@ -185,7 +192,7 @@ export const refreshService = async (refreshToken: string) => {
   });
 
   return {
-    accessToken,
+    dto: mapRefreshToken(accessToken),
     refreshToken: next.token,
   };
 };
@@ -227,11 +234,14 @@ export const logoutService = async (refreshToken: string) => {
 export const meService = async (userId: number) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
+    include: {
+      role: true,
+    },
   });
 
   if (!user) {
     throw new AppError("User not found", 404, "USER_NOT_FOUND");
   }
 
-  return safeUser(user);
+  return mapUser(user);
 };
