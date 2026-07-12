@@ -1,5 +1,38 @@
-node_modules
-# Keep environment variables out of version control
-.env
+# ========================================
+# Environment variables
+# ========================================
+app/.env
+app/.env.*
+!app/.env.example
 
-/generated/prisma
+# ========================================
+# Dependencies
+# ========================================
+app/node_modules/
+
+# ========================================
+# Build outputs
+# ========================================
+app/dist/
+app/coverage/
+app/*.tsbuildinfo
+
+# ========================================
+# Logs
+# ========================================
+*.log
+app/npm-debug.log*
+
+# ========================================
+# Editor
+# ========================================
+.vscode/
+
+# JetBrains IDE
+.idea/
+
+# ========================================
+# OS files
+# ========================================
+.DS_Store
+Thumbs.db
