@@ -474,6 +474,7 @@ Database Designでは以下を重視しました。
 
 # 8. Directory Structure
 
+```text
 src
 ├── config
 ├── constants
@@ -503,6 +504,7 @@ src
 ├── types
 ├── utils
 └── validators
+```
 
 Layer責務:
 
