@@ -1,6 +1,6 @@
 import { Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma.js";
-import { ProjectRequest } from "../types/auth-request.js";
+import { AuthRequest, ProjectMemberPayload } from "../types/auth-request.js";
 
 const ROLE_HIERARCHY = {
   OWNER: 4,
@@ -29,7 +29,7 @@ type ProjectRoleName = keyof typeof ROLE_HIERARCHY;
  */
 export const projectRoleMiddleware =
   (requiredRole: ProjectRoleName) =>
-  async (req: ProjectRequest, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const authUser = req.user;
 
@@ -137,7 +137,7 @@ export const projectRoleMiddleware =
       }
 
       // 後続処理で利用できるようProjectMember情報を保持
-      req.projectMember = membership;
+      req.projectMember = membership as ProjectMemberPayload;
 
       next();
     } catch (error) {

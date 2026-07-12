@@ -1,7 +1,7 @@
 import { Response, NextFunction } from "express";
 import { hasProjectRole } from "../utils/role-check.js";
 import { ProjectRoleName } from "../constants/project.constants.js";
-import { ProjectRequest } from "../types/auth-request.js";
+import { AuthRequest } from "../types/auth-request.js";
 import { AppError } from "../utils/app-error.js";
 
 /**
@@ -20,7 +20,7 @@ import { AppError } from "../utils/app-error.js";
 
 export const requireRole =
   (minimumRole: ProjectRoleName) =>
-  (req: ProjectRequest, _res: Response, next: NextFunction) => {
+  (req: AuthRequest, _res: Response, next: NextFunction) => {
     const memberRole = req.projectMember?.role.name;
 
     if (

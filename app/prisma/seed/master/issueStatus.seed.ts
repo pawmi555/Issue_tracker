@@ -30,7 +30,7 @@ export const seedIssueStatuses = async () => {
   ];
 
   for (const status of statuses) {
-    await prisma.IssueStatus.upsert({
+    await prisma.issueStatus.upsert({
       where: {
         name: status.name,
       },

@@ -25,7 +25,7 @@ export const seedIssuePriorities = async () => {
   ];
 
   for (const priority of priorities) {
-    await prisma.IssuePriority.upsert({
+    await prisma.issuePriority.upsert({
       where: {
         name: priority.name,
       },

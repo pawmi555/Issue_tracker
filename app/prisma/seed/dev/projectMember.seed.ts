@@ -31,7 +31,7 @@ export const seedProjectMembers = async () => {
     },
   });
 
-  if (!user || !viewer || !project || !memberRole) {
+  if (!user || !viewer || !project || !memberRole || !viewerRole) {
     throw new Error("Required data not found.");
   }
   await prisma.projectMember.upsert({

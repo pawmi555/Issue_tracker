@@ -21,7 +21,7 @@ export const seedProjectRoles = async () => {
   ];
 
   for (const role of roles) {
-    await prisma.ProjectRole.upsert({
+    await prisma.projectRole.upsert({
       where: {
         name: role.name,
       },
