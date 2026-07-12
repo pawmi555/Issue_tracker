@@ -545,7 +545,7 @@ export const removeMemberService = async (
     }
   }
 
-  return prisma.projectMember.delete({
+  await prisma.projectMember.delete({
     where: {
       projectId_userId: {
         projectId,
@@ -553,4 +553,5 @@ export const removeMemberService = async (
       },
     },
   });
+  return;
 };
