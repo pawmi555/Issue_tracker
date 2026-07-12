@@ -10,4 +10,7 @@
       "path": "Documents",
     },
   ],
+  "settings": {
+    "js/ts.tsdk.path": "app\\node_modules\\typescript\\lib",
+  },
 }
