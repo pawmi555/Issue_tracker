@@ -681,9 +681,9 @@ docker compose -f docker/docker-compose.dev.yml up -d
 
 docker compose -f docker/docker-compose.dev.yml exec app npm install
 
-docker compose -f docker/docker-compose.dev.yml exec app npm run prisma:migrate
+docker compose -f docker/docker-compose.dev.yml exec app npm run migrate:dev
 
-docker compose -f docker/docker-compose.dev.yml exec app npm run prisma:seed
+docker compose -f docker/docker-compose.dev.yml exec app npm run db:seed
 
 docker compose -f docker/docker-compose.dev.yml exec app npm run dev
 ```
