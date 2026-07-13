@@ -657,6 +657,13 @@ Token更新
 - Docker
 - Docker Compose
 
+## Development Environment
+
+- TypeScript strict modeによる型安全性確保
+- ESLintによる静的解析
+- Prettierによるコードフォーマット統一
+- Docker Composeによる開発環境構築
+
 ## Setup
 
 ### 1. Clone repository
