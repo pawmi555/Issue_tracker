@@ -20,8 +20,8 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.0.0",
+    "@prisma/adapter-pg": "^7.4.2",
+    "@prisma/client": "^7.4.2",
     "bcrypt": "^6.0.0",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
@@ -45,10 +45,11 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/node": "^22.0.0",
-    "install": "^0.13.0",
-    "npm": "^11.17.0",
-    "prisma": "^7.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.9.5",
+    "prisma": "^7.4.2",
     "tsx": "^4.7.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.0.0"
   }
 }
