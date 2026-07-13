@@ -19,7 +19,13 @@ import { hasProjectRole, isProjectRoleName } from "../utils/role-check.js";
 
 import { buildPaginationMeta } from "../utils/pagination-meta.js";
 
-export type GetProjectsInput = {
+type CreateProjectsInput = {
+  name: string;
+  userId: number;
+  description?: string;
+};
+
+type GetProjectsInput = {
   userId: number;
 
   query: {
@@ -27,6 +33,12 @@ export type GetProjectsInput = {
     limit: number;
     includeDeleted: boolean;
   };
+};
+
+type GetProjectDetailInput = {
+  id: number;
+  userId: number;
+  includeDeleted: boolean;
 };
 
 type UpdateProjectsInput = {
@@ -38,17 +50,42 @@ type UpdateProjectsInput = {
   };
 };
 
+type DeleteProjectInput = {
+  id: number;
+};
+
+type AddMemberInput = {
+  projectId: number;
+  userId: number;
+  role: ProjectRoleName;
+};
+
+type GetMembersInput = {
+  projectId: number;
+};
+
+type ChangeMemberRoleInput = {
+  projectId: number;
+  userId: number;
+  role: ProjectRoleName;
+};
+
+type RemoveMemberInput = {
+  projectId: number;
+  userId: number;
+};
+
 /**
  * Project作成
  * - projects 作成
  * - project_members に OWNER 自動追加
  * - project_histories に作成履歴を記録
  */
-export const createProjectService = async (
-  name: string,
-  userId: number,
-  description?: string,
-) => {
+export const createProjectService = async ({
+  name,
+  userId,
+  description,
+}: CreateProjectsInput) => {
   try {
     return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const project = await tx.project.create({
@@ -159,11 +196,11 @@ export const getProjectsService = async ({
 /**
  * Project詳細取得
  */
-export const getProjectDatailService = async (
-  id: number,
-  userId: number,
+export const getProjectDatailService = async ({
+  id,
+  userId,
   includeDeleted = false,
-) => {
+}: GetProjectDetailInput) => {
   const project = await prisma.project.findFirst({
     where: {
       id,
@@ -296,7 +333,7 @@ export const updateProjectService = async ({
 /**
  * Project削除（論理削除）
  */
-export const deleteProjectService = async (id: number) => {
+export const deleteProjectService = async ({ id }: DeleteProjectInput) => {
   const result = await prisma.project.updateMany({
     where: {
       id,
@@ -316,11 +353,11 @@ export const deleteProjectService = async (id: number) => {
 /**
  * メンバー追加
  */
-export const addMemberService = async (
-  projectId: number,
-  userId: number,
-  role: ProjectRoleName,
-) => {
+export const addMemberService = async ({
+  projectId,
+  userId,
+  role,
+}: AddMemberInput) => {
   try {
     const project = await prisma.project.findFirst({
       where: {
@@ -386,7 +423,7 @@ export const addMemberService = async (
 /**
  * メンバー一覧取得
  */
-export const getMemberService = async (projectId: number) => {
+export const getMemberService = async ({ projectId }: GetMembersInput) => {
   const members = await prisma.projectMember.findMany({
     where: {
       projectId,
@@ -417,11 +454,11 @@ export const getMemberService = async (projectId: number) => {
 /**
  * 権限変更
  */
-export const changeMemberRoleService = async (
-  projectId: number,
-  userId: number,
-  role: ProjectRoleName,
-) => {
+export const changeMemberRoleService = async ({
+  projectId,
+  userId,
+  role,
+}: ChangeMemberRoleInput) => {
   const member = await prisma.projectMember.findUnique({
     where: {
       projectId_userId: {
@@ -498,10 +535,10 @@ export const changeMemberRoleService = async (
 /**
  * メンバー削除
  */
-export const removeMemberService = async (
-  projectId: number,
-  userId: number,
-) => {
+export const removeMemberService = async ({
+  projectId,
+  userId,
+}: RemoveMemberInput) => {
   const member = await prisma.projectMember.findUnique({
     where: {
       projectId_userId: {

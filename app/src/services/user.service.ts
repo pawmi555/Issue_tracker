@@ -20,6 +20,11 @@ type GetUsersQuery = {
   includeDeleted?: boolean;
 };
 
+type GetUserByIdInput = {
+  id: number;
+  includeDeleted?: boolean;
+};
+
 type UpdateUserInput = {
   id: number;
   operatedBy: number;
@@ -28,6 +33,10 @@ type UpdateUserInput = {
     email?: string;
     roleId?: number;
   };
+};
+
+type DeleteUserInput = {
+  id: number;
 };
 
 /**
@@ -78,10 +87,10 @@ export const getUsersService = async (query: GetUsersQuery) => {
 /**
  * ユーザー詳細取得
  */
-export const getUserByIdService = async (
-  id: number,
+export const getUserByIdService = async ({
+  id,
   includeDeleted = false,
-) => {
+}: GetUserByIdInput) => {
   const user = await prisma.user.findUnique({
     where: {
       id,
@@ -221,7 +230,7 @@ export const updateUserService = async ({
 /**
  * ユーザー削除
  */
-export const deleteUserService = async (id: number) => {
+export const deleteUserService = async ({ id }: DeleteUserInput) => {
   const result = await prisma.user.updateMany({
     where: {
       id,

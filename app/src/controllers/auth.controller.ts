@@ -26,7 +26,7 @@ export const register = async (
 ) => {
   const { name, email, password } = req.validatedBody!;
 
-  const result = await registerService(name, email, password);
+  const result = await registerService({ name, email, password });
 
   res.status(201).json({
     success: true,
@@ -40,7 +40,7 @@ export const login = async (
 ) => {
   const { email, password } = req.validatedBody!;
 
-  const result = await loginService(email, password);
+  const result = await loginService({ email, password });
 
   res.cookie("refresh_token", result.refreshToken, refreshCookie);
 
@@ -51,9 +51,9 @@ export const login = async (
 };
 
 export const refresh = async (req: Request, res: Response) => {
-  const token = req.cookies.refresh_token;
+  const refreshToken = req.cookies.refresh_token;
 
-  const result = await refreshService(token);
+  const result = await refreshService({ refreshToken });
 
   res.cookie("refresh_token", result.refreshToken, refreshCookie);
 
@@ -64,9 +64,9 @@ export const refresh = async (req: Request, res: Response) => {
 };
 
 export const logout = async (req: Request, res: Response) => {
-  const token = req.cookies.refresh_token;
+  const refreshToken = req.cookies.refresh_token;
 
-  await logoutService(token);
+  await logoutService({ refreshToken });
   res.clearCookie("refresh_token", {
     path: "/api/v1/auth",
   });
@@ -77,7 +77,7 @@ export const logout = async (req: Request, res: Response) => {
 export const me = async (req: AuthRequest, res: Response) => {
   const userId = req.user!.id;
 
-  const user = await meService(userId);
+  const user = await meService({ userId });
 
   res.status(200).json({
     success: true,

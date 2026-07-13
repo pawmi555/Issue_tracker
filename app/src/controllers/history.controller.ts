@@ -26,9 +26,12 @@ export const getUserHistories = async (
   >,
   res: Response,
 ) => {
+  const targetUserId = req.validatedParams!.id;
+  const query = req.validatedQuery!;
+
   const result = await getUserHistoriesService({
-    targetUserId: req.validatedParams!.id,
-    query: req.validatedQuery!,
+    targetUserId,
+    query,
   });
 
   res.status(200).json({
@@ -45,10 +48,14 @@ export const getProjectHistories = async (
   >,
   res: Response,
 ) => {
+  const projectId = req.validatedParams!.id;
+  const userId = req.user!.id;
+  const query = req.validatedQuery!;
+
   const result = await getProjectHistoriesService({
-    projectId: req.validatedParams!.id,
-    userId: req.user!.id,
-    query: req.validatedQuery!,
+    projectId,
+    userId,
+    query,
   });
 
   res.status(200).json({
@@ -65,10 +72,14 @@ export const getIssueHistories = async (
   >,
   res: Response,
 ) => {
+  const issueId = req.validatedParams!.id;
+  const userId = req.user!.id;
+  const query = req.validatedQuery!;
+
   const result = await getIssueHistoriesService({
-    issueId: req.validatedParams!.id,
-    userId: req.user!.id,
-    query: req.validatedQuery!,
+    issueId,
+    userId,
+    query,
   });
 
   res.status(200).json({
@@ -85,10 +96,14 @@ export const getCommentHistories = async (
   >,
   res: Response,
 ) => {
+  const commentId = req.validatedParams!.id;
+  const userId = req.user!.id;
+  const query = req.validatedQuery!;
+
   const result = await getCommentHistoriesService({
-    commentId: req.validatedParams!.id,
-    userId: req.user!.id,
-    query: req.validatedQuery!,
+    commentId,
+    userId,
+    query,
   });
 
   res.status(200).json({

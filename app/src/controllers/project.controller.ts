@@ -32,7 +32,8 @@ export const createProject = async (
 ) => {
   const { name, description } = req.validatedBody!;
   const userId = req.user!.id;
-  const project = await createProjectService(name, userId, description);
+
+  const project = await createProjectService({ name, userId, description });
 
   res.status(201).json({
     success: true,
@@ -44,9 +45,12 @@ export const getProjects = async (
   req: ValidatedAuthRequest<never, z.infer<typeof getProjectsSchema>, never>,
   res: Response,
 ) => {
+  const userId = req.user!.id;
+  const query = req.validatedQuery!;
+
   const result = await getProjectsService({
-    userId: req.user!.id,
-    query: req.validatedQuery!,
+    userId,
+    query,
   });
 
   res.status(200).json({
@@ -65,8 +69,13 @@ export const getProjectDetail = async (
 ) => {
   const userId = req.user!.id;
   const id = req.validatedParams!.id;
-  const includeDeleted = req.validatedQuery!.includeDeleted;
-  const project = await getProjectDatailService(id, userId, includeDeleted);
+  const query = req.validatedQuery!;
+
+  const project = await getProjectDatailService({
+    id,
+    userId,
+    includeDeleted: query.includeDeleted,
+  });
 
   res.status(200).json({
     success: true,
@@ -82,10 +91,14 @@ export const updateProject = async (
   >,
   res: Response,
 ) => {
+  const projectId = req.validatedParams!.id;
+  const userId = req.user!.id;
+  const data = req.validatedBody!;
+
   const project = await updateProjectService({
-    projectId: req.validatedParams!.id,
-    userId: req.user!.id,
-    data: req.validatedBody!,
+    projectId,
+    userId,
+    data,
   });
 
   res.status(200).json({
@@ -98,8 +111,9 @@ export const deleteProject = async (
   req: ValidatedAuthRequest<z.infer<typeof projectIdSchema>, never, never>,
   res: Response,
 ) => {
-  const projectId = req.validatedParams!.id;
-  await deleteProjectService(projectId);
+  const id = req.validatedParams!.id;
+
+  await deleteProjectService({ id });
 
   res.sendStatus(204);
 };
@@ -114,7 +128,8 @@ export const addMember = async (
 ) => {
   const { userId, role } = req.validatedBody!;
   const projectId = req.validatedParams!.id;
-  const project = await addMemberService(projectId, userId, role);
+
+  const project = await addMemberService({ projectId, userId, role });
 
   res.status(201).json({
     success: true,
@@ -127,7 +142,7 @@ export const getMembers = async (
   res: Response,
 ) => {
   const projectId = req.validatedParams!.id;
-  const project = await getMemberService(projectId);
+  const project = await getMemberService({ projectId });
 
   res.status(200).json({
     success: true,
@@ -147,7 +162,7 @@ export const authorityChange = async (
   const userId = req.validatedParams!.userId;
   const projectId = req.validatedParams!.id;
 
-  const project = await changeMemberRoleService(projectId, userId, role);
+  const project = await changeMemberRoleService({ projectId, userId, role });
 
   res.status(200).json({
     success: true,
@@ -162,7 +177,7 @@ export const removeMember = async (
   const userId = req.validatedParams!.userId;
   const projectId = req.validatedParams!.id;
 
-  await removeMemberService(projectId, userId);
+  await removeMemberService({ projectId, userId });
 
   res.sendStatus(204);
 };

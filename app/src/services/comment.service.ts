@@ -13,13 +13,13 @@ import {
   commentHistorySelect,
 } from "../selects/comment.select.js";
 
-export type CreateCommentInput = {
+type CreateCommentInput = {
   issueId: number;
   userId: number;
   content: string;
 };
 
-export type GetCommentsInput = {
+type GetCommentsInput = {
   issueId: number;
   userId: number;
   includeDeleted?: boolean;
@@ -30,7 +30,7 @@ export type GetCommentsInput = {
   };
 };
 
-export type UpdateCommentInput = {
+type UpdateCommentInput = {
   commentId: number;
   userId: number;
 
@@ -39,7 +39,7 @@ export type UpdateCommentInput = {
   };
 };
 
-export type DeleteCommentInput = {
+type DeleteCommentInput = {
   commentId: number;
   userId: number;
 };

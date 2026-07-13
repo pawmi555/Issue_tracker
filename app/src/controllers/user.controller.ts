@@ -24,7 +24,9 @@ export const getUsers = async (
   req: ValidatedRequest<never, z.infer<typeof getUsersSchema>, never>,
   res: Response,
 ) => {
-  const users = await getUsersService(req.validatedQuery!);
+  const query = req.validatedQuery!;
+
+  const users = await getUsersService(query);
 
   res.status(200).json({
     success: true,
@@ -40,10 +42,13 @@ export const getUserById = async (
   >,
   res: Response,
 ) => {
-  const user = await getUserByIdService(
-    req.validatedParams!.id,
-    req.validatedQuery!.includeDeleted,
-  );
+  const id = req.validatedParams!.id;
+  const query = req.validatedQuery!;
+
+  const user = await getUserByIdService({
+    id,
+    includeDeleted: query.includeDeleted,
+  });
 
   res.status(200).json({
     success: true,
@@ -59,10 +64,14 @@ export const updateUser = async (
   >,
   res: Response,
 ) => {
+  const id = req.validatedParams!.id;
+  const operatedBy = req.user!.id;
+  const data = req.validatedBody!;
+
   const user = await updateUserService({
-    id: req.validatedParams!.id,
-    operatedBy: req.user!.id,
-    data: req.validatedBody!,
+    id,
+    operatedBy,
+    data,
   });
 
   res.status(200).json({
@@ -75,7 +84,9 @@ export const deleteUser = async (
   req: ValidatedAuthRequest<z.infer<typeof userIdSchema>, never, never>,
   res: Response,
 ) => {
-  await deleteUserService(req.validatedParams!.id);
+  const id = req.validatedParams!.id;
+
+  await deleteUserService({ id });
 
   res.sendStatus(204);
 };
