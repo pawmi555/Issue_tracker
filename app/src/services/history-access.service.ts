@@ -2,6 +2,10 @@ import { prisma } from "../lib/prisma.js";
 
 import { AppError } from "../utils/app-error.js";
 
+type AssertUserHistoryReadableInput = {
+  userId: number;
+};
+
 type AssertProjectHistoryReadableInput = {
   projectId: number;
   userId: number;
@@ -15,6 +19,33 @@ type AssertIssueHistoryReadableInput = {
 type AssertCommentHistoryReadableInput = {
   commentId: number;
   userId: number;
+};
+
+/**
+ * 指定ユーザーがUser履歴を参照可能か検証する
+ *
+ * Userの存在確認および
+ * 論理削除状態確認を行う。
+ *
+ * 条件を満たさない場合は例外を送出する。
+ */
+export const assertUserHistoryReadable = async ({
+  userId: targetUserId,
+}: AssertUserHistoryReadableInput) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: targetUserId,
+      deletedAt: null,
+    },
+
+    select: {
+      id: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError("User not found", 404, "USER_NOT_FOUND");
+  }
 };
 
 /**

@@ -2,6 +2,7 @@ import { buildPagination } from "../utils/pagination.js";
 import { buildPaginationMeta } from "../utils/pagination-meta.js";
 
 import {
+  assertUserHistoryReadable,
   assertProjectHistoryReadable,
   assertIssueHistoryReadable,
   assertCommentHistoryReadable,
@@ -28,37 +29,30 @@ import {
 
 type GetUserHistoriesInput = {
   targetUserId: number;
-  query: {
-    page: number;
-    limit: number;
-  };
+  query: PaginationQuery;
 };
 
 type GetProjectHistoriesInput = {
   projectId: number;
   userId: number;
-  query: {
-    page: number;
-    limit: number;
-  };
+  query: PaginationQuery;
 };
 
 type GetIssueHistoriesInput = {
   issueId: number;
   userId: number;
-  query: {
-    page: number;
-    limit: number;
-  };
+  query: PaginationQuery;
 };
 
 type GetCommentHistoriesInput = {
   commentId: number;
   userId: number;
-  query: {
-    page: number;
-    limit: number;
-  };
+  query: PaginationQuery;
+};
+
+type PaginationQuery = {
+  page: number;
+  limit: number;
 };
 
 /**
@@ -71,6 +65,10 @@ export const getUserHistoriesService = async ({
   targetUserId,
   query,
 }: GetUserHistoriesInput) => {
+  await assertUserHistoryReadable({
+    userId: targetUserId,
+  });
+
   const pagination = buildPagination(query);
 
   const [histories, total] = await Promise.all([
