@@ -1,5 +1,5 @@
-import { Response, NextFunction } from "express";
-import { AuthRequest } from "../types/auth-request.js";
+import type { Response, NextFunction } from "express";
+import type { AuthRequest } from "../types/auth-request.js";
 import { prisma } from "../lib/prisma.js";
 
 /**

@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { Response } from "express";
+import type { Response } from "express";
 
 import {
   getUserHistoriesService,
@@ -16,7 +16,7 @@ import type {
   commentIdSchema,
 } from "../validators/history.validators.js";
 
-import { ValidatedAuthRequest } from "../types/validated-request.js";
+import type { ValidatedAuthRequest } from "../types/validated-request.js";
 
 export const getUserHistories = async (
   req: ValidatedAuthRequest<

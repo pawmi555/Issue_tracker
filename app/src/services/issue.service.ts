@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
 
@@ -16,7 +16,7 @@ import {
   buildIssueRelationSelect,
 } from "../selects/issue.select.js";
 
-import {
+import type {
   CreateIssueInput,
   GetIssuesInput,
   UpdateIssueInput,
@@ -25,7 +25,7 @@ import {
   RestoreIssueInput,
 } from "../types/issue.types.js";
 
-import { IssueMapperInput } from "../mappers/issue/issue-mapper.type.js";
+import type { IssueMapperInput } from "../mappers/issue/issue-mapper.type.js";
 
 import { buildIssueWhere } from "./builders/build-issue-where.js";
 import { buildIssueDetailWhere } from "./builders/build-issue-detail-where.js";

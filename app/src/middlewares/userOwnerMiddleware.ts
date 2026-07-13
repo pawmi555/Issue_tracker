@@ -1,6 +1,6 @@
-import { Response, NextFunction } from "express";
+import type { Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma.js";
-import { AuthRequest } from "../types/auth-request.js";
+import type { AuthRequest } from "../types/auth-request.js";
 
 /**
  * 管理者または本人のみ許可するMiddleware

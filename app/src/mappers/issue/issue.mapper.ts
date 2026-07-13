@@ -1,6 +1,6 @@
-import { IssueDto } from "../../dto/issue/issue.dto.js";
+import type { IssueDto } from "../../dto/issue/issue.dto.js";
 
-import { IssueMapperInput } from "./issue-mapper.type.js";
+import type { IssueMapperInput } from "./issue-mapper.type.js";
 
 /**
  * Issue → IssueDto

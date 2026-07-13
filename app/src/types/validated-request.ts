@@ -1,6 +1,6 @@
-import { Request } from "express";
+import type { Request } from "express";
 
-import { AuthRequest } from "./auth-request.js";
+import type { AuthRequest } from "./auth-request.js";
 
 export interface ValidatedRequest<
   Params = unknown,

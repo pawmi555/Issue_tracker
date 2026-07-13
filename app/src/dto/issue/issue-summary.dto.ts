@@ -1,5 +1,5 @@
-import { UserSummaryDto } from "../user/user-summary.dto.js";
-import { ProjectReferenceDto } from "../project/project-reference.dto.js";
+import type { UserSummaryDto } from "../user/user-summary.dto.js";
+import type { ProjectReferenceDto } from "../project/project-reference.dto.js";
 
 /**
  * 一覧取得および関連リソース参照で使用する簡易DTO。

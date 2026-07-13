@@ -1,9 +1,12 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
-import { UserDto } from "../../dto/user/user.dto.js";
-import { UserSummaryDto } from "../../dto/user/user-summary.dto.js";
+import type { UserDto } from "../../dto/user/user.dto.js";
+import type { UserSummaryDto } from "../../dto/user/user-summary.dto.js";
 
-import { userDtoSelect, userSummarySelect } from "../../selects/user.select.js";
+import type {
+  userDtoSelect,
+  userSummarySelect,
+} from "../../selects/user.select.js";
 
 export type UserMapperInput = Prisma.UserGetPayload<{
   select: typeof userDtoSelect;

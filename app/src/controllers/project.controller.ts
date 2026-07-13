@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { Response } from "express";
+import type { Response } from "express";
 
 import {
   createProjectService,
@@ -13,7 +13,7 @@ import {
   removeMemberService,
 } from "../services/project.service.js";
 
-import {
+import type {
   createProjectSchema,
   getProjectsSchema,
   getProjectDetailSchema,
@@ -24,7 +24,7 @@ import {
   projectIdSchema,
 } from "../validators/project.validator.js";
 
-import { ValidatedAuthRequest } from "../types/validated-request.js";
+import type { ValidatedAuthRequest } from "../types/validated-request.js";
 
 export const createProject = async (
   req: ValidatedAuthRequest<never, never, z.infer<typeof createProjectSchema>>,

@@ -1,7 +1,7 @@
-import { UserSummaryDto } from "../user/user-summary.dto.js";
-import { HistoryActionDto } from "./history-action.dto.js";
-import { HistoryFieldDto } from "./history-field.dto.js";
-import { HistoryValueDto } from "./history-value.dto.js";
+import type { UserSummaryDto } from "../user/user-summary.dto.js";
+import type { HistoryActionDto } from "./history-action.dto.js";
+import type { HistoryFieldDto } from "./history-field.dto.js";
+import type { HistoryValueDto } from "./history-value.dto.js";
 
 /**
  * 変更履歴情報

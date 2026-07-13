@@ -1,7 +1,7 @@
-import { Response, NextFunction } from "express";
+import type { Response, NextFunction } from "express";
 import { hasProjectRole } from "../utils/role-check.js";
-import { ProjectRoleName } from "../constants/project.constants.js";
-import { AuthRequest } from "../types/auth-request.js";
+import type { ProjectRoleName } from "../constants/project.constants.js";
+import type { AuthRequest } from "../types/auth-request.js";
 import { AppError } from "../utils/app-error.js";
 
 /**

@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 
 import { refreshCookie } from "../config/cookie.js";
 
@@ -11,14 +11,14 @@ import {
   meService,
 } from "../services/auth.service.js";
 
-import {
+import type {
   authRegisterSchema,
   authLoginSchema,
 } from "../validators/auth.validators.js";
 
-import { ValidatedRequest } from "../types/validated-request.js";
+import type { ValidatedRequest } from "../types/validated-request.js";
 
-import { AuthRequest } from "../types/auth-request.js";
+import type { AuthRequest } from "../types/auth-request.js";
 
 export const register = async (
   req: ValidatedRequest<never, never, z.infer<typeof authRegisterSchema>>,

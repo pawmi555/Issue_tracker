@@ -1,5 +1,5 @@
-import { UserSummaryDto } from "../user/user-summary.dto.js";
-import { CountDto } from "../common/count.dto.js";
+import type { UserSummaryDto } from "../user/user-summary.dto.js";
+import type { CountDto } from "../common/count.dto.js";
 
 /**
  * 一覧取得および関連リソース参照で使用する簡易DTO。

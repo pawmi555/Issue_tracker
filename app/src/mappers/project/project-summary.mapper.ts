@@ -1,4 +1,4 @@
-import { ProjectSummaryDto } from "../../dto/project/project-summary.dto.js";
+import type { ProjectSummaryDto } from "../../dto/project/project-summary.dto.js";
 
 type ProjectSummaryMapperInput = {
   id: number;

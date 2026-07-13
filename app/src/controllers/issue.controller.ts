@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { Response } from "express";
+import type { Response } from "express";
 
 import {
   createIssueService,
@@ -19,7 +19,7 @@ import type {
   issueIdSchema,
 } from "../validators/issue.validation.js";
 
-import { ValidatedAuthRequest } from "../types/validated-request.js";
+import type { ValidatedAuthRequest } from "../types/validated-request.js";
 
 export const createIssue = async (
   req: ValidatedAuthRequest<

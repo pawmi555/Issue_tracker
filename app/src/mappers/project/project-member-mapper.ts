@@ -1,4 +1,4 @@
-import { ProjectMemberDto } from "../../dto/project/project-member.dto.js";
+import type { ProjectMemberDto } from "../../dto/project/project-member.dto.js";
 
 type ProjectMemberMapperInput = {
   id: number;

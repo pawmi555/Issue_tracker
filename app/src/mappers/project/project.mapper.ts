@@ -1,4 +1,4 @@
-import { ProjectDto } from "../../dto/project/project.dto.js";
+import type { ProjectDto } from "../../dto/project/project.dto.js";
 import { mapProjectMember } from "./project-member-mapper.js";
 
 type ProjectMapperInput = {

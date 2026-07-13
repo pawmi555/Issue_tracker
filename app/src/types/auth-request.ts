@@ -1,6 +1,6 @@
-import { Request } from "express";
+import type { Request } from "express";
 
-import { ProjectRoleName } from "../constants/project.constants.js";
+import type { ProjectRoleName } from "../constants/project.constants.js";
 
 export interface JwtUser {
   id: number;

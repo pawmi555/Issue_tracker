@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";

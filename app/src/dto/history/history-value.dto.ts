@@ -1,7 +1,2 @@
 export type HistoryValueDto =
-  | string
-  | number
-  | boolean
-  | object
-  | unknown[]
-  | null;
+  string | number | boolean | object | unknown[] | null;

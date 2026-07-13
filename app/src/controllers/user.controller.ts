@@ -1,7 +1,7 @@
 import type { z } from "zod";
-import { Response } from "express";
+import type { Response } from "express";
 
-import {
+import type {
   ValidatedRequest,
   ValidatedAuthRequest,
 } from "../types/validated-request.js";
@@ -13,7 +13,7 @@ import {
   deleteUserService,
 } from "../services/user.service.js";
 
-import {
+import type {
   userIdSchema,
   getUsersSchema,
   getUserDetailSchema,

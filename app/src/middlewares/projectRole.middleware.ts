@@ -1,6 +1,9 @@
-import { Response, NextFunction } from "express";
+import type { Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma.js";
-import { AuthRequest, ProjectMemberPayload } from "../types/auth-request.js";
+import type {
+  AuthRequest,
+  ProjectMemberPayload,
+} from "../types/auth-request.js";
 
 const ROLE_HIERARCHY = {
   OWNER: 4,
@@ -140,7 +143,7 @@ export const projectRoleMiddleware =
       req.projectMember = membership as ProjectMemberPayload;
 
       next();
-    } catch (error) {
+    } catch {
       return res.status(500).json({
         success: false,
         code: "AUTHORIZATION_CHECK_FAILED",

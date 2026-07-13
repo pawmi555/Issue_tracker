@@ -1,7 +1,8 @@
-import { Response, NextFunction } from "express";
-import { ZodError, ZodType } from "zod";
+import type { Response, NextFunction } from "express";
+import type { ZodType } from "zod";
+import { ZodError } from "zod";
 
-import { ValidatedAuthRequest } from "../types/validated-request.js";
+import type { ValidatedAuthRequest } from "../types/validated-request.js";
 
 type ValidationSchemas<P = any, Q = any, B = any> = {
   params?: ZodType<P>;
