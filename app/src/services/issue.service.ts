@@ -427,10 +427,6 @@ export const getIssueDetailService = async ({
     },
   });
 
-  console.dir(issue, {
-    depth: null,
-  });
-
   if (!issue) {
     throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
   }

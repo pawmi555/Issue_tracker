@@ -17,7 +17,6 @@ export const authMiddleware = (
   res: Response,
   next: NextFunction,
 ) => {
-  console.log("auth start");
   try {
     const auth = req.headers.authorization;
 
@@ -47,5 +46,4 @@ export const authMiddleware = (
       message: "Invalid token",
     });
   }
-  console.log("auth end");
 };
