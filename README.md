@@ -694,7 +694,6 @@ docker compose -f docker/docker-compose.dev.yml exec app npm run migrate:dev
 
 docker compose -f docker/docker-compose.dev.yml exec app npm run db:seed
 
-docker compose -f docker/docker-compose.dev.yml exec app npm run dev
 ```
 
 # 12. Future Improvements
