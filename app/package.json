@@ -14,7 +14,7 @@
     "db:reset": "prisma migrate reset --force",
     "db:fresh": "prisma migrate reset --force && prisma db seed",
     "prisma:generate": "prisma generate",
-    "prisma:studio": "prisma studio --port 5555"
+    "prisma:studio": "prisma studio --port 5555 --browser none"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
