@@ -1,54 +1,84 @@
-#起動するコンテナ一覧(app,db)
 services:
+  # =====================================
+  # Backend API (Express)
+  # =====================================
   app:
-      image: node:22
-      #./app フォルダのDockerfileからビルド
-      build: 
-        context: ../app
-        dockerfile: Dockerfile
-      container_name: IssueTracker_app
-      depends_on:
-        db:
-        condition: service_started
-      environment:
-        NODE_ENV: production
-        DATABASE_URL: postgresql://postgres:password@db:5432/issue_prod_db
-      #ブラウザでアクセス可能
-      ports:
-        - "3000:3000"
-        #prisma studio
-        - "51212:51212"
-      #サーバー起動
-      #後で戻す
-      command: npm run dev
-      #command: sleep infinity
-      #ターミナル付きで実行
-      tty: true
-  db:
-  #PostgreSQL を使う
-    image: postgres:15
-    #コンテナ名
-    container_name: IssueTracker_db
-    #自動再起動
-    restart: always
-    #環境変数
+    build:
+      context: ../app
+      dockerfile: Dockerfile.prod
+
+    image: issue-tracker-api:latest
+
+    container_name: IssueTracker_app_prod
+
+    working_dir: /app
+
+    env_file:
+      - ../app/.env.production
+
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: issue_prod_db
-    #ポート公開 PCからDBに接続できるようにする
-    #PC → localhost:5432 → コンテナ
+      NODE_ENV: production
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    # Dockerネットワーク内のみ公開
+    expose:
+      - "3000"
+
+    command: /docker-entrypoint.sh
+
+    restart: unless-stopped
+
+  # =====================================
+  # Frontend (React + Nginx)
+  # =====================================
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.prod
+
+    image: issue-tracker-frontend:latest
+
+    container_name: IssueTracker_frontend_prod
+
+    depends_on:
+      app:
+        condition: service_started
+
     ports:
-      - "5433:5432"
-    #データ永続化
+      - "80:80"
+
+    restart: unless-stopped
+
+  # =====================================
+  # Database (PostgreSQL)
+  # =====================================
+  db:
+    image: postgres:15
+
+    container_name: IssueTracker_db_prod
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    #DBが使えるかチェック
+      - postgres_prod_data:/var/lib/postgresql/data
+
+    # Dockerネットワーク内のみ公開
+    expose:
+      - "5432"
+
     healthcheck:
-        test: ["CMD-SHELL", "pg_isready -U postgres"]
-        interval: 5s
-        timeout: 5s
-        retries: 5
-#名前付きボリューム定義
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
-  postgres_data:
+  postgres_prod_data:

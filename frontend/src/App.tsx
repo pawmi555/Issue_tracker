@@ -1,13 +1,21 @@
-import { Button, Container, Typography } from "@mui/material";
+import { useEffect } from "react";
+
+import apiClient from "./api/axios";
 
 export default function App() {
-  return (
-    <Container sx={{ mt: 5 }}>
-      <Typography variant="h4" gutterBottom>
-        Issue Tracker
-      </Typography>
+  useEffect(() => {
+    async function fetchMe() {
+      try {
+        const response = await apiClient.get("/auth/me");
 
-      <Button variant="contained">MUI Ready</Button>
-    </Container>
-  );
+        console.log(response.data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    fetchMe();
+  }, []);
+
+  return <h1>Issue Tracker</h1>;
 }
