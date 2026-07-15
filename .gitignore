@@ -5,16 +5,25 @@ app/.env
 app/.env.*
 !app/.env.example
 
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
 # ========================================
 # Dependencies
 # ========================================
 app/node_modules/
+frontend/node_modules/
 
 # ========================================
 # Build outputs
 # ========================================
 app/dist/
+frontend/dist/
+
 app/coverage/
+frontend/coverage/
+
 app/*.tsbuildinfo
 
 # ========================================
@@ -24,9 +33,15 @@ app/*.tsbuildinfo
 app/npm-debug.log*
 
 # ========================================
+# Local configuration
+# ========================================
+*.local
+
+# ========================================
 # Editor
 # ========================================
 .vscode/
+!.vscode/extensions.json
 
 # JetBrains IDE
 .idea/
@@ -37,6 +52,10 @@ app/npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# ========================================
+# Vim
+# ========================================
+*.sw?
 
 # ========================================
 # VSCode workspace
