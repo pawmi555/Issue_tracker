@@ -4,7 +4,7 @@ import { getProjects } from "../../../api/project";
 
 import type { GetProjectsParams } from "../types/project.types";
 
-import { projectKeys } from "./projectKeys";
+import { projectKeys } from "../queryKeys/projectKeys";
 
 export const useProjects = (params: GetProjectsParams) => {
   return useQuery({

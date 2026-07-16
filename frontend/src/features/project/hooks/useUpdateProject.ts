@@ -4,7 +4,7 @@ import { updateProject } from "../../../api/project";
 
 import type { Project } from "../types/project.types";
 
-import { projectKeys } from "./projectKeys";
+import { projectKeys } from "../queryKeys/projectKeys";
 
 export const useUpdateProject = () => {
   const queryClient = useQueryClient();
