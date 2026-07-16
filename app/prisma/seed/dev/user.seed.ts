@@ -49,11 +49,24 @@ export const seedUsers = async () => {
 
   await prisma.user.upsert({
     where: {
+      email: "manager@example.com",
+    },
+    update: {},
+    create: {
+      name: "Manager User",
+      email: "manager@example.com",
+      passwordHash,
+      roleId: userRole.id,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: {
       email: "viewer@example.com",
     },
     update: {},
     create: {
-      name: "viewer User",
+      name: "Viewer User",
       email: "viewer@example.com",
       passwordHash,
       roleId: userRole.id,

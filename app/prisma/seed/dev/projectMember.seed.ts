@@ -13,6 +13,12 @@ export const seedProjectMembers = async () => {
     },
   });
 
+  const manager = await prisma.user.findUnique({
+    where: {
+      email: "manager@example.com",
+    },
+  });
+
   const project = await prisma.project.findFirst({
     where: {
       name: "Issue Tracker",
@@ -25,13 +31,27 @@ export const seedProjectMembers = async () => {
     },
   });
 
+  const managerRole = await prisma.projectRole.findUnique({
+    where: {
+      name: "MANAGER",
+    },
+  });
+
   const viewerRole = await prisma.projectRole.findUnique({
     where: {
       name: "VIEWER",
     },
   });
 
-  if (!user || !viewer || !project || !memberRole || !viewerRole) {
+  if (
+    !user ||
+    !viewer ||
+    !manager ||
+    !project ||
+    !memberRole ||
+    !viewerRole ||
+    !managerRole
+  ) {
     throw new Error("Required data not found.");
   }
   await prisma.projectMember.upsert({
@@ -46,6 +66,21 @@ export const seedProjectMembers = async () => {
       userId: user.id,
       projectId: project.id,
       roleId: memberRole.id,
+    },
+  });
+
+  await prisma.projectMember.upsert({
+    where: {
+      projectId_userId: {
+        projectId: project.id,
+        userId: manager.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: manager.id,
+      projectId: project.id,
+      roleId: managerRole.id,
     },
   });
 
