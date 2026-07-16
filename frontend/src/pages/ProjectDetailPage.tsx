@@ -136,6 +136,15 @@ export default function ProjectDetailPage() {
               alignItems: "flex-start",
             }}
           >
+            <Button
+              variant="contained"
+              onClick={() => {
+                navigate(`/projects/${project.id}/issues`);
+              }}
+            >
+              Issuesを表示
+            </Button>
+
             {canUpdate && (
               <Button
                 variant="outlined"

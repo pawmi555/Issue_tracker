@@ -7,6 +7,8 @@ import LoginPage from "../pages/LoginPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import ProjectDetailPage from "../pages/ProjectDetailPage";
 import ProjectsPage from "../pages/ProjectsPage";
+import IssueDetailPage from "../pages/IssueDetailPage";
+import IssuesPage from "../pages/IssuesPage";
 
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -35,6 +37,14 @@ const router = createBrowserRouter([
           {
             path: "projects/:projectId",
             element: <ProjectDetailPage />,
+          },
+          {
+            path: "projects/:projectId/issues",
+            element: <IssuesPage />,
+          },
+          {
+            path: "issues/:issueId",
+            element: <IssueDetailPage />,
           },
         ],
       },
