@@ -41,11 +41,11 @@ type GetProjectDetailInput = {
   includeDeleted: boolean;
 };
 
-type UpdateProjectsInput = {
+type UpdateProjectInput = {
   projectId: number;
   userId: number;
   data: {
-    name: string;
+    name?: string;
     description?: string;
   };
 };
@@ -237,7 +237,7 @@ export const updateProjectService = async ({
   projectId,
   userId,
   data,
-}: UpdateProjectsInput) => {
+}: UpdateProjectInput) => {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const HISTORY_ACTION_UPDATE = 1;
     // Project存在確認
