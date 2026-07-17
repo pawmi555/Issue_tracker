@@ -28,14 +28,6 @@ export type IssueProjectReference = {
   name: string;
 };
 
-export type IssueComment = {
-  id: number;
-  content: string;
-  user: IssueUserSummary;
-  createdAt: IsoDateString;
-  updatedAt: IsoDateString;
-};
-
 export type IssueSummary = {
   id: number;
   title: string;
@@ -53,7 +45,7 @@ export type Issue = IssueSummary & {
   description: string | null;
   status: IssueStatus;
   priority: IssuePriority;
-  comments?: IssueComment[];
+  comments?: Comment[];
 };
 
 export type IssueSort = "createdAt" | "dueDate";
