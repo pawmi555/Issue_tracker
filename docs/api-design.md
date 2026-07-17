@@ -2079,7 +2079,7 @@ data : IssueDto
 
 - sortホワイトリスト
 - include最大6件
-- ProjectRoleがMEMBER以上なら一覧取得可能
+- プロジェクトメンバーのみ取得可能
 
 #### Response DTO
 

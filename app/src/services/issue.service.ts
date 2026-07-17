@@ -154,10 +154,12 @@ export const getIssuesService = async ({
     throw new AppError("invalid role", 500, "INVALID_ROLE");
   }
 
-  assertProjectRole({
-    memberRole: roleName,
-    minimumRole: includeDeleted ? "MANAGER" : "MEMBER",
-  });
+  if (includeDeleted) {
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MANAGER",
+    });
+  }
 
   // 削除済みProjectは参照不可
   if (member.project.deletedAt) {
@@ -469,10 +471,12 @@ export const getIssueDetailService = async ({
     throw new AppError("invalid role", 500, "INVALID_ROLE");
   }
 
-  assertProjectRole({
-    memberRole: roleName,
-    minimumRole: includeDeleted ? "MANAGER" : "MEMBER",
-  });
+  if (includeDeleted) {
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MANAGER",
+    });
+  }
   //Prismaは動的selectの戻り値を正確に推論できないためキャストする
   return mapIssue(issue as unknown as IssueMapperInput, {
     includeDeleted,

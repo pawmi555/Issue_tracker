@@ -57,9 +57,13 @@ export const createCommentsService = async ({
     where: {
       id: issueId,
       deletedAt: null,
+      project: {
+        deletedAt: null,
+      },
     },
-    include: {
-      project: true,
+    select: {
+      id: true,
+      projectId: true,
     },
   });
 
@@ -75,11 +79,29 @@ export const createCommentsService = async ({
         userId,
       },
     },
+    select: {
+      role: {
+        select: {
+          name: true,
+        },
+      },
+    },
   });
 
   if (!member) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
+
+  const roleName = member.role.name;
+
+  if (!isProjectRoleName(roleName)) {
+    throw new AppError("invalid role", 500, "INVALID_ROLE");
+  }
+
+  assertProjectRole({
+    memberRole: roleName,
+    minimumRole: "MEMBER",
+  });
 
   const comment = await prisma.comment.create({
     data: {
@@ -150,10 +172,12 @@ export const getCommentsService = async ({
     throw new AppError("invalid role", 500, "INVALID_ROLE");
   }
 
-  assertProjectRole({
-    memberRole: roleName,
-    minimumRole: includeDeleted ? "MANAGER" : "MEMBER",
-  });
+  if (includeDeleted) {
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MANAGER",
+    });
+  }
 
   // ページネーション設定
   const { page, limit, skip, take } = buildPagination({
