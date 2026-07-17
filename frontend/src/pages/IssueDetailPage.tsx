@@ -19,6 +19,7 @@ import { useDeleteIssue } from "../features/issue/hooks/useDeleteIssue";
 import { useIssue } from "../features/issue/hooks/useIssue";
 import { useProject } from "../features/project/hooks/useProject";
 import CommentSection from "../features/comment/components/CommentSection";
+import IssueHistorySection from "../features/history/components/IssueHistorySection";
 
 import EditIssueDialog from "../features/issue/components/EditIssueDialog";
 
@@ -236,6 +237,8 @@ export default function IssueDetailPage() {
             canManageComments={canManageComments}
           />
         )}
+
+        <IssueHistorySection issueId={issue.id} />
       </Stack>
 
       <EditIssueDialog
