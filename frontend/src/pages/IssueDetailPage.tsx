@@ -15,11 +15,12 @@ import { useNavigate, useParams } from "react-router";
 
 import FullScreenLoading from "../components/common/FullScreenLoading";
 
-import EditIssueDialog from "../features/issue/components/EditIssueDialog";
-
 import { useDeleteIssue } from "../features/issue/hooks/useDeleteIssue";
 import { useIssue } from "../features/issue/hooks/useIssue";
 import { useProject } from "../features/project/hooks/useProject";
+import CommentSection from "../features/comment/components/CommentSection";
+
+import EditIssueDialog from "../features/issue/components/EditIssueDialog";
 
 import {
   getProjectRole,
@@ -87,6 +88,10 @@ export default function IssueDetailPage() {
   const canUpdate = isAssignee || hasProjectRole(currentRole, "MANAGER");
 
   const canDelete = hasProjectRole(currentRole, "MANAGER");
+
+  const canManageComments = hasProjectRole(currentRole, "MANAGER");
+
+  const canCreateComment = hasProjectRole(currentRole, "MEMBER");
 
   const handleDelete = async () => {
     const confirmed = window.confirm(`「${issue.title}」を削除しますか？`);
@@ -213,15 +218,24 @@ export default function IssueDetailPage() {
               期限: {issue.dueDate ? formatDateTime(issue.dueDate) : "未設定"}
             </Typography>
 
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
               作成日時: {formatDateTime(issue.createdAt)}
             </Typography>
 
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
               更新日時: {formatDateTime(issue.updatedAt)}
             </Typography>
           </Stack>
         </Paper>
+
+        {user && (
+          <CommentSection
+            issueId={issue.id}
+            currentUserId={user.id}
+            canCreate={canCreateComment}
+            canManageComments={canManageComments}
+          />
+        )}
       </Stack>
 
       <EditIssueDialog

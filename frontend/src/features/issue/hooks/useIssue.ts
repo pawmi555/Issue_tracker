@@ -10,7 +10,7 @@ export const useIssue = (issueId: number) => {
     queryFn: () =>
       getIssue({
         issueId,
-        include: "project,assignee,reporter,comments",
+        include: "project,assignee,reporter",
       }),
     enabled: Number.isInteger(issueId) && issueId > 0,
   });
