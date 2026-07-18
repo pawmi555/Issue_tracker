@@ -98,6 +98,7 @@ export default function ProjectsPage() {
           <Pagination
             count={meta.totalPages}
             page={meta.page}
+            disabled={projectsQuery.isFetching}
             onChange={(_, nextPage) => {
               setPage(nextPage);
             }}

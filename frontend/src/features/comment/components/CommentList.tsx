@@ -11,6 +11,7 @@ type CommentListProps = {
   currentUserId: number;
   canManageComments: boolean;
   isDeleting: boolean;
+  isFetching: boolean;
   onPageChange: (page: number) => void;
   onEdit: (comment: Comment) => void;
   onDelete: (comment: Comment) => void;
@@ -23,6 +24,7 @@ export default function CommentList({
   currentUserId,
   canManageComments,
   isDeleting,
+  isFetching,
   onPageChange,
   onEdit,
   onDelete,
@@ -53,6 +55,7 @@ export default function CommentList({
         <Pagination
           count={totalPages}
           page={page}
+          disabled={isFetching}
           onChange={(_, nextPage) => {
             onPageChange(nextPage);
           }}

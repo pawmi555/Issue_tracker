@@ -90,6 +90,12 @@ export default function CommentSection({
           </Typography>
         )}
 
+        {commentsQuery.isFetching && !commentsQuery.isPending && (
+          <Typography color="text.secondary" variant="body2">
+            コメントを更新中...
+          </Typography>
+        )}
+
         {commentsQuery.isError && (
           <Alert severity="error">
             {getApiError(commentsQuery.error).message}
@@ -104,6 +110,7 @@ export default function CommentSection({
             currentUserId={currentUserId}
             canManageComments={canManageComments}
             isDeleting={deleteMutation.isPending}
+            isFetching={commentsQuery.isFetching}
             onPageChange={setPage}
             onEdit={setEditingComment}
             onDelete={(comment) => {

@@ -95,6 +95,12 @@ export default function IssueHistorySection({
           </Typography>
         </Stack>
 
+        {historyQuery.isFetching && (
+          <Typography color="text.secondary" variant="body2">
+            変更履歴を更新中...
+          </Typography>
+        )}
+
         {histories.length === 0 ? (
           <Typography color="text.secondary">変更履歴はありません。</Typography>
         ) : (

@@ -154,6 +154,7 @@ export default function IssuesPage() {
           <Pagination
             count={meta.totalPages}
             page={meta.page}
+            disabled={issuesQuery.isFetching}
             onChange={(_, nextPage) => {
               setPage(nextPage);
             }}
