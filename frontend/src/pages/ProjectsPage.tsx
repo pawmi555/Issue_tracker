@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getApiError } from "../utils/getApiError";
 
 import {
   Alert,
@@ -37,7 +38,9 @@ export default function ProjectsPage() {
   if (projectsQuery.isError) {
     return (
       <Container sx={{ py: 4 }}>
-        <Alert severity="error">Project一覧の取得に失敗しました。</Alert>
+        <Alert severity="error">
+          {getApiError(projectsQuery.error).message}
+        </Alert>
       </Container>
     );
   }

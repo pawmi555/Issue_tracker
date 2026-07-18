@@ -20,6 +20,8 @@ import IssueList from "../features/issue/components/IssueList";
 import { useIssues } from "../features/issue/hooks/useIssues";
 import { useProject } from "../features/project/hooks/useProject";
 
+import { getApiError } from "../utils/getApiError";
+
 const PAGE_LIMIT = 20;
 
 export default function IssuesPage() {
@@ -60,10 +62,24 @@ export default function IssuesPage() {
     return <FullScreenLoading />;
   }
 
-  if (projectQuery.isError || !projectQuery.data || issuesQuery.isError) {
+  const queryError = projectQuery.isError
+    ? projectQuery.error
+    : issuesQuery.isError
+      ? issuesQuery.error
+      : null;
+
+  if (queryError) {
     return (
       <Container sx={{ py: 4 }}>
-        <Alert severity="error">Issue一覧の取得に失敗しました。</Alert>
+        <Alert severity="error">{getApiError(queryError).message}</Alert>
+      </Container>
+    );
+  }
+
+  if (!projectQuery.data) {
+    return (
+      <Container sx={{ py: 4 }}>
+        <Alert severity="error">Project情報を取得できませんでした。</Alert>
       </Container>
     );
   }

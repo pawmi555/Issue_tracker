@@ -61,10 +61,20 @@ export default function ProjectDetailPage() {
     return <FullScreenLoading />;
   }
 
-  if (projectQuery.isError || !projectQuery.data) {
+  if (projectQuery.isError) {
     return (
       <Container sx={{ py: 4 }}>
-        <Alert severity="error">Projectの取得に失敗しました。</Alert>
+        <Alert severity="error">
+          {getApiError(projectQuery.error).message}
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!projectQuery.data) {
+    return (
+      <Container sx={{ py: 4 }}>
+        <Alert severity="error">Project情報を取得できませんでした。</Alert>
       </Container>
     );
   }

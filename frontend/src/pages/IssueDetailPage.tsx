@@ -63,21 +63,40 @@ export default function IssueDetailPage() {
     return <FullScreenLoading />;
   }
 
-  if (issueQuery.isError || !issueQuery.data) {
+  if (issueQuery.isError) {
     return (
       <Container sx={{ py: 4 }}>
-        <Alert severity="error">Issueの取得に失敗しました。</Alert>
+        <Alert severity="error">{getApiError(issueQuery.error).message}</Alert>
+      </Container>
+    );
+  }
+
+  if (!issueQuery.data) {
+    return (
+      <Container sx={{ py: 4 }}>
+        <Alert severity="error">Issue情報を取得できませんでした。</Alert>
       </Container>
     );
   }
 
   const issue = issueQuery.data;
+
+  if (projectQuery.isError) {
+    return (
+      <Container sx={{ py: 4 }}>
+        <Alert severity="error">
+          {getApiError(projectQuery.error).message}
+        </Alert>
+      </Container>
+    );
+  }
+
   const project = projectQuery.data;
 
   if (!project) {
     return (
       <Container sx={{ py: 4 }}>
-        <Alert severity="error">Project情報の取得に失敗しました。</Alert>
+        <Alert severity="error">Project情報を取得できませんでした。</Alert>
       </Container>
     );
   }
