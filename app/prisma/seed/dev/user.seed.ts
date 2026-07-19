@@ -2,6 +2,8 @@ import bcrypt from "bcrypt";
 
 import { prisma } from "../../client.js";
 
+const SEED_PASSWORD = "password123";
+
 export const seedUsers = async () => {
   const adminRole = await prisma.userRole.findUnique({
     where: {
@@ -19,57 +21,58 @@ export const seedUsers = async () => {
     throw new Error("User roles not found.");
   }
 
-  const passwordHash = await bcrypt.hash("password123", 10);
+  const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
-  await prisma.user.upsert({
-    where: {
-      email: "admin@example.com",
-    },
-    update: {},
-    create: {
+  const users = [
+    {
       name: "Admin User",
       email: "admin@example.com",
-      passwordHash,
       roleId: adminRole.id,
     },
-  });
-
-  await prisma.user.upsert({
-    where: {
-      email: "user@example.com",
-    },
-    update: {},
-    create: {
-      name: "Test User",
-      email: "user@example.com",
-      passwordHash,
+    {
+      name: "Owner User",
+      email: "owner@example.com",
       roleId: userRole.id,
     },
-  });
-
-  await prisma.user.upsert({
-    where: {
-      email: "manager@example.com",
-    },
-    update: {},
-    create: {
+    {
       name: "Manager User",
       email: "manager@example.com",
-      passwordHash,
       roleId: userRole.id,
     },
-  });
-
-  await prisma.user.upsert({
-    where: {
-      email: "viewer@example.com",
+    {
+      name: "Member User",
+      email: "user@example.com",
+      roleId: userRole.id,
     },
-    update: {},
-    create: {
+    {
       name: "Viewer User",
       email: "viewer@example.com",
-      passwordHash,
       roleId: userRole.id,
     },
-  });
+    {
+      name: "Outsider User",
+      email: "outsider@example.com",
+      roleId: userRole.id,
+    },
+  ];
+
+  for (const user of users) {
+    await prisma.user.upsert({
+      where: {
+        email: user.email,
+      },
+      update: {
+        name: user.name,
+        passwordHash,
+        roleId: user.roleId,
+        deletedAt: null,
+      },
+      create: {
+        name: user.name,
+        email: user.email,
+        passwordHash,
+        roleId: user.roleId,
+      },
+    });
+  }
 };

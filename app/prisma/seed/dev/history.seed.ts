@@ -2,22 +2,46 @@ import { HistoryField, Prisma } from "@prisma/client";
 
 import { prisma } from "../../client.js";
 
-const TARGET_ISSUE_ID = 1;
-
 export const seedHistories = async () => {
   console.log("seed issue histories");
 
-  const issue = await prisma.issue.findUnique({
-    where: {
-      id: TARGET_ISSUE_ID,
-    },
-  });
-
-  const operator = await prisma.user.findUnique({
+  const admin = await prisma.user.findUnique({
     where: {
       email: "admin@example.com",
     },
   });
+
+  if (!admin) {
+    throw new Error("Admin user not found.");
+  }
+
+  const project = await prisma.project.findUnique({
+    where: {
+      ownerId_name: {
+        ownerId: admin.id,
+        name: "Issue Tracker",
+      },
+    },
+  });
+
+  if (!project) {
+    throw new Error("Issue Tracker project not found.");
+  }
+
+  const issue = await prisma.issue.findFirst({
+    where: {
+      projectId: project.id,
+      reporterId: admin.id,
+      title: {
+        in: ["Login Bug", "Login Bug - resolved"],
+      },
+    },
+    orderBy: {
+      id: "asc",
+    },
+  });
+
+  const operator = admin;
 
   const openStatus = await prisma.issueStatus.findUnique({
     where: {
@@ -211,7 +235,7 @@ export const seedHistories = async () => {
   await prisma.$transaction(async (tx) => {
     /*
      * seedを再実行した場合に履歴が重複しないよう、
-     * Issue 1の既存履歴を削除してから登録する。
+     * 対象Issueの既存履歴を削除してから登録する。
      */
     await tx.issueHistory.deleteMany({
       where: {

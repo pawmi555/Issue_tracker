@@ -7,18 +7,14 @@ export const seedProjects = async () => {
     },
   });
 
-  const ownerRole = await prisma.projectRole.findUnique({
+  const ownerUser = await prisma.user.findUnique({
     where: {
-      name: "OWNER",
+      email: "owner@example.com",
     },
   });
 
-  if (!adminUser) {
-    throw new Error("Admin user not found.");
-  }
-
-  if (!ownerRole) {
-    throw new Error("Owner role not found.");
+  if (!adminUser || !ownerUser) {
+    throw new Error("Project owners not found.");
   }
 
   await prisma.project.upsert({
@@ -28,25 +24,32 @@ export const seedProjects = async () => {
         name: "Issue Tracker",
       },
     },
-    update: {},
+    update: {
+      description: "Sample project",
+      deletedAt: null,
+    },
     create: {
       ownerId: adminUser.id,
       name: "Issue Tracker",
       description: "Sample project",
-      members: {
-        create: {
-          user: {
-            connect: {
-              id: adminUser.id,
-            },
-          },
-          role: {
-            connect: {
-              name: "OWNER",
-            },
-          },
-        },
+    },
+  });
+
+  await prisma.project.upsert({
+    where: {
+      ownerId_name: {
+        ownerId: ownerUser.id,
+        name: "Owner Test Project",
       },
+    },
+    update: {
+      description: "Project for OWNER permission testing",
+      deletedAt: null,
+    },
+    create: {
+      ownerId: ownerUser.id,
+      name: "Owner Test Project",
+      description: "Project for OWNER permission testing",
     },
   });
 
@@ -57,26 +60,15 @@ export const seedProjects = async () => {
         name: "Issue Tracker Deleted",
       },
     },
-    update: {},
+    update: {
+      description: "Deleted project",
+      deletedAt: new Date(),
+    },
     create: {
       ownerId: adminUser.id,
       name: "Issue Tracker Deleted",
       description: "Deleted project",
       deletedAt: new Date(),
-      members: {
-        create: {
-          user: {
-            connect: {
-              id: adminUser.id,
-            },
-          },
-          role: {
-            connect: {
-              name: "OWNER",
-            },
-          },
-        },
-      },
     },
   });
 };
