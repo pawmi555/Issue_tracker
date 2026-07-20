@@ -2268,7 +2268,7 @@ data : IssueDto
 
 #### 制約
 
-- ProjectRoleがMEMBER以上のみ投稿可能
+- ProjectRoleがMEMBER以上の場合のみ投稿可能（VIEWERは投稿不可）
 
 #### Request
 
@@ -2350,7 +2350,7 @@ meta : PaginationMetaDto
 
 #### 制約
 
-- 投稿者または ProjectRoleがMANAGER以上の場合のみ可能
+- コメント作成者またはProjectRoleがMANAGER以上の場合のみ更新可能
 - 更新時はCommentHistory作成
 - トランザクション必須
 
@@ -2392,7 +2392,7 @@ data : CommentDto
 
 #### 制約
 
-- 投稿者またはProjectRoleがMANAGER以上の場合のみ削除可能
+- コメント作成者またはProjectRoleがMANAGER以上の場合のみ削除可能
 - 論理削除
 
 #### Response
