@@ -35,12 +35,12 @@ API設計ではDTOとMapperによるAPI契約の分離、RBACによる認可、R
 
 Project Role:
 
-| Role    | Permission                    |
-| ------- | ----------------------------- |
-| OWNER   | プロジェクト作成者。全権限    |
-| MANAGER | メンバー管理・Issue管理が可能 |
-| MEMBER  | Issue作成・更新・コメント可能 |
-| VIEWER  | 閲覧のみ                      |
+| Role    | Permission                             |
+| ------- | -------------------------------------- |
+| OWNER   | プロジェクトの最高権限。複数人設定可能 |
+| MANAGER | メンバー管理・Issue管理が可能          |
+| MEMBER  | Issue作成・更新・コメント可能          |
+| VIEWER  | 閲覧のみ                               |
 
 ## Project Management
 

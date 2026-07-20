@@ -126,10 +126,16 @@ export const addMember = async (
   >,
   res: Response,
 ) => {
-  const { userId, role } = req.validatedBody!;
+  const { userId: targetUserId, role } = req.validatedBody!;
   const projectId = req.validatedParams!.id;
+  const actorUserId = req.user!.id;
 
-  const project = await addMemberService({ projectId, userId, role });
+  const project = await addMemberService({
+    projectId,
+    actorUserId,
+    targetUserId,
+    role,
+  });
 
   res.status(201).json({
     success: true,
@@ -159,10 +165,16 @@ export const authorityChange = async (
   res: Response,
 ) => {
   const { role } = req.validatedBody!;
-  const userId = req.validatedParams!.userId;
+  const targetUserId = req.validatedParams!.userId;
   const projectId = req.validatedParams!.id;
+  const actorUserId = req.user!.id;
 
-  const project = await changeMemberRoleService({ projectId, userId, role });
+  const project = await changeMemberRoleService({
+    projectId,
+    actorUserId,
+    targetUserId,
+    role,
+  });
 
   res.status(200).json({
     success: true,

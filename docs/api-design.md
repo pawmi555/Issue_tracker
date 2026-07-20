@@ -913,12 +913,12 @@ newValue: "IN_PROGRESS"
 
 ## ProjectRole
 
-| name    | 説明                          |
-| ------- | ----------------------------- |
-| OWNER   | プロジェクト作成者。全権限    |
-| MANAGER | メンバー管理・Issue管理が可能 |
-| MEMBER  | Issue作成・更新・コメント可能 |
-| VIEWER  | 閲覧のみ                      |
+| name    | 説明                                   |
+| ------- | -------------------------------------- |
+| OWNER   | プロジェクトの最高権限。複数人設定可能 |
+| MANAGER | メンバー管理・Issue管理が可能          |
+| MEMBER  | Issue作成・更新・コメント可能          |
+| VIEWER  | 閲覧のみ                               |
 
 ---
 
@@ -1576,15 +1576,24 @@ data : UserDto
 
 ## 10.3 Project API
 
+### Project作成者とOWNERの定義
+
+- `ownerId` はProjectを最初に作成したユーザーを表す
+- `ownerId` はProject作成後に変更しない
+- Projectに対する実際の操作権限は、ProjectMemberに設定されたProjectRoleによって判定する
+- ProjectRoleがOWNERのメンバーは複数人設定できる
+- `ownerId` のユーザーと、ProjectRoleがOWNERのユーザーは必ずしも一致しない
+
 ### 10.3.1 プロジェクト作成
 
 ### POST `/projects`
 
 #### 制約
 
-- ownerId = ログインユーザー
-- Project作成時に、作成者をProjectMemberへOWNER権限で自動追加
-- 同一ユーザー内でproject.nameは一意
+- `ownerId` にはログインユーザーのIDを設定する
+- Project作成時に、作成者をProjectMemberへOWNERとして自動追加する
+- `ownerId` はProject作成後に変更しない
+- 同一ユーザーが作成したProject内で、Project名は一意である
 
 #### Request
 
@@ -1856,10 +1865,12 @@ data : ProjectDto
 
 #### 制約
 
-- userは存在必須
-- ログインユーザーが対象ProjectのMANAGER以上であること
-- 追加対象ユーザーは未所属であること
-- UNIQUE(projectId, userId)
+- 追加対象ユーザーが存在し、削除されていないこと
+- 操作ユーザーが対象ProjectのMANAGER以上、またはUserRoleがADMINであること
+- MANAGERが指定できるProjectRoleはVIEWER・MEMBER・MANAGERのみ
+- OWNERを指定できるのは、対象ProjectのOWNERまたはUserRoleがADMINの場合のみ
+- 追加対象ユーザーが対象Projectに所属していないこと
+- `(projectId, userId)` は一意であること
 
 #### Request
 
@@ -1941,10 +1952,14 @@ data : ProjectMemberDto[]
 
 #### 制約
 
+- 変更対象ユーザーが対象Projectに所属していること
+- 操作ユーザーが対象ProjectのMANAGER以上、またはUserRoleがADMINであること
+- MANAGERはVIEWER・MEMBER・MANAGER間のみ変更可能
+- MANAGERはOWNERのProjectRoleを変更できない
+- OWNERへの変更は、対象ProjectのOWNERまたはUserRoleがADMINの場合のみ可能
+- OWNERのProjectRoleを変更できるのは、対象ProjectのOWNERまたはUserRoleがADMINの場合のみ
 - OWNERは最低1人必要
-- 最後のOWNER降格禁止
-- OWNER権限付与はOWNERのみ
-- ログインユーザーが対象ProjectのMANAGER以上であること
+- 最後のOWNERは他のProjectRoleへ変更できない
 
 #### Request
 
