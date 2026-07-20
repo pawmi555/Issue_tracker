@@ -1914,7 +1914,7 @@ data : ProjectMemberDto
 
 #### 制約
 
-- ログインユーザーが対象ProjectのMANAGER以上であること
+- 操作ユーザーが対象ProjectのMANAGER以上であること
 
 ### Response DTO
 
@@ -2004,10 +2004,9 @@ data : ProjectMemberDto
 
 #### 制約
 
-- ログインユーザーが対象ProjectのMANAGER以上であること
-- OWNERメンバーの削除はOWNERのみ可能
+- 操作ユーザーが対象ProjectのOWNER、またはUserRoleがADMINであること
 - OWNERは最低1人必要
-- 最後のOWNER削除禁止
+- 最後のOWNER削除できない
 - 物理削除
 
 #### Response
