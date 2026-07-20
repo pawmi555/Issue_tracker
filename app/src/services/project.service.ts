@@ -110,11 +110,6 @@ const getMemberManagementActorRole = async ({
     throw new AppError("User not found", 401, "USER_NOT_FOUND");
   }
 
-  // projectRoleMiddlewareの既存仕様と合わせる
-  if (actorUser.role.name === "ADMIN") {
-    return "OWNER";
-  }
-
   const actorMember = await tx.projectMember.findUnique({
     where: {
       projectId_userId: {

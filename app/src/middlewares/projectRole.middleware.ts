@@ -20,8 +20,6 @@ type ProjectRoleName = keyof typeof ROLE_HIERARCHY;
  * 指定されたProject Role以上の権限を持つユーザーのみ
  * アクセスを許可する。
  *
- * ADMINユーザーは常に許可される。
- *
  * 認証確認、
  * Project参加確認、
  * Project削除状態確認、
@@ -75,11 +73,6 @@ export const projectRoleMiddleware =
           code: "USER_NOT_FOUND",
           message: "ユーザーが見つかりません",
         });
-      }
-
-      // ADMINはProject権限チェックをスキップ
-      if (currentUser.role.name === "ADMIN") {
-        return next();
       }
 
       // 対象プロジェクトに所属しているか
