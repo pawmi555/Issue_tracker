@@ -2013,7 +2013,7 @@ data : ProjectMemberDto
 
 - ProjectRoleがMEMBER以上の場合のみ作成可能
 - projectメンバーのみ
-- 担当者はメンバー限定
+- 担当者は対象プロジェクトに所属かつProjectRoleがMEMBER以上
 - priority/status存在チェック
 - 作成時statusはOPEN固定
 - RequestでstatusId指定不可
