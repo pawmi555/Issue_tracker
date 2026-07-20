@@ -20,6 +20,13 @@ import IssueList from "../features/issue/components/IssueList";
 import { useIssues } from "../features/issue/hooks/useIssues";
 import { useProject } from "../features/project/hooks/useProject";
 
+import {
+  getProjectRole,
+  hasProjectRole,
+} from "../features/project/utils/projectPermissions";
+
+import { useAuthStore } from "../stores/auth.store";
+
 import { getApiError } from "../utils/getApiError";
 
 const PAGE_LIMIT = 20;
@@ -37,6 +44,8 @@ export default function IssuesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const projectQuery = useProject(parsedProjectId);
+
+  const user = useAuthStore((state) => state.user);
 
   const issuesQuery = useIssues({
     projectId: parsedProjectId,
@@ -85,6 +94,8 @@ export default function IssuesPage() {
   }
 
   const project = projectQuery.data;
+  const currentRole = user ? getProjectRole(project, user.id) : null;
+  const canCreateIssue = hasProjectRole(currentRole, "MEMBER");
   const issues = issuesQuery.data?.data ?? [];
   const meta = issuesQuery.data?.meta;
 
@@ -114,14 +125,16 @@ export default function IssuesPage() {
             </Typography>
           </div>
 
-          <Button
-            variant="contained"
-            onClick={() => {
-              setIsCreateOpen(true);
-            }}
-          >
-            Issueを作成
-          </Button>
+          {canCreateIssue && (
+            <Button
+              variant="contained"
+              onClick={() => {
+                setIsCreateOpen(true);
+              }}
+            >
+              Issueを作成
+            </Button>
+          )}
         </Stack>
 
         <IssueFilters
@@ -164,15 +177,16 @@ export default function IssuesPage() {
           />
         )}
       </Stack>
-
-      <CreateIssueDialog
-        projectId={project.id}
-        members={project.members}
-        open={isCreateOpen}
-        onClose={() => {
-          setIsCreateOpen(false);
-        }}
-      />
+      {canCreateIssue && (
+        <CreateIssueDialog
+          projectId={project.id}
+          members={project.members}
+          open={isCreateOpen}
+          onClose={() => {
+            setIsCreateOpen(false);
+          }}
+        />
+      )}
     </Container>
   );
 }

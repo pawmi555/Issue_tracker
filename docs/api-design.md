@@ -2013,7 +2013,7 @@ data : ProjectMemberDto
 
 - ProjectRoleがMEMBER以上の場合のみ作成可能
 - projectメンバーのみ
-- assigneeはメンバー限定
+- 担当者はメンバー限定
 - priority/status存在チェック
 - 作成時statusはOPEN固定
 - RequestでstatusId指定不可
@@ -2157,7 +2157,7 @@ data : IssueDto
 
 #### 制約
 
-- assigneeまたはProjectRoleがMANAGER以上の場合のみ更新可能
+- 対象Issueの担当者かつProjectRoleがMEMBER以上、またはProjectRoleがMANAGER以上の場合のみ更新可能
 - statusがCLOSEDは更新不可
 - reporterId変更不可
 - status更新時は「Issue状態遷移」に従う

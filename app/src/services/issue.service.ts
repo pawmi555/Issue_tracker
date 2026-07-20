@@ -63,6 +63,17 @@ export const createIssueService = async ({
       throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
     }
 
+    const roleName = member.role.name;
+
+    if (!isProjectRoleName(roleName)) {
+      throw new AppError("invalid role", 500, "INVALID_ROLE");
+    }
+
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MEMBER",
+    });
+
     // 削除済みProjectは操作不可
     if (member.project.deletedAt) {
       throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
@@ -324,6 +335,11 @@ export const updateIssueService = async ({
     if (!isProjectRoleName(roleName)) {
       throw new AppError("invalid role", 500, "INVALID_ROLE");
     }
+
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MEMBER",
+    });
 
     const isAssignee = issue.assigneeId === userId;
 

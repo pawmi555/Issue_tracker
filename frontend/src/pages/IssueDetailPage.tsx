@@ -105,7 +105,10 @@ export default function IssueDetailPage() {
 
   const isAssignee = user?.id === issue.assignee?.id;
 
-  const canUpdate = isAssignee || hasProjectRole(currentRole, "MANAGER");
+  const isMemberOrAbove = hasProjectRole(currentRole, "MEMBER");
+
+  const canUpdate =
+    isMemberOrAbove && (isAssignee || hasProjectRole(currentRole, "MANAGER"));
 
   const canDelete = hasProjectRole(currentRole, "MANAGER");
 
