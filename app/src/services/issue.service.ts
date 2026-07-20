@@ -63,16 +63,38 @@ export const createIssueService = async ({
       throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
     }
 
-    const roleName = member.role.name;
+    if (data.assigneeId !== undefined) {
+      const assigneeMember = await tx.projectMember.findUnique({
+        where: {
+          projectId_userId: {
+            projectId,
+            userId: data.assigneeId,
+          },
+        },
+        include: {
+          role: true,
+        },
+      });
 
-    if (!isProjectRoleName(roleName)) {
-      throw new AppError("invalid role", 500, "INVALID_ROLE");
+      if (!assigneeMember) {
+        throw new AppError(
+          "assignee not project member",
+          403,
+          "ASSIGNEE_NOT_PROJECT_MEMBER",
+        );
+      }
+
+      const assigneeRoleName = assigneeMember.role.name;
+
+      if (!isProjectRoleName(assigneeRoleName)) {
+        throw new AppError("invalid role", 500, "INVALID_ROLE");
+      }
+
+      assertProjectRole({
+        memberRole: assigneeRoleName,
+        minimumRole: "MEMBER",
+      });
     }
-
-    assertProjectRole({
-      memberRole: roleName,
-      minimumRole: "MEMBER",
-    });
 
     // 削除済みProjectは操作不可
     if (member.project.deletedAt) {
@@ -350,22 +372,39 @@ export const updateIssueService = async ({
       });
     }
 
-    // Assignee所属確認
+    // Assignee所属・権限確認
     if (data.assigneeId !== undefined && data.assigneeId !== null) {
-      const assignee = await tx.projectMember.findUnique({
+      const assigneeMember = await tx.projectMember.findUnique({
         where: {
           projectId_userId: {
             projectId: issue.projectId,
             userId: data.assigneeId,
           },
         },
+        include: {
+          role: true,
+        },
       });
 
-      if (!assignee) {
+      if (!assigneeMember) {
         throw new AppError(
           "assignee not project member",
           400,
           "ASSIGNEE_NOT_PROJECT_MEMBER",
+        );
+      }
+
+      const assigneeRoleName = assigneeMember.role.name;
+
+      if (!isProjectRoleName(assigneeRoleName)) {
+        throw new AppError("invalid role", 500, "INVALID_ROLE");
+      }
+
+      if (assigneeRoleName === "VIEWER") {
+        throw new AppError(
+          "assignee must have MEMBER role or higher",
+          400,
+          "ASSIGNEE_ROLE_FORBIDDEN",
         );
       }
     }
