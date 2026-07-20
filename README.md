@@ -224,6 +224,16 @@ Project Role:
 
 ユーザー権限だけではなく、プロジェクト単位でアクセス制御を行っています。
 
+### ADMINとProject権限
+
+システムロールがADMINであっても、Project内の操作には
+対象Projectへの所属が必要です。
+
+Project内の実際の操作権限は、
+ProjectMemberに設定されたProjectRoleによって判定します。
+
+ADMINはProjectRoleによる認可をスキップしません。
+
 # 6. Database Design
 
 ```mermaid

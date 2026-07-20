@@ -109,6 +109,34 @@ Access-Control-Allow-Credentials: true
 
 ---
 
+## 認可
+
+本APIでは、システム単位とProject単位でロールを分けて管理する。
+
+### システムロール
+
+- ADMIN
+- USER
+
+### Projectロール
+
+- OWNER
+- MANAGER
+- MEMBER
+- VIEWER
+
+### ADMINとProject権限
+
+システムロールがADMINであっても、Project内の操作には
+対象Projectへの所属が必要である。
+
+Project内の実際の操作権限は、
+ProjectMemberに設定されたProjectRoleによって判定する。
+
+ADMINはProjectRoleによる認可をスキップしない。
+
+---
+
 ## Response DTO
 
 APIレスポンスはDTOを返却する。
