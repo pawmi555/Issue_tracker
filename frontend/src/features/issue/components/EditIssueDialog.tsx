@@ -23,6 +23,7 @@ import { ISSUE_PRIORITIES } from "../constants/issue.constants";
 import { useUpdateIssue } from "../hooks/useUpdateIssue";
 import { getNextIssueStatus } from "../utils/issueStatus";
 import { toDateTimeLocalValue, toIsoDateOrUndefined } from "../utils/issueDate";
+import { getAssignableProjectMembers } from "../../project/utils/projectPermissions";
 
 type EditIssueFormValues = {
   title: string;
@@ -46,6 +47,8 @@ export default function EditIssueDialog({
   onClose,
 }: EditIssueDialogProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const assignableMembers = getAssignableProjectMembers(members);
 
   const updateMutation = useUpdateIssue();
 
@@ -171,7 +174,7 @@ export default function EditIssueDialog({
           >
             <MenuItem value="">未割り当て</MenuItem>
 
-            {members.map((member) => (
+            {assignableMembers.map((member) => (
               <MenuItem key={member.user.id} value={member.user.id}>
                 {member.user.name}
               </MenuItem>

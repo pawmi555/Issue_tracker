@@ -14,6 +14,8 @@ import {
 
 import type { ProjectMember } from "../../project/types/project.types";
 
+import { getAssignableProjectMembers } from "../../project/utils/projectPermissions";
+
 type IssueFormProps = {
   members: ProjectMember[];
   defaultValues?: IssueFormInput;
@@ -39,6 +41,8 @@ export default function IssueForm({
   onSubmit,
   onCancel,
 }: IssueFormProps) {
+  const assignableMembers = getAssignableProjectMembers(members);
+
   const {
     register,
     handleSubmit,
@@ -103,7 +107,7 @@ export default function IssueForm({
       >
         <MenuItem value="">未割り当て</MenuItem>
 
-        {members.map((member) => (
+        {assignableMembers.map((member) => (
           <MenuItem key={member.user.id} value={member.user.id}>
             {member.user.name}
           </MenuItem>

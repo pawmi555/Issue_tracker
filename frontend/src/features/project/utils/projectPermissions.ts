@@ -1,4 +1,8 @@
-import type { Project, ProjectRoleName } from "../types/project.types";
+import type {
+  Project,
+  ProjectMember,
+  ProjectRoleName,
+} from "../types/project.types";
 
 const roleLevels: Record<ProjectRoleName, number> = {
   VIEWER: 1,
@@ -25,4 +29,13 @@ export const hasProjectRole = (
   }
 
   return roleLevels[currentRole] >= roleLevels[requiredRole];
+};
+
+export const getAssignableProjectMembers = (
+  members: ProjectMember[],
+): ProjectMember[] => {
+  return members.filter(
+    (member) =>
+      !member.user.deletedAt && hasProjectRole(member.role.name, "MEMBER"),
+  );
 };
