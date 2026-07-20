@@ -932,10 +932,10 @@ newValue: "IN_PROGRESS"
 
 ## UserRole
 
-| name  | 説明                                             |
-| ----- | ------------------------------------------------ |
-| ADMIN | 管理者。全ユーザー管理・全プロジェクト管理が可能 |
-| USER  | 一般ユーザー                                     |
+| name  | 説明                                                                                 |
+| ----- | ------------------------------------------------------------------------------------ |
+| ADMIN | システム管理者。ユーザー管理が可能。Project内の操作権限はProjectRoleによって判定する |
+| USER  | 一般ユーザー。Project内の操作権限はProjectRoleによって判定する                       |
 
 ---
 
@@ -1745,7 +1745,7 @@ meta : PaginationMetaDto
 
 #### 制約
 
-- ProjectRoleがMEMBER以上のみ詳細取得可能
+- 操作ユーザーが対象ProjectのVIEWER以上であること
 
 #### Response DTO
 
@@ -1894,9 +1894,9 @@ data : ProjectDto
 #### 制約
 
 - 追加対象ユーザーが存在し、削除されていないこと
-- 操作ユーザーが対象ProjectのMANAGER以上、またはUserRoleがADMINであること
+- 操作ユーザーが対象ProjectのMANAGER以上であること
 - MANAGERが指定できるProjectRoleはVIEWER・MEMBER・MANAGERのみ
-- OWNERを指定できるのは、対象ProjectのOWNERまたはUserRoleがADMINの場合のみ
+- OWNERを指定できるのは、対象ProjectのOWNERのみ
 - 追加対象ユーザーが対象Projectに所属していないこと
 - `(projectId, userId)` は一意であること
 
@@ -1981,11 +1981,11 @@ data : ProjectMemberDto[]
 #### 制約
 
 - 変更対象ユーザーが対象Projectに所属していること
-- 操作ユーザーが対象ProjectのMANAGER以上、またはUserRoleがADMINであること
+- 操作ユーザーが対象ProjectのMANAGER以上であること
 - MANAGERはVIEWER・MEMBER・MANAGER間のみ変更可能
 - MANAGERはOWNERのProjectRoleを変更できない
-- OWNERへの変更は、対象ProjectのOWNERまたはUserRoleがADMINの場合のみ可能
-- OWNERのProjectRoleを変更できるのは、対象ProjectのOWNERまたはUserRoleがADMINの場合のみ
+- OWNERへの変更は、対象ProjectのOWNERのみ可能
+- OWNERのProjectRoleを変更できるのは、対象ProjectのOWNERの場合のみ
 - OWNERは最低1人必要
 - 最後のOWNERは他のProjectRoleへ変更できない
 
@@ -2032,7 +2032,7 @@ data : ProjectMemberDto
 
 #### 制約
 
-- 操作ユーザーが対象ProjectのOWNER、またはUserRoleがADMINであること
+- 操作ユーザーが対象ProjectのOWNERであること
 - OWNERは最低1人必要
 - 最後のOWNER削除できない
 - 物理削除

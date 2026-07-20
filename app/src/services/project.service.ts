@@ -80,8 +80,8 @@ type RemoveMemberInput = {
 /**
  * メンバー管理を行うユーザーのProjectRoleを取得する
  *
- * ADMINは既存仕様に合わせてOWNER相当として扱う。
- * ADMIN以外は対象ProjectのMANAGER以上を要求する。
+ * システムロールにかかわらず、
+ * 対象Projectへの所属とMANAGER以上のProjectRoleを要求する。
  */
 const getMemberManagementActorRole = async ({
   tx,
