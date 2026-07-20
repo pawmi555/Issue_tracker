@@ -30,6 +30,11 @@ export const seedUsers = async () => {
       roleId: adminRole.id,
     },
     {
+      name: "Non-member Admin User",
+      email: "admin-outsider@example.com",
+      roleId: adminRole.id,
+    },
+    {
       name: "Owner User",
       email: "owner@example.com",
       roleId: userRole.id,
