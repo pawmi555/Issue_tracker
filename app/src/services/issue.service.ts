@@ -44,7 +44,7 @@ export const createIssueService = async ({
   userId,
   data,
 }: CreateIssueInput) => {
-  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Project参加確認
     const member = await tx.projectMember.findUnique({
       where: {
@@ -63,6 +63,24 @@ export const createIssueService = async ({
       throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
     }
 
+    // 削除済みProjectは操作不可
+    if (member.project.deletedAt) {
+      throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
+    }
+
+    // Issue作成者の権限確認
+    const creatorRoleName = member.role.name;
+
+    if (!isProjectRoleName(creatorRoleName)) {
+      throw new AppError("invalid role", 500, "INVALID_ROLE");
+    }
+
+    assertProjectRole({
+      memberRole: creatorRoleName,
+      minimumRole: "MEMBER",
+    });
+
+    // 担当者の所属・権限確認
     if (data.assigneeId !== undefined) {
       const assigneeMember = await tx.projectMember.findUnique({
         where: {
@@ -79,7 +97,7 @@ export const createIssueService = async ({
       if (!assigneeMember) {
         throw new AppError(
           "assignee not project member",
-          403,
+          400,
           "ASSIGNEE_NOT_PROJECT_MEMBER",
         );
       }
@@ -90,33 +108,11 @@ export const createIssueService = async ({
         throw new AppError("invalid role", 500, "INVALID_ROLE");
       }
 
-      assertProjectRole({
-        memberRole: assigneeRoleName,
-        minimumRole: "MEMBER",
-      });
-    }
-
-    // 削除済みProjectは操作不可
-    if (member.project.deletedAt) {
-      throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
-    }
-
-    // Assignee所属確認
-    if (data.assigneeId !== undefined) {
-      const assigneeMember = await tx.projectMember.findUnique({
-        where: {
-          projectId_userId: {
-            projectId,
-            userId: data.assigneeId,
-          },
-        },
-      });
-
-      if (!assigneeMember) {
+      if (assigneeRoleName === "VIEWER") {
         throw new AppError(
-          "assignee not project member",
-          403,
-          "ASSIGNEE_NOT_PROJECT_MEMBER",
+          "assignee must have MEMBER role or higher",
+          400,
+          "ASSIGNEE_ROLE_FORBIDDEN",
         );
       }
     }
@@ -145,7 +141,6 @@ export const createIssueService = async ({
         assigneeId: data.assigneeId,
         dueDate: data.dueDate,
       },
-
       select: issueDtoSelect,
     });
 
