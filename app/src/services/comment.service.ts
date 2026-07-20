@@ -379,13 +379,11 @@ export const deleteCommentService = async ({
   const isAuthor = comment.userId === userId;
 
   if (!isAuthor) {
-    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MANAGER",
+    });
   }
-
-  assertProjectRole({
-    memberRole: roleName,
-    minimumRole: "MANAGER",
-  });
 
   // Commentソフトデリート実行
   const deletedComment = await prisma.comment.updateMany({
