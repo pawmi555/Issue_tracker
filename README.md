@@ -76,6 +76,11 @@ Project Role:
 - Include Query
 - Validation
 
+### Deleted Data Management
+
+削除済みデータの取得・復元APIは実装済みです。
+フロントエンドの削除済みデータ管理画面は、初期リリースの対応範囲に含めていません。
+
 # 3. Tech Stack
 
 ## Backend
