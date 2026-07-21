@@ -1,0 +1,6 @@
+# Shell scripts must use LF line endings in Linux containers
+*.sh text eol=lf
+
+# Keep Docker-related files as text
+Dockerfile text eol=lf
+*.dockerfile text eol=lf
