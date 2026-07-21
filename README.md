@@ -598,6 +598,8 @@ Tool:
 Test Coverage:
 
 Postman Collection:
+
+```text
 Issue Tracker Collection
 │
 ├ 00 Setup
@@ -632,6 +634,7 @@ Issue Tracker Collection
 │
 └ 04 Histories
 └ Issue History
+```
 
 ## Tested Scenarios
 
@@ -671,6 +674,7 @@ Token更新
 - Node.js v22 LTS
 - Docker
 - Docker Compose
+- Git
 
 ## Development Environment
 
@@ -684,31 +688,59 @@ Token更新
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/pawmi555/Issue_tracker
+git clone https://github.com/pawmi555/Issue_tracker.git
+cd Issue_tracker
 ```
 
-### 2. Create environment file
+### 2. Create environment files
 
-Copy `.env.example` to `.env`.
+バックエンドとフロントエンドの環境変数ファイルを作成します。
 
-### 3. Update environment variables
+#### PowerShell
 
-Edit `.env` and set the required values.
+```powershell
+Copy-Item app/.env.example app/.env
+Copy-Item frontend/.env.example frontend/.env
+```
 
-### 4. Start Docker
+#### macOS / Linux / Git Bash
 
 ```bash
+cp app/.env.example app/.env
+cp frontend/.env.example frontend/.env
+```
 
-cd Issue_tracker
+必要に応じて、作成した`.env`の値を変更してください。
 
-docker compose -f docker/docker-compose.dev.yml up -d
+### 3. Build and start containers
 
-docker compose -f docker/docker-compose.dev.yml exec app npm install
+```bash
+docker compose -f docker/docker-compose.dev.yml up --build -d
+```
 
-docker compose -f docker/docker-compose.dev.yml exec app npm run migrate:dev
+バックエンドの起動時に、Prisma Migrationが自動的に実行されます。
 
+### 4. Insert development seed data
+
+```bash
 docker compose -f docker/docker-compose.dev.yml exec app npm run db:seed
+```
 
+### 5. Check containers
+
+```bash
+docker compose -f docker/docker-compose.dev.yml ps
+```
+
+次のURLへアクセスします。
+
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:3000/api/v1`
+
+### 6. Stop containers
+
+```bash
+docker compose -f docker/docker-compose.dev.yml down
 ```
 
 # 12. Future Improvements
