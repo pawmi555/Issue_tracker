@@ -15,6 +15,9 @@ echo "Running Prisma migrations..."
 npx prisma migrate deploy
 
 if [ "$NODE_ENV" = "production" ]; then
+    echo "Running required master seed..."
+    npm run db:seed:master
+
     echo "Starting production server..."
     exec npm start
 else
