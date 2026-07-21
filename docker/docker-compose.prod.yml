@@ -23,9 +23,8 @@ services:
       db:
         condition: service_healthy
 
-    # Dockerネットワーク内のみ公開
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
 
     command: /docker-entrypoint.sh
 
@@ -38,6 +37,8 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile.prod
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
 
     image: issue-tracker-frontend:latest
 
@@ -48,7 +49,7 @@ services:
         condition: service_started
 
     ports:
-      - "80:80"
+      - "8080:80"
 
     restart: unless-stopped
 

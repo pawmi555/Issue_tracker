@@ -4,6 +4,7 @@
 app/.env
 app/.env.*
 !app/.env.example
+!app/.env.production.example
 
 frontend/.env
 frontend/.env.*

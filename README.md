@@ -683,8 +683,6 @@ Token更新
 - Prettierによるコードフォーマット統一
 - Docker Composeによる開発環境構築
 
-## Setup
-
 ### 1. Clone repository
 
 ```bash
@@ -742,6 +740,211 @@ docker compose -f docker/docker-compose.dev.yml ps
 ```bash
 docker compose -f docker/docker-compose.dev.yml down
 ```
+
+## Production-like Environment
+
+Docker Composeを使用して、本番用Dockerfileによる動作をローカルで確認できます。
+
+この構成では、フロントエンドをNginxで配信し、バックエンド起動時にPrisma Migrationと必須マスターデータの投入を実行します。
+
+### 1. Create the production environment file
+
+サンプルファイルをコピーして、本番相当環境用の環境変数ファイルを作成します。
+
+#### PowerShell
+
+```powershell
+Copy-Item app/.env.production.example app/.env.production
+```
+
+#### macOS / Linux / Git Bash
+
+```bash
+cp app/.env.production.example app/.env.production
+```
+
+`app/.env.production`の例：
+
+```dotenv
+NODE_ENV=production
+
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=change_me
+POSTGRES_DB=issue_prod_db
+DATABASE_URL=postgresql://postgres:change_me@db:5432/issue_prod_db
+
+JWT_SECRET=replace_with_a_long_random_secret
+JWT_REFRESH_SECRET=replace_with_another_long_random_secret
+
+PORT=3000
+
+FRONTEND_URL=http://localhost:8080
+VITE_API_BASE_URL=http://localhost:3000/api/v1
+```
+
+実際のパスワードやJWT Secretは、十分に長いランダムな値へ変更してください。
+
+`app/.env.production`には秘密情報が含まれるため、Gitへコミットしないでください。
+
+### 2. Frontend API URL
+
+フロントエンドが接続するバックエンドAPIのURLは、`VITE_API_BASE_URL`で指定します。
+
+ローカルで本番相当環境を確認する場合：
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:3000/api/v1
+```
+
+`VITE_API_BASE_URL`は、フロントエンドのDockerイメージをビルドするときにViteによってJavaScriptへ埋め込まれます。
+
+そのため、値を変更した場合はフロントエンドイメージの再ビルドが必要です。
+
+```bash
+docker compose \
+  --env-file app/.env.production \
+  -f docker/docker-compose.prod.yml \
+  build --no-cache frontend
+```
+
+`VITE_API_BASE_URL`には、ブラウザからアクセス可能なURLを指定してください。
+
+次のようなDocker Compose内部のサービス名は、ブラウザから通常アクセスできないため指定しません。
+
+```dotenv
+# Do not use this URL from the browser
+VITE_API_BASE_URL=http://app:3000/api/v1
+```
+
+### 3. CORS configuration
+
+バックエンドが許可するフロントエンドのOriginは、`FRONTEND_URL`で指定します。
+
+ローカルでフロントエンドを`http://localhost:8080`に公開する場合：
+
+```dotenv
+FRONTEND_URL=http://localhost:8080
+```
+
+`FRONTEND_URL`とブラウザでアクセスするフロントエンドのOriginは一致させてください。
+
+| Environment variable | Purpose                                          | Local production-like value    |
+| -------------------- | ------------------------------------------------ | ------------------------------ |
+| `FRONTEND_URL`       | バックエンドがCORSで許可するフロントエンドOrigin | `http://localhost:8080`        |
+| `VITE_API_BASE_URL`  | ブラウザが接続するバックエンドAPIのBase URL      | `http://localhost:3000/api/v1` |
+
+### 4. Validate the Docker Compose configuration
+
+Docker Composeが環境変数を正しく読み込めることを確認します。
+
+```bash
+docker compose \
+  --env-file app/.env.production \
+  -f docker/docker-compose.prod.yml \
+  config
+```
+
+出力された設定で、フロントエンドのビルド引数が次のようになっていることを確認します。
+
+```yaml
+frontend:
+  build:
+    args:
+      VITE_API_BASE_URL: http://localhost:3000/api/v1
+```
+
+このコマンドの出力には環境変数の値が含まれることがあります。実行結果をIssueやREADMEへ貼り付ける場合は、秘密情報を削除してください。
+
+### 5. Build and start containers
+
+```bash
+docker compose \
+  --env-file app/.env.production \
+  -f docker/docker-compose.prod.yml \
+  up --build -d
+```
+
+バックエンドコンテナの起動時に、次の処理が順番に実行されます。
+
+1. PostgreSQLの接続待機
+2. Prisma Migrationの適用
+3. 必須マスターデータの投入
+4. バックエンドAPIの起動
+
+### 6. Check containers
+
+```bash
+docker compose \
+  --env-file app/.env.production \
+  -f docker/docker-compose.prod.yml \
+  ps
+```
+
+すべてのコンテナが起動していることを確認します。
+
+```text
+IssueTracker_db_prod         healthy
+IssueTracker_app_prod        running
+IssueTracker_frontend_prod   running
+```
+
+次のURLへアクセスします。
+
+- Frontend: `http://localhost:8080`
+- Backend API: `http://localhost:3000/api/v1`
+
+### 7. Verify the frontend API connection
+
+ブラウザで`http://localhost:8080`を開き、開発者ツールのNetworkタブでAPIのRequest URLを確認します。
+
+ログインAPIの期待URL：
+
+```text
+http://localhost:3000/api/v1/auth/login
+```
+
+確認項目：
+
+- ログインAPIのRequest URLが正しい
+- ログインAPIが`404 Not Found`にならない
+- ログイン後にバックエンドAPIへ接続できる
+- CORSエラーが発生しない
+- `/auth/me`が成功する
+- Project一覧APIが実行される
+
+ログイン前に有効なRefresh Token Cookieが存在しない場合、`POST /auth/refresh`が`401 Unauthorized`を返すことがあります。ログイン後のAPI通信が成功する場合、この初回の`401`は想定内です。
+
+### 8. Check backend logs
+
+```bash
+docker compose \
+  --env-file app/.env.production \
+  -f docker/docker-compose.prod.yml \
+  logs --tail=100 app
+```
+
+正常起動時には、次の処理が成功していることを確認します。
+
+```text
+Database is ready.
+No pending migrations to apply.
+Master seed completed.
+Database connected.
+Server started on port 3000
+```
+
+### 9. Stop containers
+
+```bash
+docker compose \
+  --env-file app/.env.production \
+  -f docker/docker-compose.prod.yml \
+  down
+```
+
+DBの永続ボリュームは通常の`down`では削除されません。
+
+ボリュームを削除すると本番相当環境のDBデータが失われるため、`down -v`はDBを初期化する必要がある場合に限って使用してください。
 
 # 12. Future Improvements
 
