@@ -893,7 +893,56 @@ IssueTracker_frontend_prod   running
 - Frontend: `http://localhost:8080`
 - Backend API: `http://localhost:3000/api/v1`
 
-### 7. Verify the frontend API connection
+### 7. Create a test user via API
+
+本番相当環境では、Master SeedによってRole、Project Role、Issue Statusなどの必須マスターデータのみを登録します。
+
+開発用Seedに含まれるテストユーザーやサンプルデータは登録されません。
+
+フロントエンドのユーザー登録画面は、現在の公開範囲には含まれていません。そのため、初回起動後にユーザー登録APIを使用して確認用ユーザーを作成してください。
+
+#### PowerShell
+
+```powershell
+$registerBody = @{
+  name = "Production Test User"
+  email = "prod-test@example.com"
+  password = "password123"
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+  -Uri "http://localhost:3000/api/v1/auth/register" `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body $registerBody
+```
+
+#### macOS / Linux / Git Bash
+
+```bash
+curl -X POST "http://localhost:3000/api/v1/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production Test User",
+    "email": "prod-test@example.com",
+    "password": "password123"
+  }'
+```
+
+登録に成功すると、作成したユーザーにはシステムロールの`USER`が自動的に設定されます。
+
+登録後、`http://localhost:8080`を開き、次の認証情報でログインしてください。
+
+```text
+Email: prod-test@example.com
+Password: password123
+```
+
+上記の認証情報は、ローカルの本番相当環境における動作確認専用です。実際の公開環境では、十分に安全なパスワードを使用してください。
+
+同じメールアドレスがすでに登録されている場合は、別のメールアドレスを使用するか、既存ユーザーでログインしてください。
+
+### 8. Verify the frontend API connection
 
 ブラウザで`http://localhost:8080`を開き、開発者ツールのNetworkタブでAPIのRequest URLを確認します。
 
@@ -914,7 +963,7 @@ http://localhost:3000/api/v1/auth/login
 
 ログイン前に有効なRefresh Token Cookieが存在しない場合、`POST /auth/refresh`が`401 Unauthorized`を返すことがあります。ログイン後のAPI通信が成功する場合、この初回の`401`は想定内です。
 
-### 8. Check backend logs
+### 9. Check backend logs
 
 ```bash
 docker compose \
@@ -933,7 +982,7 @@ Database connected.
 Server started on port 3000
 ```
 
-### 9. Stop containers
+### 10. Stop containers
 
 ```bash
 docker compose \
