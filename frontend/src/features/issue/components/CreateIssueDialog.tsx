@@ -39,8 +39,7 @@ export default function CreateIssueDialog({
           title: values.title,
           description: values.description || undefined,
           priorityId: values.priorityId,
-          assigneeId:
-            values.assigneeId === "" ? undefined : Number(values.assigneeId),
+          assigneeId: values.assigneeId,
           dueDate: toIsoDateOrUndefined(values.dueDate),
         },
       });

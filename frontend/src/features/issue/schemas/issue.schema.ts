@@ -18,11 +18,24 @@ export const issueFormSchema = z.object({
     })
     .trim(),
 
-  priorityId: z.coerce.number().int().positive({
-    error: "優先度を選択してください",
-  }),
+  priorityId: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.coerce
+      .number({
+        error: "優先度を選択してください",
+      })
+      .int({
+        error: "優先度を選択してください",
+      })
+      .positive({
+        error: "優先度を選択してください",
+      }),
+  ),
 
-  assigneeId: z.union([z.literal(""), z.coerce.number().int().positive()]),
+  assigneeId: z.preprocess(
+    (value) => (value === "" || value === undefined ? undefined : value),
+    z.coerce.number().int().positive().optional(),
+  ),
 
   dueDate: z.string(),
 });

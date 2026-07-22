@@ -25,7 +25,7 @@ type IssueFormProps = {
   onCancel: () => void;
 };
 
-const initialValues: IssueFormValues = {
+const initialValues: IssueFormInput = {
   title: "",
   description: "",
   priorityId: 2,
