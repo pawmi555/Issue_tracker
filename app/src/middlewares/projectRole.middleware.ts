@@ -14,6 +14,11 @@ const ROLE_HIERARCHY = {
 
 type ProjectRoleName = keyof typeof ROLE_HIERARCHY;
 
+type ProjectRoleMiddlewareOptions = {
+  allowDeletedWithIncludeQuery?: boolean;
+  deletedResourceRequiredRole?: ProjectRoleName;
+};
+
 /**
  * Project権限チェックMiddlewareを生成する
  *
@@ -27,9 +32,10 @@ type ProjectRoleName = keyof typeof ROLE_HIERARCHY;
  * ProjectMember情報をreq.projectMemberへ設定する。
  *
  * @param requiredRole 必要な最低権限
+ * @param options 削除済みProjectの参照設定
  */
 export const projectRoleMiddleware =
-  (requiredRole: ProjectRoleName) =>
+  (requiredRole: ProjectRoleName, options: ProjectRoleMiddlewareOptions = {}) =>
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const authUser = req.user;
@@ -109,16 +115,38 @@ export const projectRoleMiddleware =
         });
       }
 
+      const userRole = membership.role.name as ProjectRoleName;
+
+      const canAccessDeletedProject =
+        options.allowDeletedWithIncludeQuery === true &&
+        req.method === "GET" &&
+        req.query.includeDeleted === "true";
+
       // 論理削除済みプロジェクト確認
       if (membership.project.deletedAt) {
-        return res.status(404).json({
-          success: false,
-          code: "PROJECT_NOT_FOUND",
-          message: "プロジェクトが見つかりません",
-        });
-      }
+        if (!canAccessDeletedProject) {
+          return res.status(404).json({
+            success: false,
+            code: "PROJECT_NOT_FOUND",
+            message: "プロジェクトが見つかりません",
+          });
+        }
 
-      const userRole = membership.role.name as ProjectRoleName;
+        const deletedResourceRequiredRole =
+          options.deletedResourceRequiredRole ?? requiredRole;
+
+        const canAccessDeletedResource =
+          ROLE_HIERARCHY[userRole] >=
+          ROLE_HIERARCHY[deletedResourceRequiredRole];
+
+        if (!canAccessDeletedResource) {
+          return res.status(403).json({
+            success: false,
+            code: "INSUFFICIENT_PROJECT_ROLE",
+            message: "削除済みプロジェクトの参照権限なし",
+          });
+        }
+      }
 
       // ユーザー権限が要求権限以上か判定
       const hasPermission =

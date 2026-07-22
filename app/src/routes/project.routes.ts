@@ -45,7 +45,10 @@ router.get(
 router.get(
   "/:id",
   validate({ params: projectIdSchema, query: getProjectDetailSchema }),
-  projectRoleMiddleware("VIEWER"),
+  projectRoleMiddleware("VIEWER", {
+    allowDeletedWithIncludeQuery: true,
+    deletedResourceRequiredRole: "MANAGER",
+  }),
   asyncHandler(getProjectDetail),
 );
 

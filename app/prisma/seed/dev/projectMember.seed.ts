@@ -38,6 +38,13 @@ export const seedProjectMembers = async () => {
     },
   });
 
+  const deletedIssueTrackerProject = await prisma.project.findFirst({
+    where: {
+      name: "Issue Tracker Deleted",
+      ownerId: admin?.id,
+    },
+  });
+
   const ownerTestProject = await prisma.project.findFirst({
     where: {
       name: "Owner Test Project",
@@ -76,6 +83,7 @@ export const seedProjectMembers = async () => {
     !member ||
     !viewer ||
     !issueTrackerProject ||
+    !deletedIssueTrackerProject ||
     !ownerTestProject ||
     !ownerRole ||
     !managerRole ||
@@ -88,6 +96,11 @@ export const seedProjectMembers = async () => {
   const memberships = [
     {
       projectId: issueTrackerProject.id,
+      userId: admin.id,
+      roleId: ownerRole.id,
+    },
+    {
+      projectId: deletedIssueTrackerProject.id,
       userId: admin.id,
       roleId: ownerRole.id,
     },
