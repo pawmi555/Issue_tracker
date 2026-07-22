@@ -235,6 +235,13 @@ export const createProjectService = async ({
 
 /**
  * 自分が所属するProject一覧取得
+ *
+ * includeDeleted=false:
+ * - 所属している未削除Projectのみ取得する
+ *
+ * includeDeleted=true:
+ * - 未削除Projectは、所属していれば取得できる
+ * - 削除済みProjectは、MANAGERまたはOWNERとして所属している場合のみ取得できる
  */
 export const getProjectsService = async ({
   userId,
@@ -246,19 +253,45 @@ export const getProjectsService = async ({
     limit: query.limit,
   });
 
-  const where: Prisma.ProjectWhereInput = {
-    members: {
-      some: {
-        userId,
-      },
-    },
+  const where: Prisma.ProjectWhereInput = query.includeDeleted
+    ? {
+        OR: [
+          // 未削除Projectは、所属していればロールに関係なく取得可能
+          {
+            deletedAt: null,
+            members: {
+              some: {
+                userId,
+              },
+            },
+          },
 
-    ...(query.includeDeleted
-      ? {}
-      : {
-          deletedAt: null,
-        }),
-  };
+          // 削除済みProjectは、MANAGERまたはOWNERのみ取得可能
+          {
+            deletedAt: {
+              not: null,
+            },
+            members: {
+              some: {
+                userId,
+                role: {
+                  name: {
+                    in: ["MANAGER", "OWNER"],
+                  },
+                },
+              },
+            },
+          },
+        ],
+      }
+    : {
+        deletedAt: null,
+        members: {
+          some: {
+            userId,
+          },
+        },
+      };
 
   const [projects, total] = await Promise.all([
     prisma.project.findMany({

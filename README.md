@@ -81,6 +81,15 @@ Project Role:
 削除済みデータの取得・復元APIは実装済みです。
 フロントエンドの削除済みデータ管理画面は、初期リリースの対応範囲に含めていません。
 
+Project一覧では、`includeDeleted`の指定に応じて次のように取得対象を制御します。
+
+- `includeDeleted=false`または未指定の場合、所属する未削除Projectのみ取得します
+- `includeDeleted=true`の場合、所属する未削除Projectに加えて、MANAGERまたはOWNERとして所属する削除済みProjectを取得します
+- 削除済みProjectにMEMBERまたはVIEWERとして所属している場合、そのProjectは一覧に含まれません
+- システムロールがADMINでも、ProjectRoleによる認可をスキップしません
+
+削除済みIssue・Commentの取得、および削除済みIssueの復元は、対象ProjectのMANAGER以上に制限しています。
+
 # 3. Tech Stack
 
 ## Backend

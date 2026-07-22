@@ -110,7 +110,17 @@ export const seedProjectMembers = async () => {
       roleId: managerRole.id,
     },
     {
+      projectId: deletedIssueTrackerProject.id,
+      userId: manager.id,
+      roleId: managerRole.id,
+    },
+    {
       projectId: issueTrackerProject.id,
+      userId: member.id,
+      roleId: memberRole.id,
+    },
+    {
+      projectId: deletedIssueTrackerProject.id,
       userId: member.id,
       roleId: memberRole.id,
     },

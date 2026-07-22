@@ -1153,16 +1153,20 @@ Issue変更履歴を保持する。
 
 ### 制約
 
-- 明示的に指定しない限り`deletedAt = null`のデータのみ返却する
-- `includeDeleted=true`指定時は、削除済・未削除を区別せず返却する
-- 削除済データのみ取得する用途はサポートしない
-- includeDeletedは対象リソースのみに適用する（関連リソースへ伝播しない）
-- 親リソースが論理削除済の場合、その子リソースは参照不可
-- 詳細取得APIは`includeDeleted=true`指定時のみ削除済データ取得可能
-- 履歴（History）は監査目的のためSoft Delete対象外
-- UserリソースのincludeDeleted利用はADMINのみ許可
-- Project/Issue/CommentはMANAGER以上のみ利用可能
-- Paginationの `total` は取得対象条件適用後の件数を返却
+- 明示的に指定しない限り、`deletedAt = null`のデータのみ返却する
+- `includeDeleted=true`指定時は、権限条件を満たす削除済みデータを取得対象に含める
+- 削除済みデータのみを取得する用途はサポートしない
+- `includeDeleted`は対象リソースのみに適用し、関連リソースへ伝播しない
+- 親リソースが論理削除済みの場合、その子リソースは参照できない
+- 詳細取得APIでは、`includeDeleted=true`指定時のみ削除済みデータを取得できる
+- 履歴（History）は監査目的のため論理削除対象外とする
+- Userリソースの`includeDeleted`はADMINのみ利用できる
+- Issue・Commentの`includeDeleted`は、対象ProjectのMANAGER以上のみ利用できる
+- Project詳細で削除済みProjectを取得できるのは、対象ProjectのMANAGER以上とする
+- Project一覧では、所属する未削除Projectを取得対象とする
+- Project一覧で削除済みProjectを取得対象に含めるのは、対象ProjectにMANAGERまたはOWNERとして所属している場合に限る
+- システムロールがADMINでも、ProjectRoleによる認可をスキップしない
+- Paginationの`total`は、検索条件と権限条件を適用した後の件数を返す
 
 ### 一覧取得（デフォルト）
 
@@ -1177,8 +1181,38 @@ where: {
 
 ### 一覧取得（includeDeleted=true）
 
+Project一覧では、未削除Projectと削除済みProjectで取得条件が異なる。
+
+- 未削除Project：対象Projectに所属していれば取得可能
+- 削除済みProject：対象ProjectにMANAGER以上として所属している場合のみ取得可能
+
 ```ts
 where: {
+  OR: [
+    {
+      deletedAt: null,
+      members: {
+        some: {
+          userId,
+        },
+      },
+    },
+    {
+      deletedAt: {
+        not: null,
+      },
+      members: {
+        some: {
+          userId,
+          role: {
+            name: {
+              in: ["MANAGER", "OWNER"],
+            },
+          },
+        },
+      },
+    },
+  ];
 }
 ```
 
@@ -1205,16 +1239,16 @@ if (issue.project.deletedAt !== null) {
 
 ### API適用範囲
 
-| API                      | includeDeleted | 権限制御    |
-| ------------------------ | -------------- | ----------- |
-| GET /projects            | ○              | MANAGER以上 |
-| GET /projects/:id        | ○              | MANAGER以上 |
-| GET /projects/:id/issues | ○              | MANAGER以上 |
-| GET /issues/:id          | ○              | MANAGER以上 |
-| GET /issues/:id/comments | ○              | MANAGER以上 |
-| GET /users               | ○              | ADMIN       |
-| GET /histories           | ×              | 非対応      |
-|                          |                |             |
+| API                      | includeDeleted | 権限制御                                    |
+| ------------------------ | -------------- | ------------------------------------------- |
+| GET /projects            | ○              | 未削除：所属メンバー、削除済み：MANAGER以上 |
+| GET /projects/:id        | ○              | MANAGER以上                                 |
+| GET /projects/:id/issues | ○              | MANAGER以上                                 |
+| GET /issues/:id          | ○              | MANAGER以上                                 |
+| GET /issues/:id/comments | ○              | MANAGER以上                                 |
+| GET /users               | ○              | ADMIN                                       |
+| GET /histories           | ×              | 非対応                                      |
+|                          |                |                                             |
 
 ---
 
