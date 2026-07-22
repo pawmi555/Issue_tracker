@@ -180,6 +180,7 @@ export default function EditIssueDialog({
           <TextField
             label="優先度"
             select
+            defaultValue={issue.priority.id}
             {...register("priorityId", {
               valueAsNumber: true,
             })}
