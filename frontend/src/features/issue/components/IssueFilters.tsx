@@ -33,6 +33,11 @@ export default function IssueFilters({
         onChange={(event) => {
           onKeywordChange(event.target.value);
         }}
+        slotProps={{
+          htmlInput: {
+            maxLength: 100,
+          },
+        }}
         fullWidth
       />
 

@@ -12,7 +12,7 @@ import {
   TextField,
 } from "@mui/material";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import { getApiError } from "../../../utils/getApiError";
 
@@ -43,6 +43,7 @@ export default function EditCommentDialog({
   });
 
   const {
+    control,
     register,
     handleSubmit,
     reset,
@@ -53,6 +54,12 @@ export default function EditCommentDialog({
       content: "",
     },
   });
+
+  const content =
+    useWatch({
+      control,
+      name: "content",
+    }) ?? "";
 
   useEffect(() => {
     if (!comment) {
@@ -106,7 +113,7 @@ export default function EditCommentDialog({
           minRows={4}
           disabled={updateMutation.isPending}
           error={Boolean(errors.content)}
-          helperText={errors.content?.message}
+          helperText={errors.content?.message ?? `${content.length} / 1000文字`}
           sx={{ mt: 1 }}
           slotProps={{
             htmlInput: {

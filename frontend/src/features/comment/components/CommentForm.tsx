@@ -76,6 +76,11 @@ export default function CommentForm({
         disabled={disabled || createMutation.isPending}
         error={Boolean(errors.content)}
         helperText={errors.content?.message ?? `${content.length} / 1000文字`}
+        slotProps={{
+          htmlInput: {
+            maxLength: 1000,
+          },
+        }}
         {...register("content")}
       />
 

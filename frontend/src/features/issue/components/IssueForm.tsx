@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button, MenuItem, Stack, TextField } from "@mui/material";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import { ISSUE_PRIORITIES } from "../constants/issue.constants";
 
@@ -44,6 +44,7 @@ export default function IssueForm({
   const assignableMembers = getAssignableProjectMembers(members);
 
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
@@ -51,6 +52,18 @@ export default function IssueForm({
     resolver: zodResolver(issueFormSchema),
     defaultValues,
   });
+
+  const title =
+    useWatch({
+      control,
+      name: "title",
+    }) ?? "";
+
+  const description =
+    useWatch({
+      control,
+      name: "description",
+    }) ?? "";
 
   return (
     <Stack
@@ -64,8 +77,13 @@ export default function IssueForm({
         required
         fullWidth
         autoFocus
+        slotProps={{
+          htmlInput: {
+            maxLength: 255,
+          },
+        }}
         error={Boolean(errors.title)}
-        helperText={errors.title?.message}
+        helperText={errors.title?.message ?? `${title.length} / 255文字`}
         {...register("title")}
       />
 
@@ -81,7 +99,7 @@ export default function IssueForm({
         }}
         error={Boolean(errors.description)}
         helperText={
-          errors.description?.message ?? "5000文字以内で入力してください"
+          errors.description?.message ?? `${description.length} / 5000文字`
         }
         {...register("description")}
       />

@@ -3,12 +3,12 @@ import { z } from "zod";
 export const issueFormSchema = z.object({
   title: z
     .string()
+    .max(255, {
+      error: "タイトルは255文字以内で入力してください",
+    })
     .trim()
     .min(1, {
       error: "タイトルを入力してください",
-    })
-    .max(255, {
-      error: "タイトルは255文字以内で入力してください",
     }),
 
   description: z

@@ -12,7 +12,7 @@ import {
   TextField,
 } from "@mui/material";
 
-import { useForm, type SubmitHandler } from "react-hook-form";
+import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 
 import { getApiError } from "../../../utils/getApiError";
 
@@ -54,7 +54,7 @@ export default function EditIssueDialog({
 
   const nextStatus = getNextIssueStatus(issue.status.name);
 
-  const { register, handleSubmit } = useForm<EditIssueFormValues>({
+  const { control, register, handleSubmit } = useForm<EditIssueFormValues>({
     defaultValues: {
       title: issue.title,
       description: issue.description ?? "",
@@ -63,6 +63,18 @@ export default function EditIssueDialog({
       dueDate: toDateTimeLocalValue(issue.dueDate),
     },
   });
+
+  const title =
+    useWatch({
+      control,
+      name: "title",
+    }) ?? "";
+
+  const description =
+    useWatch({
+      control,
+      name: "description",
+    }) ?? "";
 
   const onSubmit: SubmitHandler<EditIssueFormValues> = async (values) => {
     setErrorMessage(null);
@@ -136,6 +148,12 @@ export default function EditIssueDialog({
           <TextField
             label="タイトル"
             required
+            helperText={`${title.length} / 255文字`}
+            slotProps={{
+              htmlInput: {
+                maxLength: 255,
+              },
+            }}
             {...register("title", {
               required: "タイトルを入力してください",
               maxLength: {
@@ -149,6 +167,13 @@ export default function EditIssueDialog({
             label="説明"
             multiline
             minRows={5}
+            helperText={`${description.length} / 5000文字`}
+            slotProps={{
+              htmlInput: {
+                maxLength: 5000,
+                message: "説明は5000文字以内で入力してください",
+              },
+            }}
             {...register("description")}
           />
 

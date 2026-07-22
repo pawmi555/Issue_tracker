@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Stack, TextField } from "@mui/material";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import {
   projectFormSchema,
@@ -28,6 +28,7 @@ export default function ProjectForm({
   onCancel,
 }: ProjectFormProps) {
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
@@ -35,6 +36,18 @@ export default function ProjectForm({
     resolver: zodResolver(projectFormSchema),
     defaultValues,
   });
+
+  const name =
+    useWatch({
+      control,
+      name: "name",
+    }) ?? "";
+
+  const description =
+    useWatch({
+      control,
+      name: "description",
+    }) ?? "";
 
   return (
     <Stack
@@ -49,7 +62,7 @@ export default function ProjectForm({
         required
         autoFocus
         error={Boolean(errors.name)}
-        helperText={errors.name?.message}
+        helperText={errors.name?.message ?? `${name.length} / 100文字`}
         slotProps={{
           htmlInput: {
             maxLength: 100,
@@ -65,7 +78,7 @@ export default function ProjectForm({
         minRows={4}
         error={Boolean(errors.description)}
         helperText={
-          errors.description?.message ?? "1000文字以内で入力してください"
+          errors.description?.message ?? `${description.length} / 1000文字`
         }
         slotProps={{
           htmlInput: {
