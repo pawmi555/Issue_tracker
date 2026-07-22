@@ -11,9 +11,12 @@ export const issueFormSchema = z.object({
       error: "タイトルは255文字以内で入力してください",
     }),
 
-  description: z.string().trim().max(5000, {
-    error: "説明は5000文字以内で入力してください",
-  }),
+  description: z
+    .string()
+    .max(5000, {
+      error: "説明は5000文字以内で入力してください",
+    })
+    .trim(),
 
   priorityId: z.coerce.number().int().positive({
     error: "優先度を選択してください",

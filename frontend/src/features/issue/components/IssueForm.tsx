@@ -74,6 +74,11 @@ export default function IssueForm({
         fullWidth
         multiline
         minRows={5}
+        slotProps={{
+          htmlInput: {
+            maxLength: 5000,
+          },
+        }}
         error={Boolean(errors.description)}
         helperText={
           errors.description?.message ?? "5000文字以内で入力してください"
