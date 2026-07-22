@@ -652,11 +652,13 @@ Issue Tracker Collection
 
 ### テスト実行前
 
-アプリケーション側でDBを初期化します。
+Postmanテストで使用する開発DBを初期化し、開発用Seedデータを登録します。
 
 ```bash
-npm run db:refresh
+docker compose -f docker/docker-compose.dev.yml exec app npm run db:fresh
 ```
+
+このコマンドは開発DBのデータを削除して再作成します。必要なデータが残っていないことを確認してから実行してください。
 
 テストでは正常系だけではなく、
 
@@ -801,10 +803,7 @@ VITE_API_BASE_URL=http://localhost:3000/api/v1
 そのため、値を変更した場合はフロントエンドイメージの再ビルドが必要です。
 
 ```bash
-docker compose \
-  --env-file app/.env.production \
-  -f docker/docker-compose.prod.yml \
-  build --no-cache frontend
+docker compose --env-file app/.env.production -f docker/docker-compose.prod.yml build --no-cache frontend
 ```
 
 `VITE_API_BASE_URL`には、ブラウザからアクセス可能なURLを指定してください。
@@ -838,10 +837,7 @@ FRONTEND_URL=http://localhost:8080
 Docker Composeが環境変数を正しく読み込めることを確認します。
 
 ```bash
-docker compose \
-  --env-file app/.env.production \
-  -f docker/docker-compose.prod.yml \
-  config
+docker compose --env-file app/.env.production -f docker/docker-compose.prod.yml config
 ```
 
 出力された設定で、フロントエンドのビルド引数が次のようになっていることを確認します。
@@ -858,10 +854,7 @@ frontend:
 ### 5. Build and start containers
 
 ```bash
-docker compose \
-  --env-file app/.env.production \
-  -f docker/docker-compose.prod.yml \
-  up --build -d
+docker compose --env-file app/.env.production -f docker/docker-compose.prod.yml up --build -d
 ```
 
 バックエンドコンテナの起動時に、次の処理が順番に実行されます。
@@ -874,10 +867,7 @@ docker compose \
 ### 6. Check containers
 
 ```bash
-docker compose \
-  --env-file app/.env.production \
-  -f docker/docker-compose.prod.yml \
-  ps
+docker compose --env-file app/.env.production -f docker/docker-compose.prod.yml ps
 ```
 
 すべてのコンテナが起動していることを確認します。
@@ -966,13 +956,18 @@ http://localhost:3000/api/v1/auth/login
 ### 9. Check backend logs
 
 ```bash
-docker compose \
-  --env-file app/.env.production \
-  -f docker/docker-compose.prod.yml \
-  logs --tail=100 app
+docker compose --env-file app/.env.production -f docker/docker-compose.prod.yml logs --tail=100 app
 ```
 
-正常起動時には、次の処理が成功していることを確認します。
+正常起動時には、次の処理がエラーなく完了していることを確認します。
+
+- PostgreSQLへの接続待機が完了している
+- Prisma Migrationが正常終了している
+- Master Seedが正常終了している
+- バックエンドがDBへ接続できている
+- バックエンドサーバーがポート3000で起動している
+
+Migration適用済みの場合のログ例：
 
 ```text
 Database is ready.
@@ -982,13 +977,12 @@ Database connected.
 Server started on port 3000
 ```
 
+新規DBでは、`No pending migrations to apply.`の代わりにMigrationの適用結果が表示されます。
+
 ### 10. Stop containers
 
 ```bash
-docker compose \
-  --env-file app/.env.production \
-  -f docker/docker-compose.prod.yml \
-  down
+docker compose --env-file app/.env.production -f docker/docker-compose.prod.yml down
 ```
 
 DBの永続ボリュームは通常の`down`では削除されません。
