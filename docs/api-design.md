@@ -1247,6 +1247,7 @@ if (issue.project.deletedAt !== null) {
 | GET /issues/:id          | ○              | MANAGER以上                                 |
 | GET /issues/:id/comments | ○              | MANAGER以上                                 |
 | GET /users               | ○              | ADMIN                                       |
+| GET /users/:id           | ○              | ADMIN                                       |
 | GET /histories           | ×              | 非対応                                      |
 |                          |                |                                             |
 
