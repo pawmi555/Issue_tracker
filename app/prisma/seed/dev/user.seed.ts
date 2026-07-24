@@ -80,4 +80,24 @@ export const seedUsers = async () => {
       },
     });
   }
+
+  // 論理削除済みUser取得の回帰テスト用
+  await prisma.user.upsert({
+    where: {
+      email: "deleted-user@example.com",
+    },
+    update: {
+      name: "Deleted Test User",
+      passwordHash,
+      roleId: userRole.id,
+      deletedAt: new Date(),
+    },
+    create: {
+      name: "Deleted Test User",
+      email: "deleted-user@example.com",
+      passwordHash,
+      roleId: userRole.id,
+      deletedAt: new Date(),
+    },
+  });
 };

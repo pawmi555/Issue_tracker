@@ -3,6 +3,8 @@ import { prisma } from "../../client.js";
 const INITIAL_TITLE = "Login Bug";
 const SEEDED_TITLE = "Login Bug - resolved";
 
+const DELETED_PROJECT_ISSUE_TITLE = "Issue in Deleted Project";
+
 export const seedIssues = async () => {
   const admin = await prisma.user.findUnique({
     where: {
@@ -10,23 +12,30 @@ export const seedIssues = async () => {
     },
   });
 
-  const reporter = admin;
-
   const assignee = await prisma.user.findUnique({
     where: {
       email: "user@example.com",
     },
   });
 
-  if (!admin || !reporter || !assignee) {
+  if (!admin || !assignee) {
     throw new Error("Required issue users not found.");
   }
 
-  const project = await prisma.project.findUnique({
+  const issueTrackerProject = await prisma.project.findUnique({
     where: {
       ownerId_name: {
         ownerId: admin.id,
         name: "Issue Tracker",
+      },
+    },
+  });
+
+  const deletedIssueTrackerProject = await prisma.project.findUnique({
+    where: {
+      ownerId_name: {
+        ownerId: admin.id,
+        name: "Issue Tracker Deleted",
       },
     },
   });
@@ -43,14 +52,22 @@ export const seedIssues = async () => {
     },
   });
 
-  if (!project || !openStatus || !highPriority) {
+  if (
+    !issueTrackerProject ||
+    !deletedIssueTrackerProject ||
+    !openStatus ||
+    !highPriority
+  ) {
     throw new Error("Required issue seed data not found.");
   }
 
+  /**
+   * 通常Project配下のIssue
+   */
   const existingIssue = await prisma.issue.findFirst({
     where: {
-      projectId: project.id,
-      reporterId: reporter.id,
+      projectId: issueTrackerProject.id,
+      reporterId: admin.id,
       title: {
         in: [INITIAL_TITLE, SEEDED_TITLE],
       },
@@ -68,7 +85,8 @@ export const seedIssues = async () => {
       data: {
         title: INITIAL_TITLE,
         description: "Cannot login with test account",
-        reporterId: reporter.id,
+        projectId: issueTrackerProject.id,
+        reporterId: admin.id,
         assigneeId: assignee.id,
         statusId: openStatus.id,
         priorityId: highPriority.id,
@@ -76,19 +94,69 @@ export const seedIssues = async () => {
         deletedAt: null,
       },
     });
-
-    return;
+  } else {
+    await prisma.issue.create({
+      data: {
+        title: INITIAL_TITLE,
+        description: "Cannot login with test account",
+        projectId: issueTrackerProject.id,
+        reporterId: admin.id,
+        assigneeId: assignee.id,
+        statusId: openStatus.id,
+        priorityId: highPriority.id,
+        dueDate: null,
+        deletedAt: null,
+      },
+    });
   }
 
-  await prisma.issue.create({
-    data: {
-      title: INITIAL_TITLE,
-      description: "Cannot login with test account",
-      projectId: project.id,
-      reporterId: reporter.id,
-      assigneeId: assignee.id,
-      statusId: openStatus.id,
-      priorityId: highPriority.id,
+  /**
+   * 削除済みProject配下のIssue
+   *
+   * Issue自体は未削除とする。
+   * 親Projectが削除済みの場合に、子リソースを参照できないことを
+   * 確認するための回帰テストデータ。
+   */
+  const existingDeletedProjectIssue = await prisma.issue.findFirst({
+    where: {
+      projectId: deletedIssueTrackerProject.id,
+      title: DELETED_PROJECT_ISSUE_TITLE,
+    },
+    orderBy: {
+      id: "asc",
     },
   });
+
+  if (existingDeletedProjectIssue) {
+    await prisma.issue.update({
+      where: {
+        id: existingDeletedProjectIssue.id,
+      },
+      data: {
+        title: DELETED_PROJECT_ISSUE_TITLE,
+        description: "Issue for deleted parent project regression testing",
+        projectId: deletedIssueTrackerProject.id,
+        reporterId: admin.id,
+        assigneeId: assignee.id,
+        statusId: openStatus.id,
+        priorityId: highPriority.id,
+        dueDate: null,
+        deletedAt: null,
+      },
+    });
+  } else {
+    await prisma.issue.create({
+      data: {
+        title: DELETED_PROJECT_ISSUE_TITLE,
+        description: "Issue for deleted parent project regression testing",
+        projectId: deletedIssueTrackerProject.id,
+        reporterId: admin.id,
+        assigneeId: assignee.id,
+        statusId: openStatus.id,
+        priorityId: highPriority.id,
+        dueDate: null,
+        deletedAt: null,
+      },
+    });
+  }
 };
