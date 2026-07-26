@@ -960,7 +960,10 @@ http://localhost:3000/api/v1/auth/login
 - `/auth/me`が成功する
 - Project一覧APIが実行される
 
-ログイン前に有効なRefresh Token Cookieが存在しない場合、`POST /auth/refresh`が`401 Unauthorized`を返すことがあります。ログイン後のAPI通信が成功する場合、この初回の`401`は想定内です。
+ログイン前に有効なRefresh Token Cookieが存在しない場合、`POST /auth/refresh`が`400 Bad Request`を返します。
+
+レスポンスのエラーコードが`TOKEN_REQUIRED`であり、
+ログイン後のAPI通信が成功する場合、この初回の`400`は想定内です。
 
 ### 9. Check backend logs
 
