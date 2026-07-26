@@ -28,7 +28,7 @@ type IssueFormProps = {
 const initialValues: IssueFormInput = {
   title: "",
   description: "",
-  priorityId: 2,
+  priorityId: "",
   assigneeId: "",
   dueDate: "",
 };
@@ -113,6 +113,10 @@ export default function IssueForm({
         helperText={errors.priorityId?.message}
         {...register("priorityId")}
       >
+        <MenuItem value="">
+          <em>選択してください</em>
+        </MenuItem>
+
         {ISSUE_PRIORITIES.map((priority) => (
           <MenuItem key={priority.id} value={priority.id}>
             {priority.label}
