@@ -23,6 +23,10 @@ Issue管理システムのREST API設計書。
 - Internal API
 - APIログ管理
 
+  | Middleware                | 役割                                                                               |
+  | ------------------------- | ---------------------------------------------------------------------------------- |
+  | `requestLoggerMiddleware` | requestId、HTTP Method、Path、User ID、Status、処理時間をAPI Logとして記録する予定 |
+
 ---
 
 # 2. 基本情報
@@ -91,14 +95,18 @@ Authorization: Bearer <access_token>
 
 ```txt
 Origin:
-http://localhost:3000
+http://localhost:5173
 ```
 
-#### Production
+#### Production / Production-like
+
+許可するOriginは、環境変数 `FRONTEND_URL` に設定したフロントエンドのOriginとする。
+
+ローカルの本番相当環境：
 
 ```txt
 Origin:
-https://app.example.com
+http://localhost:8080
 ```
 
 #### Server Setting
@@ -716,17 +724,16 @@ RESOURCE_REASON
 
 ## Middleware
 
-| Middleware              | 役割                    |
-| ----------------------- | ----------------------- |
-| authMiddleware          | JWT認証                 |
-| adminMiddleware         | ADMINのみ許可           |
-| userOwnerMiddleware     | 自分とADMINのみ許可     |
-| projectRoleMiddleware   | ProjectRole権限チェック |
-| requireRoleMiddleware   | RBAC認可                |
-| validateMiddleware      | Zod validation          |
-| requestLoggerMiddleware | APIログ                 |
-| errorMiddleware         | 共通エラーハンドリング  |
-| notFoundMiddleware      | 404エラー処理           |
+| Middleware                          | 役割                                                                                           |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `authMiddleware`                    | Bearer Access Tokenを検証し、Tokenに対応する未削除Userを認証ユーザーとして`req.user`へ設定する |
+| `adminMiddleware`                   | 未削除の認証ユーザーがシステムロール`ADMIN`であることを確認する                                |
+| `adminOrSelfMiddleware`             | 未削除の認証ユーザーがシステムロール`ADMIN`または対象ユーザー本人であることを確認する          |
+| `userDetailAuthorizationMiddleware` | User詳細取得を本人または`ADMIN`に制限し、`includeDeleted=true`は`ADMIN`のみに許可する          |
+| `projectRoleMiddleware`             | 未削除の認証ユーザーについて、対象Projectへの所属、Projectの削除状態、ProjectRoleを確認する    |
+| `validate`                          | Zod Schemaによって`params`、`query`、`body`を検証し、検証済みデータをRequestへ格納する         |
+| `errorMiddleware`                   | `AppError`、Zodエラー、予期しないエラーを共通のエラーレスポンスへ変換する                      |
+| `notFoundMiddleware`                | 定義されていないルートに`404 ROUTE_NOT_FOUND`を返す                                            |
 
 ---
 

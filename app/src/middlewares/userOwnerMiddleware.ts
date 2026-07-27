@@ -29,6 +29,14 @@ export const adminOrSelfMiddleware = async (
   const loginUserId = req.user?.id;
   const targetUserId = Number(req.params.id);
 
+  if (!loginUserId) {
+    return res.status(401).json({
+      success: false,
+      code: "UNAUTHORIZED",
+      message: "Unauthorized",
+    });
+  }
+
   if (Number.isNaN(targetUserId)) {
     return res.status(400).json({
       success: false,
@@ -37,12 +45,17 @@ export const adminOrSelfMiddleware = async (
     });
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.findFirst({
     where: {
       id: loginUserId,
+      deletedAt: null,
     },
-    include: {
-      role: true,
+    select: {
+      role: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 
@@ -54,13 +67,10 @@ export const adminOrSelfMiddleware = async (
     });
   }
 
-  // ADMINは許可
-  if (user.role.name === "ADMIN") {
-    return next();
-  }
+  const isAdmin = user.role.name === "ADMIN";
+  const isSelf = loginUserId === targetUserId;
 
-  // 自分自身は許可
-  if (loginUserId === targetUserId) {
+  if (isAdmin || isSelf) {
     return next();
   }
 

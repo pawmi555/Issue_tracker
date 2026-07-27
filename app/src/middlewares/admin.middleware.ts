@@ -1,14 +1,16 @@
 import type { Response, NextFunction } from "express";
-import type { AuthRequest } from "../types/auth-request.js";
+
 import { prisma } from "../lib/prisma.js";
+
+import type { AuthRequest } from "../types/auth-request.js";
 
 /**
  * 管理者権限チェックMiddleware
  *
- * 認証済みユーザーのロールを確認し、
- * ADMINロールを持つユーザーのみアクセスを許可する。
+ * 認証済みかつ未削除のユーザーについて、
+ * ADMINロールを持つ場合のみアクセスを許可する。
  *
- * 未認証の場合は401、
+ * 未認証または削除済みの場合は401、
  * 権限不足の場合は403を返す。
  */
 export const adminMiddleware = async (
@@ -24,16 +26,29 @@ export const adminMiddleware = async (
     });
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.findFirst({
     where: {
       id: req.user.id,
+      deletedAt: null,
     },
-    include: {
-      role: true,
+    select: {
+      role: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 
-  if (!user || user.role.name !== "ADMIN") {
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      code: "UNAUTHORIZED",
+      message: "Unauthorized",
+    });
+  }
+
+  if (user.role.name !== "ADMIN") {
     return res.status(403).json({
       success: false,
       code: "FORBIDDEN",
@@ -41,5 +56,5 @@ export const adminMiddleware = async (
     });
   }
 
-  next();
+  return next();
 };
