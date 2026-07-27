@@ -1274,7 +1274,8 @@ if (issue.project.deletedAt !== null) {
 
 - **ユーザーは所属プロジェクトのデータのみアクセス可能**
 - **一般ユーザーは自分情報のみ参照可能。ユーザー情報変更はADMINのみ許可する。**
-- **ADMINは全リソースアクセス可能**
+- **ADMINはユーザー管理APIを利用できる**
+- **Project内の操作では、ADMINも対象Projectへの所属が必要であり、ProjectRoleによる認可をスキップしない**
 - **OWNERはプロジェクト削除可能**
 - **VIEWERは更新不可**
 
@@ -1578,8 +1579,14 @@ data : UserDto
 #### 制約
 
 - UserRoleがADMINの場合のみ更新可能
-- 最後のADMINは自身のroleをADMIN以外へ変更不可
-- 削除済みユーザーは更新不可
+- 削除済みUserは更新不可
+- 更新項目を1つも指定しない空更新は、`422 VALIDATION_ERROR`を返す
+- 現在値と同じ値を指定した場合は、`200 OK`を返す
+- 現在値から変更がない場合、UserおよびUserHistoryへ書き込まない
+- 現在値から変更がない場合、Userの`updatedAt`を変更しない
+- 現在値から変更がある場合のみUserを更新し、変更された項目ごとにUserHistoryを作成する
+- User更新とUserHistory作成は、同一トランザクション内で実行する
+- 最後の未削除ADMINは、自身のUserRoleをADMIN以外へ変更できない
 
 #### 更新可能項目
 
@@ -1842,8 +1849,12 @@ data : ProjectDto
 #### 制約
 
 - ProjectRoleがMANAGER以上の場合のみ更新可能
-- Project変更履歴を作成
-- トランザクション必須
+- 更新項目を1つも指定しない空更新は、`422 VALIDATION_ERROR`を返す
+- 現在値と同じ値を指定した場合は、`200 OK`を返す
+- 現在値から変更がない場合、ProjectおよびProjectHistoryへ書き込まない
+- 現在値から変更がない場合、Projectの`updatedAt`を変更しない
+- 現在値から変更がある場合のみ、Projectを更新し、変更された項目ごとにProjectHistoryを作成する
+- Project更新とProjectHistory作成は、同一トランザクション内で実行する
 
 #### 更新可能項目
 
@@ -2242,12 +2253,16 @@ data : IssueDto
 #### 制約
 
 - 対象Issueの担当者かつProjectRoleがMEMBER以上、またはProjectRoleがMANAGER以上の場合のみ更新可能
-- statusがCLOSEDは更新不可
-- reporterId変更不可
+- statusがCLOSEDのIssueは更新できず、`403 ISSUE_CLOSED`を返す
+- reporterIdは変更不可
+- 更新項目を1つも指定しない空更新は、`422 VALIDATION_ERROR`を返す
 - status更新時は「Issue状態遷移」に従う
-- 不正な状態遷移は409 Conflictを返却
-- Issue変更履歴を作成
-- トランザクション必須
+- 現在と同じ`statusId`の指定を含め、許可されていない状態遷移は`409 ISSUE_INVALID_TRANSITION`を返す
+- `statusId`以外に現在値と同じ値を指定した場合は、`200 OK`を返す
+- 現在値から変更がない場合、IssueおよびIssueHistoryへ書き込まない
+- 現在値から変更がない場合、Issueの`updatedAt`を変更しない
+- 現在値から変更がある場合のみIssueを更新し、変更された項目ごとにIssueHistoryを作成する
+- Issue更新とIssueHistory作成は、同一トランザクション内で実行する
 
 #### 更新可能項目
 
@@ -2435,8 +2450,12 @@ meta : PaginationMetaDto
 #### 制約
 
 - コメント作成者またはProjectRoleがMANAGER以上の場合のみ更新可能
-- 更新時はCommentHistory作成
-- トランザクション必須
+- `content`を指定しない空更新は、`422 VALIDATION_ERROR`を返す
+- 現在値と同じ`content`を指定した場合は、`200 OK`を返す
+- 現在値から変更がない場合、CommentおよびCommentHistoryへ書き込まない
+- 現在値から変更がない場合、Commentの`updatedAt`を変更しない
+- 現在値から変更がある場合のみCommentを更新し、CommentHistoryを作成する
+- Comment更新とCommentHistory作成は、同一トランザクション内で実行する
 
 #### Request
 
