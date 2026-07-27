@@ -658,18 +658,18 @@ RESOURCE_REASON
 
 #### 例
 
-| code                     | status | 内容                       |
-| ------------------------ | ------ | -------------------------- |
-| USER_NOT_FOUND           | 404    | ユーザー不存在             |
-| PROJECT_NOT_FOUND        | 404    | プロジェクト不存在         |
-| PROJECT_FORBIDDEN        | 403    | プロジェクト権限なし       |
-| ISSUE_NOT_FOUND          | 404    | Issue不存在                |
-| COMMENT_NOT_FOUND        | 404    | コメント不存在             |
-| ISSUE_CLOSED             | 409    | クローズ済みのため更新不可 |
-| INVALID_REFRESH_TOKEN    | 401    | 無効または失効したトークン |
-| VALIDATION_ERROR         | 422    | 入力エラー                 |
-| UNAUTHORIZED             | 401    | 未認証                     |
-| ISSUE_INVALID_TRANSITION | 409    | 許可されない状態遷移       |
+| code                     | status | 内容                          |
+| ------------------------ | ------ | ----------------------------- |
+| USER_NOT_FOUND           | 404    | ユーザー不存在                |
+| PROJECT_NOT_FOUND        | 404    | プロジェクト不存在            |
+| PROJECT_FORBIDDEN        | 403    | プロジェクト権限なし          |
+| ISSUE_NOT_FOUND          | 404    | Issue不存在                   |
+| COMMENT_NOT_FOUND        | 404    | コメント不存在                |
+| ISSUE_CLOSED             | 403    | CLOSEDのIssueは更新・削除不可 |
+| INVALID_REFRESH_TOKEN    | 401    | 無効または失効したトークン    |
+| VALIDATION_ERROR         | 422    | 入力エラー                    |
+| UNAUTHORIZED             | 401    | 未認証                        |
+| ISSUE_INVALID_TRANSITION | 409    | 許可されない状態遷移          |
 
 ---
 
