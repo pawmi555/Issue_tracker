@@ -298,7 +298,14 @@ export const updateCommentService = async ({
 
     // 差分なし
     if (histories.length === 0) {
-      return comment;
+      const currentComment = await tx.comment.findUniqueOrThrow({
+        where: {
+          id: commentId,
+        },
+        select: commentDtoSelect,
+      });
+
+      return mapComment(currentComment);
     }
 
     const updatedComment = await tx.comment.update({
