@@ -30,9 +30,6 @@ services:
       # node_modules はコンテナ側を利用
       - /app/node_modules
 
-      # GitHub SSH Key（Private Repository利用時）
-      - ~/.ssh:/root/.ssh:ro
-
     command: /docker-entrypoint.sh
 
     stdin_open: true
