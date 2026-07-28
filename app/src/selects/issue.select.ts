@@ -1,8 +1,8 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { ISSUE_INCLUDE_MAP } from "../constants/issue.constants.js";
 import { validateIssueIncludes } from "../validators/issue-include.validator.js";
 import { parseInclude } from "../utils/include-parser.js";
-import { IssueIncludeField } from "../types/issue.types.js";
+import type { IssueIncludeField } from "../types/issue.types.js";
 
 /**
  * Issue共通項目

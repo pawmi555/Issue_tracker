@@ -19,7 +19,13 @@ import { hasProjectRole, isProjectRoleName } from "../utils/role-check.js";
 
 import { buildPaginationMeta } from "../utils/pagination-meta.js";
 
-export type GetProjectsInput = {
+type CreateProjectsInput = {
+  name: string;
+  userId: number;
+  description?: string;
+};
+
+type GetProjectsInput = {
   userId: number;
 
   query: {
@@ -29,13 +35,146 @@ export type GetProjectsInput = {
   };
 };
 
-type UpdateProjectsInput = {
+type GetProjectDetailInput = {
+  id: number;
+  userId: number;
+  includeDeleted: boolean;
+};
+
+type UpdateProjectInput = {
   projectId: number;
   userId: number;
   data: {
-    name: string;
+    name?: string;
     description?: string;
   };
+};
+
+type DeleteProjectInput = {
+  id: number;
+};
+
+type AddMemberInput = {
+  projectId: number;
+  actorUserId: number;
+  targetUserId: number;
+  role: ProjectRoleName;
+};
+
+type GetMembersInput = {
+  projectId: number;
+};
+
+type ChangeMemberRoleInput = {
+  projectId: number;
+  actorUserId: number;
+  targetUserId: number;
+  role: ProjectRoleName;
+};
+
+type RemoveMemberInput = {
+  projectId: number;
+  userId: number;
+};
+
+/**
+ * メンバー管理を行うユーザーのProjectRoleを取得する
+ *
+ * システムロールにかかわらず、
+ * 対象Projectへの所属とMANAGER以上のProjectRoleを要求する。
+ */
+const getMemberManagementActorRole = async ({
+  tx,
+  projectId,
+  actorUserId,
+}: {
+  tx: Prisma.TransactionClient;
+  projectId: number;
+  actorUserId: number;
+}): Promise<ProjectRoleName> => {
+  const actorUser = await tx.user.findFirst({
+    where: {
+      id: actorUserId,
+      deletedAt: null,
+    },
+    select: {
+      role: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!actorUser) {
+    throw new AppError("User not found", 401, "USER_NOT_FOUND");
+  }
+
+  const actorMember = await tx.projectMember.findUnique({
+    where: {
+      projectId_userId: {
+        projectId,
+        userId: actorUserId,
+      },
+    },
+    include: {
+      role: true,
+    },
+  });
+
+  if (!actorMember) {
+    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+  }
+
+  const actorRoleName = actorMember.role.name;
+
+  if (!isProjectRoleName(actorRoleName)) {
+    throw new AppError("invalid role", 500, "INVALID_ROLE");
+  }
+
+  if (
+    !hasProjectRole({
+      memberRole: actorRoleName,
+      minimumRole: "MANAGER",
+    })
+  ) {
+    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+  }
+
+  return actorRoleName;
+};
+
+/**
+ * OWNERロールに関する操作権限を確認する
+ *
+ * MANAGERは次の操作を行えない。
+ * - OWNERの追加
+ * - OWNERへの変更
+ * - 既存OWNERの権限変更
+ */
+const assertOwnerRoleOperationAllowed = ({
+  actorRole,
+  currentTargetRole,
+  requestedRole,
+}: {
+  actorRole: ProjectRoleName;
+  currentTargetRole?: ProjectRoleName;
+  requestedRole: ProjectRoleName;
+}) => {
+  if (actorRole === "OWNER") {
+    return;
+  }
+
+  const operatesOnOwner =
+    currentTargetRole === "OWNER" || requestedRole === "OWNER";
+
+  if (operatesOnOwner) {
+    throw new AppError(
+      "Only OWNER can manage OWNER role",
+      403,
+      "OWNER_ROLE_FORBIDDEN",
+    );
+  }
 };
 
 /**
@@ -44,11 +183,11 @@ type UpdateProjectsInput = {
  * - project_members に OWNER 自動追加
  * - project_histories に作成履歴を記録
  */
-export const createProjectService = async (
-  name: string,
-  userId: number,
-  description?: string,
-) => {
+export const createProjectService = async ({
+  name,
+  userId,
+  description,
+}: CreateProjectsInput) => {
   try {
     return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const project = await tx.project.create({
@@ -96,6 +235,13 @@ export const createProjectService = async (
 
 /**
  * 自分が所属するProject一覧取得
+ *
+ * includeDeleted=false:
+ * - 所属している未削除Projectのみ取得する
+ *
+ * includeDeleted=true:
+ * - 未削除Projectは、所属していれば取得できる
+ * - 削除済みProjectは、MANAGERまたはOWNERとして所属している場合のみ取得できる
  */
 export const getProjectsService = async ({
   userId,
@@ -107,19 +253,45 @@ export const getProjectsService = async ({
     limit: query.limit,
   });
 
-  const where: Prisma.ProjectWhereInput = {
-    members: {
-      some: {
-        userId,
-      },
-    },
+  const where: Prisma.ProjectWhereInput = query.includeDeleted
+    ? {
+        OR: [
+          // 未削除Projectは、所属していればロールに関係なく取得可能
+          {
+            deletedAt: null,
+            members: {
+              some: {
+                userId,
+              },
+            },
+          },
 
-    ...(query.includeDeleted
-      ? {}
-      : {
-          deletedAt: null,
-        }),
-  };
+          // 削除済みProjectは、MANAGERまたはOWNERのみ取得可能
+          {
+            deletedAt: {
+              not: null,
+            },
+            members: {
+              some: {
+                userId,
+                role: {
+                  name: {
+                    in: ["MANAGER", "OWNER"],
+                  },
+                },
+              },
+            },
+          },
+        ],
+      }
+    : {
+        deletedAt: null,
+        members: {
+          some: {
+            userId,
+          },
+        },
+      };
 
   const [projects, total] = await Promise.all([
     prisma.project.findMany({
@@ -159,11 +331,11 @@ export const getProjectsService = async ({
 /**
  * Project詳細取得
  */
-export const getProjectDatailService = async (
-  id: number,
-  userId: number,
+export const getProjectDatailService = async ({
+  id,
+  userId,
   includeDeleted = false,
-) => {
+}: GetProjectDetailInput) => {
   const project = await prisma.project.findFirst({
     where: {
       id,
@@ -200,7 +372,7 @@ export const updateProjectService = async ({
   projectId,
   userId,
   data,
-}: UpdateProjectsInput) => {
+}: UpdateProjectInput) => {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const HISTORY_ACTION_UPDATE = 1;
     // Project存在確認
@@ -296,7 +468,7 @@ export const updateProjectService = async ({
 /**
  * Project削除（論理削除）
  */
-export const deleteProjectService = async (id: number) => {
+export const deleteProjectService = async ({ id }: DeleteProjectInput) => {
   const result = await prisma.project.updateMany({
     where: {
       id,
@@ -316,61 +488,91 @@ export const deleteProjectService = async (id: number) => {
 /**
  * メンバー追加
  */
-export const addMemberService = async (
-  projectId: number,
-  userId: number,
-  role: ProjectRoleName,
-) => {
+export const addMemberService = async ({
+  projectId,
+  actorUserId,
+  targetUserId,
+  role,
+}: AddMemberInput) => {
   try {
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        deletedAt: null,
-      },
+    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const project = await tx.project.findFirst({
+        where: {
+          id: projectId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!project) {
+        throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
+      }
+
+      const actorRole = await getMemberManagementActorRole({
+        tx,
+        projectId,
+        actorUserId,
+      });
+
+      assertOwnerRoleOperationAllowed({
+        actorRole,
+        requestedRole: role,
+      });
+
+      const targetUser = await tx.user.findFirst({
+        where: {
+          id: targetUserId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!targetUser) {
+        throw new AppError("User not found", 404, "USER_NOT_FOUND");
+      }
+
+      const member = await tx.projectMember.create({
+        data: {
+          project: {
+            connect: {
+              id: projectId,
+            },
+          },
+          user: {
+            connect: {
+              id: targetUserId,
+            },
+          },
+          role: {
+            connect: {
+              name: role,
+            },
+          },
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          role: {
+            select: {
+              id: true,
+              name: true,
+              label: true,
+            },
+          },
+        },
+      });
+
+      return mapProjectMember(member);
     });
-
-    if (!project) {
-      throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
-    }
-    const member = await prisma.projectMember.create({
-      data: {
-        project: {
-          connect: {
-            id: projectId,
-          },
-        },
-
-        user: {
-          connect: {
-            id: userId,
-          },
-        },
-
-        role: {
-          connect: {
-            name: role,
-          },
-        },
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        role: {
-          select: {
-            id: true,
-            name: true,
-            label: true,
-          },
-        },
-      },
-    });
-
-    return mapProjectMember(member);
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -386,7 +588,7 @@ export const addMemberService = async (
 /**
  * メンバー一覧取得
  */
-export const getMemberService = async (projectId: number) => {
+export const getMemberService = async ({ projectId }: GetMembersInput) => {
   const members = await prisma.projectMember.findMany({
     where: {
       projectId,
@@ -415,93 +617,126 @@ export const getMemberService = async (projectId: number) => {
 };
 
 /**
- * 権限変更
+ * メンバー権限変更
  */
-export const changeMemberRoleService = async (
-  projectId: number,
-  userId: number,
-  role: ProjectRoleName,
-) => {
-  const member = await prisma.projectMember.findUnique({
-    where: {
-      projectId_userId: {
-        projectId,
-        userId,
-      },
-    },
-    include: {
-      role: true,
-    },
-  });
-
-  if (!member) {
-    throw new AppError(
-      "Project member not found",
-      404,
-      "PROJECT_MEMBER_NOT_FOUND",
-    );
-  }
-
-  // OWNERを他権限へ変更する場合
-  const isRemovingOwner = member.role.name === "OWNER" && role !== "OWNER";
-
-  if (isRemovingOwner) {
-    const ownerCount = await prisma.projectMember.count({
+export const changeMemberRoleService = async ({
+  projectId,
+  actorUserId,
+  targetUserId,
+  role,
+}: ChangeMemberRoleInput) => {
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const project = await tx.project.findFirst({
       where: {
-        projectId,
+        id: projectId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!project) {
+      throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
+    }
+
+    const targetMember = await tx.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId: targetUserId,
+        },
+      },
+      include: {
+        role: true,
+      },
+    });
+
+    if (!targetMember) {
+      throw new AppError(
+        "Project member not found",
+        404,
+        "PROJECT_MEMBER_NOT_FOUND",
+      );
+    }
+
+    const currentTargetRoleName = targetMember.role.name;
+
+    if (!isProjectRoleName(currentTargetRoleName)) {
+      throw new AppError("invalid role", 500, "INVALID_ROLE");
+    }
+
+    const actorRole = await getMemberManagementActorRole({
+      tx,
+      projectId,
+      actorUserId,
+    });
+
+    assertOwnerRoleOperationAllowed({
+      actorRole,
+      currentTargetRole: currentTargetRoleName,
+      requestedRole: role,
+    });
+
+    const isRemovingOwner =
+      currentTargetRoleName === "OWNER" && role !== "OWNER";
+
+    if (isRemovingOwner) {
+      const ownerCount = await tx.projectMember.count({
+        where: {
+          projectId,
+          role: {
+            name: "OWNER",
+          },
+        },
+      });
+
+      if (ownerCount <= 1) {
+        throw new AppError(
+          "Cannot remove last owner",
+          400,
+          "LAST_OWNER_FORBIDDEN",
+        );
+      }
+    }
+
+    const updatedMember = await tx.projectMember.update({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId: targetUserId,
+        },
+      },
+      data: {
         role: {
-          name: "OWNER",
+          connect: {
+            name: role,
+          },
+        },
+      },
+      include: {
+        role: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
     });
 
-    // 最後のOWNER降格を防止
-    if (ownerCount === 1) {
-      throw new AppError(
-        "Cannot remove last owner",
-        400,
-        "LAST_OWNER_FORBIDDEN",
-      );
-    }
-  }
-
-  const updatedMember = await prisma.projectMember.update({
-    where: {
-      projectId_userId: {
-        projectId,
-        userId,
-      },
-    },
-    data: {
-      role: {
-        connect: {
-          name: role,
-        },
-      },
-    },
-
-    include: {
-      role: true,
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
+    return mapProjectMember(updatedMember);
   });
-
-  return mapProjectMember(updatedMember);
 };
 
 /**
  * メンバー削除
  */
-export const removeMemberService = async (
-  projectId: number,
-  userId: number,
-) => {
+export const removeMemberService = async ({
+  projectId,
+  userId,
+}: RemoveMemberInput) => {
   const member = await prisma.projectMember.findUnique({
     where: {
       projectId_userId: {
@@ -545,7 +780,7 @@ export const removeMemberService = async (
     }
   }
 
-  return prisma.projectMember.delete({
+  await prisma.projectMember.delete({
     where: {
       projectId_userId: {
         projectId,
@@ -553,4 +788,5 @@ export const removeMemberService = async (
       },
     },
   });
+  return;
 };

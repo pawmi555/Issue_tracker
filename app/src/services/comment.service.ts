@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { AppError } from "../utils/app-error.js";
 import { buildPagination } from "../utils/pagination.js";
@@ -13,13 +13,13 @@ import {
   commentHistorySelect,
 } from "../selects/comment.select.js";
 
-export type CreateCommentInput = {
+type CreateCommentInput = {
   issueId: number;
   userId: number;
   content: string;
 };
 
-export type GetCommentsInput = {
+type GetCommentsInput = {
   issueId: number;
   userId: number;
   includeDeleted?: boolean;
@@ -30,7 +30,7 @@ export type GetCommentsInput = {
   };
 };
 
-export type UpdateCommentInput = {
+type UpdateCommentInput = {
   commentId: number;
   userId: number;
 
@@ -39,7 +39,7 @@ export type UpdateCommentInput = {
   };
 };
 
-export type DeleteCommentInput = {
+type DeleteCommentInput = {
   commentId: number;
   userId: number;
 };
@@ -57,9 +57,13 @@ export const createCommentsService = async ({
     where: {
       id: issueId,
       deletedAt: null,
+      project: {
+        deletedAt: null,
+      },
     },
-    include: {
-      project: true,
+    select: {
+      id: true,
+      projectId: true,
     },
   });
 
@@ -75,11 +79,29 @@ export const createCommentsService = async ({
         userId,
       },
     },
+    select: {
+      role: {
+        select: {
+          name: true,
+        },
+      },
+    },
   });
 
   if (!member) {
     throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
   }
+
+  const roleName = member.role.name;
+
+  if (!isProjectRoleName(roleName)) {
+    throw new AppError("invalid role", 500, "INVALID_ROLE");
+  }
+
+  assertProjectRole({
+    memberRole: roleName,
+    minimumRole: "MEMBER",
+  });
 
   const comment = await prisma.comment.create({
     data: {
@@ -150,10 +172,12 @@ export const getCommentsService = async ({
     throw new AppError("invalid role", 500, "INVALID_ROLE");
   }
 
-  assertProjectRole({
-    memberRole: roleName,
-    minimumRole: includeDeleted ? "MANAGER" : "MEMBER",
-  });
+  if (includeDeleted) {
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MANAGER",
+    });
+  }
 
   // ページネーション設定
   const { page, limit, skip, take } = buildPagination({
@@ -274,7 +298,14 @@ export const updateCommentService = async ({
 
     // 差分なし
     if (histories.length === 0) {
-      return comment;
+      const currentComment = await tx.comment.findUniqueOrThrow({
+        where: {
+          id: commentId,
+        },
+        select: commentDtoSelect,
+      });
+
+      return mapComment(currentComment);
     }
 
     const updatedComment = await tx.comment.update({
@@ -355,13 +386,11 @@ export const deleteCommentService = async ({
   const isAuthor = comment.userId === userId;
 
   if (!isAuthor) {
-    throw new AppError("project forbidden", 403, "PROJECT_FORBIDDEN");
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MANAGER",
+    });
   }
-
-  assertProjectRole({
-    memberRole: roleName,
-    minimumRole: "MANAGER",
-  });
 
   // Commentソフトデリート実行
   const deletedComment = await prisma.comment.updateMany({

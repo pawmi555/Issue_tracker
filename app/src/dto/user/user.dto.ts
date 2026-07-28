@@ -1,4 +1,4 @@
-import { RoleDto } from "../common/role.dto.js";
+import type { RoleDto } from "../common/role.dto.js";
 
 /**
  * 詳細取得・作成・更新APIで使用するDTO。リソースの詳細情報を保持する。

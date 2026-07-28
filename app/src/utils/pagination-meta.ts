@@ -1,4 +1,4 @@
-import { PaginationMetaDto } from "../dto/common/pagination-meta.dto.js";
+import type { PaginationMetaDto } from "../dto/common/pagination-meta.dto.js";
 
 export const buildPaginationMeta = ({
   page,

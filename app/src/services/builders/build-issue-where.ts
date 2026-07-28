@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
-import { GetIssuesInput } from "../../types/issue.types.js";
+import type { Prisma } from "@prisma/client";
+import type { GetIssuesInput } from "../../types/issue.types.js";
 
 type BuildIssueWhereInput = Pick<GetIssuesInput, "projectId"> & {
   query: GetIssuesInput["query"];

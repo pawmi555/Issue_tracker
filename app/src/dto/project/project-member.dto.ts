@@ -1,5 +1,5 @@
-import { RoleDto } from "../common/role.dto.js";
-import { UserSummaryDto } from "../user/user-summary.dto.js";
+import type { RoleDto } from "../common/role.dto.js";
+import type { UserSummaryDto } from "../user/user-summary.dto.js";
 
 /**
  * プロジェクトメンバー情報

@@ -1,7 +1,7 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
-import { IssueSummaryDto } from "../../dto/issue/issue-summary.dto.js";
-import { issueSummaryWithRelationSelect } from "../../selects/issue.select.js";
+import type { IssueSummaryDto } from "../../dto/issue/issue-summary.dto.js";
+import type { issueSummaryWithRelationSelect } from "../../selects/issue.select.js";
 
 export type IssueSummaryWithRelationMapperInput = Prisma.IssueGetPayload<{
   select: typeof issueSummaryWithRelationSelect;

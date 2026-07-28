@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { Response } from "express";
+import type { Response } from "express";
 
 import {
   createIssueService,
@@ -19,7 +19,7 @@ import type {
   issueIdSchema,
 } from "../validators/issue.validation.js";
 
-import { ValidatedAuthRequest } from "../types/validated-request.js";
+import type { ValidatedAuthRequest } from "../types/validated-request.js";
 
 export const createIssue = async (
   req: ValidatedAuthRequest<
@@ -29,10 +29,14 @@ export const createIssue = async (
   >,
   res: Response,
 ) => {
+  const projectId = req.validatedParams!.projectId;
+  const userId = req.user!.id;
+  const data = req.validatedBody!;
+
   const issue = await createIssueService({
-    projectId: req.validatedParams!.projectId,
-    userId: req.user!.id,
-    data: req.validatedBody!,
+    projectId,
+    userId,
+    data,
   });
 
   res.status(201).json({
@@ -49,11 +53,15 @@ export const getIssues = async (
   >,
   res: Response,
 ) => {
+  const projectId = req.validatedParams!.projectId;
+  const userId = req.user!.id;
+  const query = req.validatedQuery!;
+
   const result = await getIssuesService({
-    projectId: req.validatedParams!.projectId,
-    userId: req.user!.id,
-    includeDeleted: req.validatedQuery!.includeDeleted,
-    query: req.validatedQuery!,
+    projectId,
+    userId,
+    includeDeleted: query.includeDeleted,
+    query,
   });
 
   res.status(200).json({
@@ -70,11 +78,15 @@ export const getIssueDetail = async (
   >,
   res: Response,
 ) => {
+  const issueId = req.validatedParams!.id;
+  const userId = req.user!.id;
+  const query = req.validatedQuery!;
+
   const issue = await getIssueDetailService({
-    issueId: req.validatedParams!.id,
-    userId: req.user!.id,
-    includeDeleted: req.validatedQuery!.includeDeleted,
-    query: req.validatedQuery!,
+    issueId,
+    userId,
+    includeDeleted: query.includeDeleted,
+    query,
   });
 
   res.status(200).json({
@@ -91,10 +103,14 @@ export const updateIssue = async (
   >,
   res: Response,
 ) => {
+  const issueId = req.validatedParams!.id;
+  const userId = req.user!.id;
+  const data = req.validatedBody!;
+
   const issue = await updateIssueService({
-    issueId: req.validatedParams!.id,
-    userId: req.user!.id,
-    data: req.validatedBody!,
+    issueId,
+    userId,
+    data,
   });
 
   res.status(200).json({
@@ -107,9 +123,12 @@ export const deleteIssue = async (
   req: ValidatedAuthRequest<z.infer<typeof issueIdSchema>, never, never>,
   res: Response,
 ) => {
+  const issueId = req.validatedParams!.id;
+  const userId = req.user!.id;
+
   await deleteIssueService({
-    issueId: req.validatedParams!.id,
-    userId: req.user!.id,
+    issueId,
+    userId,
   });
 
   res.sendStatus(204);
@@ -119,9 +138,12 @@ export const restoreIssue = async (
   req: ValidatedAuthRequest<z.infer<typeof issueIdSchema>, never, never>,
   res: Response,
 ) => {
+  const issueId = req.validatedParams!.id;
+  const userId = req.user!.id;
+
   await restoreIssueService({
-    issueId: req.validatedParams!.id,
-    userId: req.user!.id,
+    issueId,
+    userId,
   });
 
   res.status(200).json({

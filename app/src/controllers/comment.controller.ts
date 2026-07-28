@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { Response } from "express";
+import type { Response } from "express";
 
 import {
   createCommentsService,
@@ -8,7 +8,7 @@ import {
   deleteCommentService,
 } from "../services/comment.service.js";
 
-import {
+import type {
   createCommentSchema,
   getCommentsSchema,
   updateCommentSchema,
@@ -16,7 +16,7 @@ import {
   commentIdSchema,
 } from "../validators/comment.validators.js";
 
-import { ValidatedAuthRequest } from "../types/validated-request.js";
+import type { ValidatedAuthRequest } from "../types/validated-request.js";
 
 export const createComment = async (
   req: ValidatedAuthRequest<
@@ -26,10 +26,14 @@ export const createComment = async (
   >,
   res: Response,
 ) => {
+  const issueId = req.validatedParams!.id;
+  const userId = req.user!.id;
+  const { content } = req.validatedBody!;
+
   const comment = await createCommentsService({
-    issueId: req.validatedParams!.id,
-    userId: req.user!.id,
-    content: req.validatedBody!.content,
+    issueId,
+    userId,
+    content,
   });
 
   res.status(201).json({
@@ -46,11 +50,15 @@ export const getComments = async (
   >,
   res: Response,
 ) => {
+  const issueId = req.validatedParams!.id;
+  const userId = req.user!.id;
+  const query = req.validatedQuery!;
+
   const result = await getCommentsService({
-    issueId: req.validatedParams!.id,
-    userId: req.user!.id,
-    includeDeleted: req.validatedQuery!.includeDeleted,
-    query: req.validatedQuery!,
+    issueId,
+    userId,
+    includeDeleted: query.includeDeleted,
+    query,
   });
 
   res.status(200).json({
@@ -67,10 +75,14 @@ export const updateComment = async (
   >,
   res: Response,
 ) => {
+  const commentId = req.validatedParams!.id;
+  const userId = req.user!.id;
+  const data = req.validatedBody!;
+
   const comment = await updateCommentService({
-    commentId: req.validatedParams!.id,
-    userId: req.user!.id,
-    data: req.validatedBody!,
+    commentId,
+    userId,
+    data,
   });
 
   res.status(200).json({
@@ -83,9 +95,12 @@ export const deleteComment = async (
   req: ValidatedAuthRequest<z.infer<typeof commentIdSchema>, never, never>,
   res: Response,
 ) => {
+  const commentId = req.validatedParams!.id;
+  const userId = req.user!.id;
+
   await deleteCommentService({
-    commentId: req.validatedParams!.id,
-    userId: req.user!.id,
+    commentId,
+    userId,
   });
 
   res.sendStatus(204);

@@ -127,9 +127,16 @@ export const getProjectDetailSchema = z.object({
 
 const updateProjectBodySchema = z
   .object({
-    name: z.string().trim().min(1, {
-      error: "プロジェクト名を入力してください",
-    }),
+    name: z
+      .string()
+      .trim()
+      .min(1, {
+        error: "プロジェクト名を入力してください",
+      })
+      .max(100, {
+        error: "プロジェクト名は100文字以内で入力してください",
+      })
+      .optional(),
 
     description: z
       .string()

@@ -1,7 +1,8 @@
 import type { Prisma } from "@prisma/client";
-import { HistoryField } from "@prisma/client";
-import { HistoryFieldDto } from "../../dto/history/history-field.dto.js";
-import { HistoryDto } from "../../dto/history/history.dto.js";
+import type { HistoryField } from "@prisma/client";
+import type { HistoryFieldDto } from "../../dto/history/history-field.dto.js";
+import type { HistoryDto } from "../../dto/history/history.dto.js";
+import type { HistoryActionDto } from "../../dto/history/history-action.dto.js";
 
 export type MasterMap = {
   status: Record<number, string>;
@@ -107,7 +108,7 @@ const mapHistory = (
   history: HistoryRecord,
   masters?: MasterMap,
 ): HistoryDto => ({
-  action: history.action.name,
+  action: history.action.name as HistoryActionDto,
 
   field: mapField(history.fieldName),
 

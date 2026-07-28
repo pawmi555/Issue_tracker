@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
 
@@ -16,7 +16,7 @@ import {
   buildIssueRelationSelect,
 } from "../selects/issue.select.js";
 
-import {
+import type {
   CreateIssueInput,
   GetIssuesInput,
   UpdateIssueInput,
@@ -25,7 +25,7 @@ import {
   RestoreIssueInput,
 } from "../types/issue.types.js";
 
-import { IssueMapperInput } from "../mappers/issue/issue-mapper.type.js";
+import type { IssueMapperInput } from "../mappers/issue/issue-mapper.type.js";
 
 import { buildIssueWhere } from "./builders/build-issue-where.js";
 import { buildIssueDetailWhere } from "./builders/build-issue-detail-where.js";
@@ -44,7 +44,7 @@ export const createIssueService = async ({
   userId,
   data,
 }: CreateIssueInput) => {
-  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Project参加確認
     const member = await tx.projectMember.findUnique({
       where: {
@@ -68,7 +68,19 @@ export const createIssueService = async ({
       throw new AppError("Project not found", 404, "PROJECT_NOT_FOUND");
     }
 
-    // Assignee所属確認
+    // Issue作成者の権限確認
+    const creatorRoleName = member.role.name;
+
+    if (!isProjectRoleName(creatorRoleName)) {
+      throw new AppError("invalid role", 500, "INVALID_ROLE");
+    }
+
+    assertProjectRole({
+      memberRole: creatorRoleName,
+      minimumRole: "MEMBER",
+    });
+
+    // 担当者の所属・権限確認
     if (data.assigneeId !== undefined) {
       const assigneeMember = await tx.projectMember.findUnique({
         where: {
@@ -77,13 +89,30 @@ export const createIssueService = async ({
             userId: data.assigneeId,
           },
         },
+        include: {
+          role: true,
+        },
       });
 
       if (!assigneeMember) {
         throw new AppError(
           "assignee not project member",
-          403,
+          400,
           "ASSIGNEE_NOT_PROJECT_MEMBER",
+        );
+      }
+
+      const assigneeRoleName = assigneeMember.role.name;
+
+      if (!isProjectRoleName(assigneeRoleName)) {
+        throw new AppError("invalid role", 500, "INVALID_ROLE");
+      }
+
+      if (assigneeRoleName === "VIEWER") {
+        throw new AppError(
+          "assignee must have MEMBER role or higher",
+          400,
+          "ASSIGNEE_ROLE_FORBIDDEN",
         );
       }
     }
@@ -112,7 +141,6 @@ export const createIssueService = async ({
         assigneeId: data.assigneeId,
         dueDate: data.dueDate,
       },
-
       select: issueDtoSelect,
     });
 
@@ -154,10 +182,12 @@ export const getIssuesService = async ({
     throw new AppError("invalid role", 500, "INVALID_ROLE");
   }
 
-  assertProjectRole({
-    memberRole: roleName,
-    minimumRole: includeDeleted ? "MANAGER" : "MEMBER",
-  });
+  if (includeDeleted) {
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MANAGER",
+    });
+  }
 
   // 削除済みProjectは参照不可
   if (member.project.deletedAt) {
@@ -323,6 +353,11 @@ export const updateIssueService = async ({
       throw new AppError("invalid role", 500, "INVALID_ROLE");
     }
 
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MEMBER",
+    });
+
     const isAssignee = issue.assigneeId === userId;
 
     if (!isAssignee) {
@@ -332,22 +367,39 @@ export const updateIssueService = async ({
       });
     }
 
-    // Assignee所属確認
+    // Assignee所属・権限確認
     if (data.assigneeId !== undefined && data.assigneeId !== null) {
-      const assignee = await tx.projectMember.findUnique({
+      const assigneeMember = await tx.projectMember.findUnique({
         where: {
           projectId_userId: {
             projectId: issue.projectId,
             userId: data.assigneeId,
           },
         },
+        include: {
+          role: true,
+        },
       });
 
-      if (!assignee) {
+      if (!assigneeMember) {
         throw new AppError(
           "assignee not project member",
           400,
           "ASSIGNEE_NOT_PROJECT_MEMBER",
+        );
+      }
+
+      const assigneeRoleName = assigneeMember.role.name;
+
+      if (!isProjectRoleName(assigneeRoleName)) {
+        throw new AppError("invalid role", 500, "INVALID_ROLE");
+      }
+
+      if (assigneeRoleName === "VIEWER") {
+        throw new AppError(
+          "assignee must have MEMBER role or higher",
+          400,
+          "ASSIGNEE_ROLE_FORBIDDEN",
         );
       }
     }
@@ -427,10 +479,6 @@ export const getIssueDetailService = async ({
     },
   });
 
-  console.dir(issue, {
-    depth: null,
-  });
-
   if (!issue) {
     throw new AppError("issue not found", 404, "ISSUE_NOT_FOUND");
   }
@@ -473,10 +521,12 @@ export const getIssueDetailService = async ({
     throw new AppError("invalid role", 500, "INVALID_ROLE");
   }
 
-  assertProjectRole({
-    memberRole: roleName,
-    minimumRole: includeDeleted ? "MANAGER" : "MEMBER",
-  });
+  if (includeDeleted) {
+    assertProjectRole({
+      memberRole: roleName,
+      minimumRole: "MANAGER",
+    });
+  }
   //Prismaは動的selectの戻り値を正確に推論できないためキャストする
   return mapIssue(issue as unknown as IssueMapperInput, {
     includeDeleted,

@@ -1,4 +1,4 @@
-import { UserDto } from "../user/user.dto.js";
+import type { UserDto } from "../user/user.dto.js";
 
 /**
  * ログインAPIレスポンス

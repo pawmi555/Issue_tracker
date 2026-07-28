@@ -1,21 +1,24 @@
-FROM node:22
+FROM node:22.22.0
 
 WORKDIR /app
 
-# 依存関係
+RUN apt-get update \
+  && apt-get install -y postgresql-client \
+  && rm -rf /var/lib/apt/lists/*
+
+# package.json と package-lock.json をコピー
 COPY package*.json ./
-#npm ci は「ロックファイル前提」
+
+# 依存関係をインストール
 RUN npm ci
 
+# Prisma Schema をコピー
 COPY prisma ./prisma
-# Prisma生成
+
+# Prisma Client を生成
 RUN npx prisma generate
 
-# アプリ全体コピー
-COPY . .
-
-#RUN npm run build
-
+# エントリーポイントをコピー
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 

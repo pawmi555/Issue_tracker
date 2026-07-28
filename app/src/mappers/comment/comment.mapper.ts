@@ -1,7 +1,7 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
-import { CommentDto } from "../../dto/comment/comment.dto.js";
-import { commentDtoSelect } from "../../selects/comment.select.js";
+import type { CommentDto } from "../../dto/comment/comment.dto.js";
+import type { commentDtoSelect } from "../../selects/comment.select.js";
 
 export type CommentMapperInput = Prisma.CommentGetPayload<{
   select: typeof commentDtoSelect;

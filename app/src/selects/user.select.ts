@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 /**
  * User詳細・更新用

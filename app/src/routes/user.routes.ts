@@ -9,7 +9,10 @@ import {
 
 import { validate } from "../middlewares/validate.middleware.js";
 import { adminMiddleware } from "../middlewares/admin.middleware.js";
-import { adminOrSelfMiddleware } from "../middlewares/userOwnerMiddleware.js";
+import {
+  adminOrSelfMiddleware,
+  userDetailAuthorizationMiddleware,
+} from "../middlewares/userOwnerMiddleware.js";
 
 import {
   userIdSchema,
@@ -31,8 +34,8 @@ router.get(
 
 router.get(
   "/:id",
-  adminOrSelfMiddleware,
   validate({ params: userIdSchema, query: getUserDetailSchema }),
+  userDetailAuthorizationMiddleware,
   asyncHandler(getUserById),
 );
 

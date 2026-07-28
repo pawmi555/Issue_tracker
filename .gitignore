@@ -1,5 +1,71 @@
-node_modules
-# Keep environment variables out of version control
-.env
+# ========================================
+# Environment variables
+# ========================================
+app/.env
+app/.env.*
+!app/.env.example
+!app/.env.production.example
 
-/generated/prisma
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# ========================================
+# Dependencies
+# ========================================
+app/node_modules/
+frontend/node_modules/
+
+# ========================================
+# Build outputs
+# ========================================
+app/dist/
+frontend/dist/
+
+app/coverage/
+frontend/coverage/
+
+app/*.tsbuildinfo
+
+# ========================================
+# Logs
+# ========================================
+*.log
+app/npm-debug.log*
+
+# ========================================
+# Local configuration
+# ========================================
+*.local
+
+# ========================================
+# Editor
+# ========================================
+.vscode/
+!.vscode/extensions.json
+
+# JetBrains IDE
+.idea/
+
+# ========================================
+# OS files
+# ========================================
+.DS_Store
+Thumbs.db
+
+# ========================================
+# Vim
+# ========================================
+*.sw?
+
+# ========================================
+# VSCode workspace
+# ========================================
+*.code-workspace
+
+# ========================================
+# Test results
+# ========================================
+
+# Postmanテスト結果（Token・Cookieなどの認証情報を含む可能性があるため除外）
+postman/results/*.json

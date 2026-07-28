@@ -1,6 +1,9 @@
-import { Response, NextFunction } from "express";
+import type { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { AuthRequest } from "../types/auth-request.js";
+
+import { prisma } from "../lib/prisma.js";
+
+import type { AuthRequest } from "../types/auth-request.js";
 
 interface JwtPayload {
   userId: number;
@@ -10,36 +13,32 @@ interface JwtPayload {
  * JWT認証を行うMiddleware
  *
  * AuthorizationヘッダーのBearer Tokenを検証し、
+ * Tokenに含まれるUserが未削除であることを確認する。
+ *
+ * 認証に成功した場合は、
  * 認証済みユーザー情報をreq.userへ設定する。
  */
-export const authMiddleware = (
+export const authMiddleware = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction,
 ) => {
-  console.log("auth start");
+  const auth = req.headers.authorization;
+
+  if (!auth || !auth.startsWith("Bearer ")) {
+    return res.status(401).json({
+      success: false,
+      code: "UNAUTHORIZED",
+      message: "Unauthorized",
+    });
+  }
+
+  const token = auth.slice("Bearer ".length);
+
+  let decoded: JwtPayload;
+
   try {
-    const auth = req.headers.authorization;
-
-    if (!auth || !auth.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        code: "UNAUTHORIZED",
-        message: "Unauthorized",
-      });
-    }
-
-    const token = auth.split(" ")[1];
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
-
-    if (typeof decoded !== "object" || !("userId" in decoded)) {
-      throw new Error();
-    }
-
-    req.user = { id: Number(decoded.userId) };
-
-    next();
+    decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
   } catch {
     return res.status(401).json({
       success: false,
@@ -47,5 +46,44 @@ export const authMiddleware = (
       message: "Invalid token",
     });
   }
-  console.log("auth end");
+
+  if (
+    typeof decoded !== "object" ||
+    !("userId" in decoded) ||
+    !Number.isInteger(decoded.userId)
+  ) {
+    return res.status(401).json({
+      success: false,
+      code: "INVALID_TOKEN",
+      message: "Invalid token",
+    });
+  }
+
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        id: decoded.userId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+    }
+
+    req.user = {
+      id: user.id,
+    };
+
+    return next();
+  } catch (error) {
+    return next(error);
+  }
 };

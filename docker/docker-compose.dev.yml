@@ -1,14 +1,14 @@
-#起動するコンテナ一覧(app,db)
 services:
+  # =====================================
+  # Backend API (Express)
+  # =====================================
   app:
-    #./app フォルダのDockerfileからビルド
     build:
       context: ../app
       dockerfile: Dockerfile
 
     container_name: IssueTracker_app
 
-    #コンテナ内の作業ディレクトリ
     working_dir: /app
 
     depends_on:
@@ -18,60 +18,78 @@ services:
     env_file:
       - ../app/.env
 
-    #ブラウザでアクセス可能
     ports:
       - "3000:3000"
-      #prisma studio
+      # Prisma Studio
       - "5555:5555"
-    #ローカルとコンテナを同期
-    #コード変更 → 即反映
-    #開発用設定
-    volumes:
-      - ../app:/app
-      - /app/node_modules
-      - ~/.ssh:/root/.ssh:ro
 
-    #サーバー起動
-    #command: sh -c "npm install && npx prisma generate && npm run dev"
-    command: npm run dev
+    volumes:
+      # ソースコード同期（ホットリロード）
+      - ../app:/app
+
+      # node_modules はコンテナ側を利用
+      - /app/node_modules
+
+    command: /docker-entrypoint.sh
 
     stdin_open: true
-    #ターミナル付きで実行
     tty: true
 
-    restart: unless-stopped
+  # =====================================
+  # Frontend (React + Vite)
+  # =====================================
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
 
+    container_name: IssueTracker_frontend
+
+    working_dir: /frontend
+
+    environment:
+      NODE_ENV: development
+
+      # Docker Desktop(Windows/macOS)で
+      # Viteのホットリロードを安定させる
+      CHOKIDAR_USEPOLLING: "true"
+
+    ports:
+      - "5173:5173"
+
+    volumes:
+      # ソースコード同期（ホットリロード）
+      - ../frontend:/frontend
+
+      # node_modules はコンテナ側を利用
+      - /frontend/node_modules
+
+    command: npm run dev -- --host 0.0.0.0
+
+    stdin_open: true
+    tty: true
+
+  # =====================================
+  # Database (PostgreSQL)
+  # =====================================
   db:
-    #PostgreSQL を使う
     image: postgres:15
 
-    #コンテナ名
     container_name: IssueTracker_db
 
-    #自動再起動
-    restart: unless-stopped
-
-    #環境変数
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: issue_dev_db
 
-    #ポート公開 PCからDBに接続できるようにする
-    #PC → localhost:5432 → コンテナ
-    #ports:
-    #  - "5433:5432"
-    #データ永続化
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-    #DBが使えるかチェック
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d issue_dev_db"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-#名前付きボリューム定義
 volumes:
   postgres_data:

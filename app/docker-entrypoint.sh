@@ -1,17 +1,26 @@
 #!/bin/sh
 
+set -e
+
 echo "Waiting for database..."
 
-until pg_isready -h db -p 5432 -U postgres; do
-  sleep 1
+until pg_isready -h db -p 5432 -U "${POSTGRES_USER}"
+do
+    sleep 1
 done
 
-echo "Database ready"
+echo "Database is ready."
 
+echo "Running Prisma migrations..."
 npx prisma migrate deploy
 
 if [ "$NODE_ENV" = "production" ]; then
-  exec node dist/index.js
+    echo "Running required master seed..."
+    npm run db:seed:master
+
+    echo "Starting production server..."
+    exec npm start
 else
-  exec npm run dev
+    echo "Starting development server..."
+    exec npm run dev
 fi

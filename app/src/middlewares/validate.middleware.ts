@@ -1,9 +1,10 @@
-import { Response, NextFunction } from "express";
-import { ZodError, ZodType } from "zod";
+import type { Response, NextFunction } from "express";
+import type { ZodType } from "zod";
+import { ZodError } from "zod";
 
-import { ValidatedAuthRequest } from "../types/validated-request.js";
+import type { ValidatedAuthRequest } from "../types/validated-request.js";
 
-type ValidationSchemas<P = any, Q = any, B = any> = {
+type ValidationSchemas<P = unknown, Q = unknown, B = unknown> = {
   params?: ZodType<P>;
   query?: ZodType<Q>;
   body?: ZodType<B>;
@@ -21,7 +22,9 @@ type ValidationSchemas<P = any, Q = any, B = any> = {
  * @param schemas 検証対象のSchema定義
  */
 export const validate =
-  <P = any, Q = any, B = any>(schemas: ValidationSchemas<P, Q, B>) =>
+  <P = unknown, Q = unknown, B = unknown>(
+    schemas: ValidationSchemas<P, Q, B>,
+  ) =>
   (req: ValidatedAuthRequest<P, Q, B>, res: Response, next: NextFunction) => {
     try {
       if (schemas.body) {

@@ -1,7 +1,25 @@
 import { prisma } from "../../client.js";
 
 export const seedProjectMembers = async () => {
-  const user = await prisma.user.findUnique({
+  const admin = await prisma.user.findUnique({
+    where: {
+      email: "admin@example.com",
+    },
+  });
+
+  const owner = await prisma.user.findUnique({
+    where: {
+      email: "owner@example.com",
+    },
+  });
+
+  const manager = await prisma.user.findUnique({
+    where: {
+      email: "manager@example.com",
+    },
+  });
+
+  const member = await prisma.user.findUnique({
     where: {
       email: "user@example.com",
     },
@@ -13,9 +31,36 @@ export const seedProjectMembers = async () => {
     },
   });
 
-  const project = await prisma.project.findFirst({
+  const issueTrackerProject = await prisma.project.findFirst({
     where: {
       name: "Issue Tracker",
+      ownerId: admin?.id,
+    },
+  });
+
+  const deletedIssueTrackerProject = await prisma.project.findFirst({
+    where: {
+      name: "Issue Tracker Deleted",
+      ownerId: admin?.id,
+    },
+  });
+
+  const ownerTestProject = await prisma.project.findFirst({
+    where: {
+      name: "Owner Test Project",
+      ownerId: owner?.id,
+    },
+  });
+
+  const ownerRole = await prisma.projectRole.findUnique({
+    where: {
+      name: "OWNER",
+    },
+  });
+
+  const managerRole = await prisma.projectRole.findUnique({
+    where: {
+      name: "MANAGER",
     },
   });
 
@@ -31,36 +76,78 @@ export const seedProjectMembers = async () => {
     },
   });
 
-  if (!user || !viewer || !project || !memberRole) {
-    throw new Error("Required data not found.");
+  if (
+    !admin ||
+    !owner ||
+    !manager ||
+    !member ||
+    !viewer ||
+    !issueTrackerProject ||
+    !deletedIssueTrackerProject ||
+    !ownerTestProject ||
+    !ownerRole ||
+    !managerRole ||
+    !memberRole ||
+    !viewerRole
+  ) {
+    throw new Error("Required project member seed data not found.");
   }
-  await prisma.projectMember.upsert({
-    where: {
-      projectId_userId: {
-        projectId: project.id,
-        userId: user.id,
-      },
+
+  const memberships = [
+    {
+      projectId: issueTrackerProject.id,
+      userId: admin.id,
+      roleId: ownerRole.id,
     },
-    update: {},
-    create: {
-      userId: user.id,
-      projectId: project.id,
+    {
+      projectId: deletedIssueTrackerProject.id,
+      userId: admin.id,
+      roleId: ownerRole.id,
+    },
+    {
+      projectId: issueTrackerProject.id,
+      userId: manager.id,
+      roleId: managerRole.id,
+    },
+    {
+      projectId: deletedIssueTrackerProject.id,
+      userId: manager.id,
+      roleId: managerRole.id,
+    },
+    {
+      projectId: issueTrackerProject.id,
+      userId: member.id,
       roleId: memberRole.id,
     },
-  });
-
-  await prisma.projectMember.upsert({
-    where: {
-      projectId_userId: {
-        projectId: project.id,
-        userId: viewer.id,
-      },
+    {
+      projectId: deletedIssueTrackerProject.id,
+      userId: member.id,
+      roleId: memberRole.id,
     },
-    update: {},
-    create: {
+    {
+      projectId: issueTrackerProject.id,
       userId: viewer.id,
-      projectId: project.id,
       roleId: viewerRole.id,
     },
-  });
+    {
+      projectId: ownerTestProject.id,
+      userId: owner.id,
+      roleId: ownerRole.id,
+    },
+  ];
+
+  for (const membership of memberships) {
+    await prisma.projectMember.upsert({
+      where: {
+        projectId_userId: {
+          projectId: membership.projectId,
+          userId: membership.userId,
+        },
+      },
+      update: {
+        roleId: membership.roleId,
+      },
+      create: membership,
+    });
+  }
 };

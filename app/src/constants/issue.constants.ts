@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
-import { IssueIncludeField } from "../types/issue.types.js";
+import type { Prisma } from "@prisma/client";
+import type { IssueIncludeField } from "../types/issue.types.js";
 
 /**
  * Issue一覧取得で使用可能なソート項目

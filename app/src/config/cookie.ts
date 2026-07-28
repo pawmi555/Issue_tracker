@@ -1,4 +1,4 @@
-import { CookieOptions } from "express";
+import type { CookieOptions } from "express";
 
 export const refreshCookie: CookieOptions = {
   httpOnly: true,

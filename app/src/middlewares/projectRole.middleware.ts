@@ -1,6 +1,11 @@
-import { Response, NextFunction } from "express";
+import type { Response, NextFunction } from "express";
+
 import { prisma } from "../lib/prisma.js";
-import { ProjectRequest } from "../types/auth-request.js";
+
+import type {
+  AuthRequest,
+  ProjectMemberPayload,
+} from "../types/auth-request.js";
 
 const ROLE_HIERARCHY = {
   OWNER: 4,
@@ -11,13 +16,16 @@ const ROLE_HIERARCHY = {
 
 type ProjectRoleName = keyof typeof ROLE_HIERARCHY;
 
+type ProjectRoleMiddlewareOptions = {
+  allowDeletedWithIncludeQuery?: boolean;
+  deletedResourceRequiredRole?: ProjectRoleName;
+};
+
 /**
  * Project権限チェックMiddlewareを生成する
  *
  * 指定されたProject Role以上の権限を持つユーザーのみ
  * アクセスを許可する。
- *
- * ADMINユーザーは常に許可される。
  *
  * 認証確認、
  * Project参加確認、
@@ -26,10 +34,11 @@ type ProjectRoleName = keyof typeof ROLE_HIERARCHY;
  * ProjectMember情報をreq.projectMemberへ設定する。
  *
  * @param requiredRole 必要な最低権限
+ * @param options 削除済みProjectの参照設定
  */
 export const projectRoleMiddleware =
-  (requiredRole: ProjectRoleName) =>
-  async (req: ProjectRequest, res: Response, next: NextFunction) => {
+  (requiredRole: ProjectRoleName, options: ProjectRoleMiddlewareOptions = {}) =>
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const authUser = req.user;
 
@@ -74,11 +83,6 @@ export const projectRoleMiddleware =
         });
       }
 
-      // ADMINはProject権限チェックをスキップ
-      if (currentUser.role.name === "ADMIN") {
-        return next();
-      }
-
       // 対象プロジェクトに所属しているか
       const membership = await prisma.projectMember.findUnique({
         where: {
@@ -113,16 +117,38 @@ export const projectRoleMiddleware =
         });
       }
 
+      const userRole = membership.role.name as ProjectRoleName;
+
+      const canAccessDeletedProject =
+        options.allowDeletedWithIncludeQuery === true &&
+        req.method === "GET" &&
+        req.query.includeDeleted === "true";
+
       // 論理削除済みプロジェクト確認
       if (membership.project.deletedAt) {
-        return res.status(404).json({
-          success: false,
-          code: "PROJECT_NOT_FOUND",
-          message: "プロジェクトが見つかりません",
-        });
-      }
+        if (!canAccessDeletedProject) {
+          return res.status(404).json({
+            success: false,
+            code: "PROJECT_NOT_FOUND",
+            message: "プロジェクトが見つかりません",
+          });
+        }
 
-      const userRole = membership.role.name as ProjectRoleName;
+        const deletedResourceRequiredRole =
+          options.deletedResourceRequiredRole ?? requiredRole;
+
+        const canAccessDeletedResource =
+          ROLE_HIERARCHY[userRole] >=
+          ROLE_HIERARCHY[deletedResourceRequiredRole];
+
+        if (!canAccessDeletedResource) {
+          return res.status(403).json({
+            success: false,
+            code: "INSUFFICIENT_PROJECT_ROLE",
+            message: "削除済みプロジェクトの参照権限なし",
+          });
+        }
+      }
 
       // ユーザー権限が要求権限以上か判定
       const hasPermission =
@@ -137,10 +163,10 @@ export const projectRoleMiddleware =
       }
 
       // 後続処理で利用できるようProjectMember情報を保持
-      req.projectMember = membership;
+      req.projectMember = membership as ProjectMemberPayload;
 
       next();
-    } catch (error) {
+    } catch {
       return res.status(500).json({
         success: false,
         code: "AUTHORIZATION_CHECK_FAILED",

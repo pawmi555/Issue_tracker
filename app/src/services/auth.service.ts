@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
 
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
 
@@ -14,6 +14,34 @@ import {
   mapLoginResponse,
   mapRefreshToken,
 } from "../mappers/auth/auth.mapper.js";
+
+type RegisterInput = {
+  name: string;
+  email: string;
+  password: string;
+};
+
+type LoginInput = {
+  email: string;
+  password: string;
+};
+
+type RefreshInput = {
+  refreshToken: string;
+};
+
+type LogoutInput = {
+  refreshToken: string;
+};
+
+type meInput = {
+  userId: number;
+};
+
+type JwtPayload = {
+  userId: number;
+  jti: string;
+};
 
 const ACCESS_EXPIRES = "1h";
 const REFRESH_EXPIRES = "7d";
@@ -51,20 +79,15 @@ const hashString = async (token: string) => {
   return bcrypt.hash(token, 10);
 };
 
-type JwtPayload = {
-  userId: number;
-  jti: string;
-};
-
 /**
  * ユーザー登録
  * 初期ロールとしてUSERを付与する
  */
-export const registerService = async (
-  name: string,
-  email: string,
-  password: string,
-) => {
+export const registerService = async ({
+  name,
+  email,
+  password,
+}: RegisterInput) => {
   const exists = await prisma.user.findUnique({ where: { email } });
 
   if (exists) throw new AppError("Email already exists", 409, "EMAIL_EXISTS");
@@ -93,7 +116,7 @@ export const registerService = async (
 /**
  * ログイン
  */
-export const loginService = async (email: string, password: string) => {
+export const loginService = async ({ email, password }: LoginInput) => {
   const user = await prisma.user.findUnique({
     where: { email },
     include: {
@@ -127,7 +150,7 @@ export const loginService = async (email: string, password: string) => {
  * アクセストークン更新
  * Refresh Token Rotationを行う
  */
-export const refreshService = async (refreshToken: string) => {
+export const refreshService = async ({ refreshToken }: RefreshInput) => {
   if (!refreshToken) {
     throw new AppError("Refresh token required", 400, "TOKEN_REQUIRED");
   }
@@ -200,7 +223,7 @@ export const refreshService = async (refreshToken: string) => {
 /**
  * ログアウト
  */
-export const logoutService = async (refreshToken: string) => {
+export const logoutService = async ({ refreshToken }: LogoutInput) => {
   if (!refreshToken) {
     throw new AppError("Refresh token required", 400, "TOKEN_REQUIRED");
   }
@@ -231,7 +254,7 @@ export const logoutService = async (refreshToken: string) => {
 /**
  * 自分の情報取得
  */
-export const meService = async (userId: number) => {
+export const meService = async ({ userId }: meInput) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {

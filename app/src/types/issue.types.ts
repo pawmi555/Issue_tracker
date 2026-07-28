@@ -1,5 +1,5 @@
-import { ISSUE_INCLUDE_FIELDS } from "../constants/issue.constants.js";
-import { IssueSortField } from "../constants/issue.constants.js";
+import type { ISSUE_INCLUDE_FIELDS } from "../constants/issue.constants.js";
+import type { IssueSortField } from "../constants/issue.constants.js";
 
 /**
  * 利用可能なIssue include項目を表すUnion型

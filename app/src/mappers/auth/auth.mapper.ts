@@ -2,7 +2,7 @@ import type { UserMapperInput } from "../user/user.mapper.js";
 
 import { mapUser } from "../user/user.mapper.js";
 
-import {
+import type {
   LoginResponseDto,
   RefreshTokenDto,
   RegisterResponseDto,

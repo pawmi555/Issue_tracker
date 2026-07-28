@@ -21,7 +21,7 @@ export const seedHistoryAction = async () => {
   ];
 
   for (const action of actions) {
-    await prisma.HistoryAction.upsert({
+    await prisma.historyAction.upsert({
       where: {
         name: action.name,
       },

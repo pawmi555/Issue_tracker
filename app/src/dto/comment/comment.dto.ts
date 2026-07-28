@@ -1,4 +1,4 @@
-import { UserSummaryDto } from "../user/user-summary.dto.js";
+import type { UserSummaryDto } from "../user/user-summary.dto.js";
 
 /**
  * コメント情報
