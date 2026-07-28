@@ -6,17 +6,17 @@
 バリデーション・論理削除に関する不具合が再発していないことを
 確認するため、Postmanを使用して回帰テストを実施した。
 
-| 項目         | 内容                                       |
-| ------------ | ------------------------------------------ |
-| 実施日       | 2026-07-24                                 |
-| 対象コミット | `333a7f964f27bb5ef9acbffab6757c36c3981b7d` |
-| 対象フォルダ | `05_Regression`                            |
-| 実行環境     | Docker Compose開発環境                     |
-| テスト方法   | Postmanによる手動テスト                    |
-| テスト件数   | 29件                                       |
-| 成功         | 29件                                       |
-| 失敗         | 0件                                        |
-| 総合結果     | PASS                                       |
+| 項目         | 内容                                        |
+| ------------ | ------------------------------------------- |
+| 実施日       | 2026-07-29                                  |
+| 対象コミット | `3526e580fa2edf00cf7a24e8d8fb660dc7e14649c` |
+| 対象フォルダ | `05_Regression`                             |
+| 実行環境     | Docker Compose開発環境                      |
+| テスト方法   | Postmanによる手動テスト                     |
+| テスト件数   | 29件                                        |
+| 成功         | 29件                                        |
+| 失敗         | 0件                                         |
+| 総合結果     | PASS                                        |
 
 ## 2. 実施条件
 
@@ -90,13 +90,13 @@ docker compose -f docker/docker-compose.dev.yml exec app npm run db:fresh
 
 次のSeedデータを使用した。
 
-| 項目        | 内容                       |
-| ----------- | -------------------------- |
-| Project     | `Issue Tracker Deleted`    |
-| OWNER       | `admin@example.com`        |
-| MANAGER     | `manager@example.com`      |
-| MEMBER      | `user@example.com`         |
-| Child Issue | `Issue in Deleted Project` |
+| 項目        | 内容                                                  |
+| ----------- | ----------------------------------------------------- |
+| Project     | `Issue Tracker Deleted`                               |
+| OWNER       | `admin@example.com`                                   |
+| MANAGER     | `manager@example.com`                                 |
+| MEMBER      | `user@example.com`                                    |
+| Child Issue | `Issue for deleted parent project regression testing` |
 
 | No. | テスト内容                                       | 期待結果                           | 実際の結果                                                | 判定 |
 | --: | ------------------------------------------------ | ---------------------------------- | --------------------------------------------------------- | ---- |
