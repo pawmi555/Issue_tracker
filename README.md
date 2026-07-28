@@ -1,6 +1,11 @@
 # 1. Overview
 
 Issue Trackerは、チーム開発におけるIssue管理を想定したREST APIです。
+
+本プロジェクトは、バックエンドエンジニアへの転職を目的として作成したポートフォリオです。
+
+認証・認可、業務ルール、トランザクション、論理削除、変更履歴、状態遷移など、実務で必要となるバックエンド設計を中心に実装しています。
+
 単純なCRUD APIではなく、実際の業務システムで求められる認証・認可・監査・履歴管理・論理削除・状態遷移制御を考慮して設計・実装しました。
 API設計ではDTOとMapperによるAPI契約の分離、RBACによる認可、Refresh Token Rotationによる認証、履歴管理による監査性など、保守性・拡張性・セキュリティを重視しています。
 
@@ -35,12 +40,12 @@ API設計ではDTOとMapperによるAPI契約の分離、RBACによる認可、R
 
 Project Role:
 
-| Role    | Permission                             |
-| ------- | -------------------------------------- |
-| OWNER   | プロジェクトの最高権限。複数人設定可能 |
-| MANAGER | メンバー管理・Issue管理が可能          |
-| MEMBER  | Issue作成・更新・コメント可能          |
-| VIEWER  | 閲覧のみ                               |
+| Role    | Permission                                                                               |
+| ------- | ---------------------------------------------------------------------------------------- |
+| OWNER   | プロジェクトの最高権限。複数人設定可能                                                   |
+| MANAGER | 許可された範囲のメンバー追加・ロール変更、Issue管理が可能。メンバー削除とOWNER操作は不可 |
+| MEMBER  | Issue作成・更新・コメント可能                                                            |
+| VIEWER  | 閲覧のみ                                                                                 |
 
 ## Project Management
 
@@ -48,6 +53,14 @@ Project Role:
 - Project Member管理
 - Member Role変更
 - Project単位アクセス制御
+
+### Project作成者とOWNER
+
+- `ownerId`はProjectを最初に作成したユーザーを表します
+- `ownerId`はProject作成後に変更しません
+- Project内の操作権限は、ProjectMemberに設定されたProjectRoleによって判定します
+- ProjectRoleのOWNERは複数人設定できます
+- `ownerId`のユーザーとProjectRoleがOWNERのユーザーは、必ずしも一致しません
 
 ## Issue Management
 
@@ -90,36 +103,55 @@ Project一覧では、`includeDeleted`の指定に応じて次のように取得
 
 削除済みIssue・Commentの取得、および削除済みIssueの復元は、対象ProjectのMANAGER以上に制限しています。
 
+フロントエンドには削除済みデータ管理画面を実装していないため、削除済みデータの取得・復元はPostmanから確認できます。
+
+削除済みデータを取得する場合は、対象APIに`includeDeleted=true`を指定します。
+利用には各リソースで定められた権限が必要です。
+詳細な対象APIと権限制御は[API設計書](./docs/api-design.md)を参照してください。
+
 # 3. Tech Stack
 
 ## Backend
 
-| Technology     | Purpose            |
-| -------------- | ------------------ |
-| TypeScript     | Type Safety        |
-| Node.js        | Runtime            |
-| Express        | REST API Framework |
-| Prisma         | ORM                |
-| PostgreSQL     | Database           |
-| Zod            | Validation         |
-| JWT            | Authentication     |
-| Docker         | Container Runtime  |
-| Docker Compose | Local Development  |
+| Technology         | Purpose            |
+| ------------------ | ------------------ |
+| TypeScript         | Type Safety        |
+| Node.js            | Runtime            |
+| Express            | REST API Framework |
+| Prisma             | ORM                |
+| PostgreSQL         | Database           |
+| Zod                | Validation         |
+| JWT                | Authentication     |
+| Docker             | Container Runtime  |
+| Docker Compose     | Local Development  |
+| bcrypt             | Password Hashing   |
+| Helmet             | Security Headers   |
+| express-rate-limit | Rate Limiting      |
 
 ## Frontend
 
-| Technology | Purpose     |
-| ---------- | ----------- |
-| React      | UI          |
-| TypeScript | Type Safety |
+| Technology      | Purpose                  |
+| --------------- | ------------------------ |
+| React           | UI構築                   |
+| TypeScript      | 型安全性                 |
+| Vite            | 開発サーバー・ビルド     |
+| React Router    | ルーティング             |
+| TanStack Query  | サーバー状態管理         |
+| Axios           | HTTP通信                 |
+| React Hook Form | フォーム管理             |
+| Zod             | 入力バリデーション       |
+| MUI             | UIコンポーネント         |
+| Zustand         | クライアント状態管理     |
+| Nginx           | 本番相当環境での静的配信 |
 
 ## Development Tools
 
-| Tool           | Purpose           |
-| -------------- | ----------------- |
-| Postman        | API Testing       |
-| Docker Compose | Local Environment |
-| Git            | Version Control   |
+| Tool           | Purpose                      |
+| -------------- | ---------------------------- |
+| Postman        | API Collection・テスト作成   |
+| Newman         | Postman CollectionのCLI実行  |
+| Docker Compose | ローカル・本番相当環境の構築 |
+| Git            | バージョン管理               |
 
 # 4. Architecture
 
@@ -499,60 +531,127 @@ Database Designでは以下を重視しました。
 # 8. Directory Structure
 
 ```text
-src
-├── config
-├── constants
-├── controllers
-├── dto
-│ ├── auth
-│ ├── comment
-│ ├── common
-│ ├── history
-│ ├── issue
-│ ├── project
-│ └── user
-├── lib
-├── mappers
-│ ├── auth
-│ ├── comment
-│ ├── history
-│ ├── issue
-│ ├── project
-│ └── user
-├── middlewares
-├── repositories
-├── routes
-├── selects
-├── services
-│ └── builders
-├── types
-├── utils
-└── validators
+Issue_tracker
+├── app
+│   ├── prisma
+│   │   ├── migrations
+│   │   ├── seed
+│   │   ├── schema.prisma
+│   │   └── seed.ts
+│   └── src
+│       ├── config
+│       ├── constants
+│       ├── controllers
+│       ├── dto
+│       │   ├── auth
+│       │   ├── comment
+│       │   ├── common
+│       │   ├── history
+│       │   ├── issue
+│       │   ├── project
+│       │   └── user
+│       ├── lib
+│       ├── mappers
+│       │   ├── auth
+│       │   ├── comment
+│       │   ├── history
+│       │   ├── issue
+│       │   ├── project
+│       │   └── user
+│       ├── middlewares
+│       ├── repositories
+│       ├── routes
+│       ├── selects
+│       ├── services
+│       │   └── builders
+│       ├── types
+│       ├── utils
+│       └── validators
+├── frontend
+│   └── src
+│       ├── api
+│       ├── assets
+│       ├── components
+│       ├── features
+│       ├── layouts
+│       ├── pages
+│       ├── providers
+│       ├── routes
+│       ├── stores
+│       ├── theme
+│       ├── types
+│       └── utils
+├── docker
+│   ├── docker-compose.dev.yml
+│   └── docker-compose.prod.yml
+├── docs
+│   ├── api-design.md
+│   ├── er-diagram.mmd
+│   ├── postman-automated-test-results.md
+│   └── postman-regression-test-results.md
+├── postman
+│   └── Issue-Tracker.postman_collection.json
+└── README.md
 ```
 
-Layer責務:
+## Main directory responsibilities
 
-- controllers
-  - HTTP Request / Response
+### Backend
 
-- services
-  - Business Logic
+- `prisma`
+  - Prisma Schema、Migration、Seedを管理する
+- `controllers`
+  - HTTPリクエストを受け取り、Serviceを呼び出してレスポンスを返す
+- `services`
+  - 業務ロジックとトランザクションを管理する
+- `repositories`
+  - 履歴データなどの参照処理を分離する
+- `validators`
+  - Zodによってリクエストを検証する
+- `dto`
+  - APIレスポンスの契約を定義する
+- `mappers`
+  - Prismaから取得したデータをDTOへ変換する
+- `middlewares`
+  - 認証、認可、バリデーション、エラー処理を担当する
+- `selects`
+  - Prismaで取得するフィールドを定義する
 
-- repositories
-  - History Query Abstraction
-  - History Repository
-    - 履歴参照処理を担当
-    - 履歴一覧取得
-    - Pagination用件数取得
-    - 表示変換用Master取得
-  - Database Access Layer
-  - History関連データ取得処理
+### Frontend
 
-- mappers
-  - Entity / DTO Conversion
+- `api`
+  - Axiosの共通設定など、API通信の基盤を管理する
+- `assets`
+  - 画像などの静的ファイルを管理する
+- `components`
+  - 複数の画面や機能で使用する共通コンポーネントを管理する
+- `features`
+  - Auth、Project、Issue、Comment、Historyなどの機能単位で実装を管理する
+- `layouts`
+  - 画面共通のレイアウトを管理する
+- `pages`
+  - ルート単位のページコンポーネントを管理する
+- `providers`
+  - 認証、TanStack Query、MUI ThemeのProviderを管理する
+- `routes`
+  - ルーティングと保護ルートを管理する
+- `stores`
+  - Zustandによるクライアント状態を管理する
+- `theme`
+  - MUIのテーマ設定を管理する
+- `types`
+  - APIレスポンスなどの共通型を管理する
+- `utils`
+  - エラー変換などの共通処理を管理する
 
-- validators
-  - Request Validation
+### Other
+
+- `docker`
+  - 開発環境と本番相当環境のDocker Compose設定を管理する
+- `docs`
+  - API設計書、ER図およびテスト実施結果を管理する
+- `postman`
+  - APIテストと回帰テストに使用するPostman Collectionを管理する
 
 # 9. API Design
 
@@ -598,13 +697,11 @@ API設計では以下を重視しました。
 
 # 10. Testing
 
-## API Testing
+## 10.1 Test structure
 
 Tool:
 
 - Postman
-
-Test Coverage:
 
 Postman Collection:
 
@@ -612,8 +709,8 @@ Postman Collection:
 Issue Tracker Collection
 │
 ├ 00 Setup
-│ ├ Reset DB
-│ └ Get Access Token
+│ ├ Get Access Token
+│ └ Get Deleted Project ID
 │
 ├ 01 Auth
 │ ├ Login
@@ -628,24 +725,46 @@ Issue Tracker Collection
 │ └ Detail (includeDeleted)
 │
 ├ 03 Issues
-│ ├ Create
-│ ├ Update Success
-│ ├ Update Invalid Transition
-│ ├ Delete
-│ ├ Restore
-│ ├ Detail
-│ ├ Detail (include)
-│ ├ Prepare Closed Issue
-│ │ ├ Move To REVIEW
-│ │ ├ Move To DONE
-│ │ └ Move To CLOSED
-│ └ Update Closed Issue
+│ ├ 01_Standard Issue Flow
+│ │ ├ Create
+│ │ ├ Update Success
+│ │ ├ Update Invalid Transition
+│ │ ├ Delete
+│ │ ├ Restore
+│ │ ├ Detail
+│ │ └ Detail (include)
+│ │
+│ └ 02_Closed Issue Flow
+│   ├ Move To REVIEW
+│   ├ Move To DONE
+│   ├ Move To CLOSED
+│   └ Update Closed Issue
 │
-└ 04 Histories
-└ Issue History
+├ 04 Histories
+│ └ Issue History
+│
+├ 05 Regression
+└ 06 Deleted User Middleware Regression
 ```
 
-## Tested Scenarios
+## 10.2 Tested scenarios
+
+以下のPostmanテストを実施し、
+すべて期待結果と一致することを確認しています。
+
+### テスト対象
+
+- ログイン・ログアウト・トークン更新
+- Project、Issue、CommentのCRUD
+- ProjectRoleに基づく認可
+- Issueの状態遷移
+- バリデーション
+- 論理削除・復元
+- 変更履歴
+- Refresh APIによるAccess Token再発行
+- 削除済みUserに対する認証ミドルウェアの回帰テスト
+
+### API Tests
 
 - ✅ Authentication
 - ✅ Authorization
@@ -655,20 +774,18 @@ Issue Tracker Collection
 - ✅ Soft Delete
 - ✅ Restore
 - ✅ History Recording
-- ✅ Refresh Token Rotation
+- ✅ Refresh APIによるAccess Token再発行
 - ✅ Include Query
 - ✅ Pagination
 
-### テスト実行前
+### Regression Tests
 
-Postmanテストで使用する開発DBを初期化し、開発用Seedデータを登録します。
+- ✅ `05 Regression`
+- ✅ `06 Deleted User Middleware Regression`
 
-```bash
-docker compose -f docker/docker-compose.dev.yml exec app npm run db:fresh
-```
+## 10.3 Test results
 
-このコマンドは開発DBのデータを削除して再作成します。必要なデータが残っていないことを確認してから実行してください。
-
+Postmanを使用して、APIテストおよび回帰テストを実施しています。
 テストでは正常系だけではなく、
 
 権限エラー
@@ -677,6 +794,84 @@ docker compose -f docker/docker-compose.dev.yml exec app npm run db:fresh
 Token更新
 
 など業務システムで発生するケースを確認しています。
+
+### 公開ファイル
+
+- [Postman Collection](./postman/Issue-Tracker.postman_collection.json)
+- [自動テスト実施結果](./docs/postman-automated-test-results.md)
+- [手動回帰テスト実施結果](./docs/postman-regression-test-results.md)
+
+`00_Setup`から`04_Histories`および
+`06_Deleted User Middleware Regression`は、
+Post-response Scriptによる自動判定を実施しています。
+
+`05_Regression`には一部Post-response Scriptが設定されていますが、本ポートフォリオでは29件を手動回帰テストとして実施しています。このフォルダはNewmanによる自動テスト結果34件には含めていません。
+手動テストでは、レスポンス、変更履歴およびDB更新結果を確認しています。
+
+## 10.4 How to run
+
+### Collection Variables
+
+Collectionをインポート後、次のCollection Variablesを設定してください。
+
+| Variable   | 設定例                         | 説明                 |
+| ---------- | ------------------------------ | -------------------- |
+| `baseUrl`  | `http://localhost:3000/api/v1` | 開発環境のAPI URL    |
+| `email`    | `admin@example.com`            | 開発用Seedユーザー   |
+| `password` | `password123`                  | 開発用Seedパスワード |
+
+Access Tokenやテスト中に生成されるIDは、Post-response Scriptによって自動設定されます。
+
+記載している認証情報はローカル検証用のSeedデータです。本番環境では使用していません。
+
+### テスト実行前
+
+Postmanテストで使用する開発DBを初期化し、開発用Seedデータを登録します。
+
+```powershell
+docker compose -f docker/docker-compose.dev.yml exec app npm run db:fresh
+```
+
+このコマンドは開発DBのデータを削除して再作成します。必要なデータが残っていないことを確認してから実行してください。
+
+テスト結果の一時出力先を作成します。
+
+```powershell
+New-Item -ItemType Directory -Force -Path .\postman\results
+```
+
+### Newmanによる自動テスト
+
+```powershell
+npx newman@6.2.2 run `
+  .\postman\Issue-Tracker.postman_collection.json `
+  --folder "00_Setup" `
+  --folder "01_Auth" `
+  --folder "02_Projects" `
+  --folder "03_Issues" `
+  --folder "04_Histories" `
+  --folder "06_Deleted User Middleware Regression" `
+  --env-var "baseUrl=http://localhost:3000/api/v1" `
+  --env-var "email=admin@example.com" `
+  --env-var "password=password123" `
+  --reporters "cli,json" `
+  --reporter-json-export ".\postman\results\automated-test-results.json"
+```
+
+実行結果で、リクエスト、Test Script、Pre-request Script、Assertionの`failed`がすべて`0`であることを確認します。
+
+### テスト実行後
+
+`06_Deleted User Middleware Regression`では、
+確認用Userを論理削除します。
+
+ほかの動作確認へ影響しないように、テスト完了後は開発DBをSeed状態へ戻してください。
+
+```powershell
+docker compose -f docker/docker-compose.dev.yml exec app npm run db:fresh
+```
+
+Newmanが生成する生のJSONレポートにはAccess TokenやCookieなどの認証情報が含まれるため、Gitの管理対象から除外しています。
 
 # 11. Environment Setup
 
@@ -1014,7 +1209,8 @@ DBの永続ボリュームは通常の`down`では削除されません。
 
 ## Additional
 
-- Automated Test
+- JestによるUnit Test
+- CIでのNewman自動実行
 - CI/CD Pipeline
 - Notification Feature
 - Real-time Update(WebSocket)

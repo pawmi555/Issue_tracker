@@ -1,0 +1,3866 @@
+{
+  "info": {
+    "_postman_id": "1f0a0b59-2e0d-49ea-967f-30aa2575456d",
+    "name": "Issue-Tracker",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52927806",
+    "_collection_link": "https://go.postman.co/collection/52927806-1f0a0b59-2e0d-49ea-967f-30aa2575456d?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "00_Setup",
+      "item": [
+        {
+          "name": "Get Access Token",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"returns access token\", () => {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "\r",
+                  "    const body = pm.response.json();\r",
+                  "\r",
+                  "    pm.expect(body.data.accessToken).to.exist;\r",
+                  "\r",
+                  "    pm.expect(body.data.user.id).to.exist;\r",
+                  "\r",
+                  "    pm.collectionVariables.set(\r",
+                  "        \"accessToken\",\r",
+                  "        body.data.accessToken\r",
+                  "    );\r",
+                  "\r",
+                  "    pm.collectionVariables.set(\r",
+                  "        \"userId\",\r",
+                  "        body.data.user.id\r",
+                  "    );\r",
+                  "})"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{email}}\",\r\n  \"password\": \"{{password}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "- 共通認証情報準備\n    \n- 後続API依存解消"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Deleted Project ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\r",
+                  "  \"deleted project exists\",\r",
+                  "  () => {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "\r",
+                  "    const body = pm.response.json();\r",
+                  "\r",
+                  "    const projects =\r",
+                  "      body.data.items ?? body.data;\r",
+                  "\r",
+                  "    const deletedProject =\r",
+                  "      projects.find(\r",
+                  "        (project) =>\r",
+                  "          project.deletedAt !== null,\r",
+                  "      );\r",
+                  "\r",
+                  "    pm.expect(\r",
+                  "      deletedProject,\r",
+                  "    ).to.exist;\r",
+                  "\r",
+                  "    pm.collectionVariables.set(\r",
+                  "      \"deletedProjectId\",\r",
+                  "      deletedProject.id,\r",
+                  "    );\r",
+                  "  },\r",
+                  ");"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects?includeDeleted=true&limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects"
+              ],
+              "query": [
+                {
+                  "key": "includeDeleted",
+                  "value": "true"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01_Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "\r",
+                  "// pm.test(\r",
+                  "//   \"refresh cookie exists\",\r",
+                  "//   function () {\r",
+                  "//     const cookies =\r",
+                  "//       pm.cookies.toObject();\r",
+                  "\r",
+                  "//     pm.expect(\r",
+                  "//       cookies.refresh_token\r",
+                  "//     ).to.exist;\r",
+                  "//   }\r",
+                  "// );\r",
+                  "\r",
+                  "pm.test(\"login returns access token\", () => {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "\r",
+                  "    const body =\r",
+                  "        pm.response.json();\r",
+                  "\r",
+                  "    pm.expect(\r",
+                  "        body.data.accessToken\r",
+                  "    ).to.exist;\r",
+                  "});\r",
+                  "\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{email}}\",\r\n  \"password\": \"{{password}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "- 認証成功\n    \n- accessToken返却\n    \n- refresh cookie発行"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\r",
+                  "  \"refresh returns access token\",\r",
+                  "  () => {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "\r",
+                  "    const body = pm.response.json();\r",
+                  "\r",
+                  "    pm.expect(\r",
+                  "      body.data.accessToken,\r",
+                  "    ).to.be.a(\"string\").and.not.empty;\r",
+                  "\r",
+                  "    pm.collectionVariables.set(\r",
+                  "      \"accessToken\",\r",
+                  "      body.data.accessToken,\r",
+                  "    );\r",
+                  "  },\r",
+                  ");\r",
+                  "\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "- AccessToken再発行\n    \n- Cookie更新"
+          },
+          "response": []
+        },
+        {
+          "name": "Me",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\r",
+                  "    \"me returns current user\",\r",
+                  "    () => {\r",
+                  "        pm.response.to.have.status(200);\r",
+                  "\r",
+                  "        const body =\r",
+                  "            pm.response.json();\r",
+                  "\r",
+                  "        pm.expect(\r",
+                  "            body.data.id\r",
+                  "        ).eql(\r",
+                  "            pm.collectionVariables.get(\"userId\")\r",
+                  "        );\r",
+                  "    });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "- Authorization動作確認  \n    \n-   \n    Token→User解決確認"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\r",
+                  "    \"logout returns 204\",\r",
+                  "    () => {\r",
+                  "        pm.response\r",
+                  "            .to.have\r",
+                  "            .status(204);\r",
+                  "    });\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "- revoke確認\n    \n- 204契約確認"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02_Projects",
+      "item": [
+        {
+          "name": "Create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\r",
+                  "    \"project created\",\r",
+                  "    () => {\r",
+                  "        pm.response.to.have.status(201);\r",
+                  "\r",
+                  "        const body =\r",
+                  "            pm.response.json();\r",
+                  "\r",
+                  "        pm.expect(\r",
+                  "            body.data.id\r",
+                  "        ).to.exist;\r",
+                  "\r",
+                  "        pm.collectionVariables.set(\r",
+                  "            \"projectId\",\r",
+                  "            body.data.id\r",
+                  "        );\r",
+                  "    })\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Sample Application\",\r\n  \"description\": \"sample project\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            },
+            "description": "- 作成成功  \n    \n-   \n    ownerId自動設定"
+          },
+          "response": []
+        },
+        {
+          "name": "List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\r",
+                  "    \"project list returns pagination\",\r",
+                  "    () => {\r",
+                  "        pm.response.to.have.status(200);\r",
+                  "\r",
+                  "        const body =\r",
+                  "            pm.response.json();\r",
+                  "\r",
+                  "        pm.expect(\r",
+                  "            body.data\r",
+                  "        ).to.be.an(\"array\");\r",
+                  "\r",
+                  "        pm.expect(\r",
+                  "            body.meta.total\r",
+                  "        )\r",
+                  "            .to.be.a(\"number\");\r",
+                  "    })\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "- Pagination  \n    \n-   \n    所属Projectのみ取得"
+          },
+          "response": []
+        },
+        {
+          "name": "Detail",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\r",
+                  "    \"project detail returns owner\",\r",
+                  "    () => {\r",
+                  "        pm.response.to.have.status(200);\r",
+                  "\r",
+                  "        const body = pm.response.json();\r",
+                  "\r",
+                  "        pm.expect(\r",
+                  "            body.data.owner\r",
+                  "        ).to.exist;\r",
+                  "    })\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}"
+              ]
+            },
+            "description": "- 詳細取得\n    \n- DTO整形"
+          },
+          "response": []
+        },
+        {
+          "name": "Detail (includeDeleted)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\r",
+                  "    \"deleted project can be retrieved\",\r",
+                  "    () => {\r",
+                  "        pm.response.to.have.status(200);\r",
+                  "\r",
+                  "        const body =\r",
+                  "            pm.response.json();\r",
+                  "\r",
+                  "        pm.expect(\r",
+                  "            body.data.id\r",
+                  "        ).to.exist;\r",
+                  "\r",
+                  "        pm.expect(\r",
+                  "            body.data.deletedAt\r",
+                  "        ).to.exist;\r",
+                  "    }\r",
+                  ");\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{deletedProjectId}}?includeDeleted=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{deletedProjectId}}"
+              ],
+              "query": [
+                {
+                  "key": "includeDeleted",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "- includeDeleted動作  \n    \n-   \n    論理削除考慮"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03_Issues",
+      "item": [
+        {
+          "name": "01_Standard Issue Flow",
+          "item": [
+            {
+              "name": "Create",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\r",
+                      "    \"issue created\",\r",
+                      "    () => {\r",
+                      "        pm.response.to.have.status(\r",
+                      "            201\r",
+                      "        );\r",
+                      "\r",
+                      "        const body =\r",
+                      "            pm.response.json();\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.id\r",
+                      "        ).to.exist;\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.title\r",
+                      "        ).to.eql(\r",
+                      "            \"Cannot Login\"\r",
+                      "        );\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.priority.name\r",
+                      "        ).to.eql(\r",
+                      "            \"LOW\"\r",
+                      "        );\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.status.name\r",
+                      "        ).to.eql(\"OPEN\");\r",
+                      "\r",
+                      "        pm.collectionVariables.set(\r",
+                      "            \"issueId\",\r",
+                      "            body.data.id\r",
+                      "        );\r",
+                      "    })\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"title\":\"Cannot Login\",\r\n  \"priorityId\":1\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{projectId}}/issues",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{projectId}}",
+                    "issues"
+                  ]
+                },
+                "description": "- 作成成功\n    \n- status固定"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Success",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\r",
+                      "    \"issue updated\",\r",
+                      "    () => {\r",
+                      "        pm.response.to.have.status(200);\r",
+                      "\r",
+                      "        const body =\r",
+                      "            pm.response.json();\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.updatedAt\r",
+                      "        ).to.exist;\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.title\r",
+                      "        ).to.eql(\r",
+                      "            \"Updated Issue\"\r",
+                      "        );\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.status.name\r",
+                      "        ).to.eql(\r",
+                      "            \"IN_PROGRESS\"\r",
+                      "        );\r",
+                      "    })\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"title\": \"Updated Issue\",\r\n  \"statusId\": 2\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{issueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{issueId}}"
+                  ]
+                },
+                "description": "- 更新成功  \n    \n-   \n    状態遷移成功  \n    \n-   \n    履歴生成確認"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Invalid Transition",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\r",
+                      "    \"issue rejects invalid transition\",\r",
+                      "    () => {\r",
+                      "        pm.response.to.have.status(409);\r",
+                      "\r",
+                      "        const body = pm.response.json();\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.code\r",
+                      "        ).eql(\r",
+                      "            \"ISSUE_INVALID_TRANSITION\"\r",
+                      "        );\r",
+                      "    });"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"statusId\": 4\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{issueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{issueId}}"
+                  ]
+                },
+                "description": "- スキップ遷移禁止  \n    \n-   \n    状態制御確認"
+              },
+              "response": []
+            },
+            {
+              "name": "Delete",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\r",
+                      "    \"issue deleted\",\r",
+                      "    () => {\r",
+                      "        pm.response\r",
+                      "            .to.have\r",
+                      "            .status(204);\r",
+                      "    })"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{issueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{issueId}}"
+                  ]
+                },
+                "description": "論理削除確認"
+              },
+              "response": []
+            },
+            {
+              "name": "Restore",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\r",
+                      "    \"issue restored\",\r",
+                      "    () => {\r",
+                      "        pm.response.to.have.status(200);\r",
+                      "\r",
+                      "        const body =\r",
+                      "            pm.response.json();\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.success\r",
+                      "        ).to.eql(true);\r",
+                      "    });"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{issueId}}/restore",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{issueId}}",
+                    "restore"
+                  ]
+                },
+                "description": "復元成功"
+              },
+              "response": []
+            },
+            {
+              "name": "Detail",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\r",
+                      "    \"issue detail returns updated issue\",\r",
+                      "    () => {\r",
+                      "        pm.response.to.have.status(\r",
+                      "            200\r",
+                      "        )\r",
+                      "\r",
+                      "        const body = pm.response.json();\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.id\r",
+                      "        ).to.eql(\r",
+                      "            Number(\r",
+                      "                pm.collectionVariables.get(\r",
+                      "                    \"issueId\"\r",
+                      "                )\r",
+                      "            )\r",
+                      "        );\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.title\r",
+                      "        ).to.eql(\r",
+                      "            \"Updated Issue\"\r",
+                      "        );\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.status.name\r",
+                      "        ).to.eql(\r",
+                      "            \"IN_PROGRESS\"\r",
+                      "        );\r",
+                      "    })"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{issueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{issueId}}"
+                  ]
+                },
+                "description": "詳細取得"
+              },
+              "response": []
+            },
+            {
+              "name": "Detail(include)",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\r",
+                      "    \"issue detail(include) returns project\",\r",
+                      "    () => {\r",
+                      "        pm.response.to.have.status(\r",
+                      "            200\r",
+                      "        )\r",
+                      "\r",
+                      "        const body =\r",
+                      "            pm.response.json();\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.project\r",
+                      "        ).to.exist;\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.project.id\r",
+                      "        ).to.eql(\r",
+                      "            Number(\r",
+                      "                pm.collectionVariables.get(\"projectId\")\r",
+                      "            )\r",
+                      "        );\r",
+                      "    })"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{issueId}}?include=comments,project",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{issueId}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "include",
+                      "value": "comments,project"
+                    }
+                  ]
+                },
+                "description": "- include展開\n    \n- DTO返却"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "02_Closed Issue Flow",
+          "item": [
+            {
+              "name": "Move To REVIEW",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\r",
+                      "    \"issue moved to REVIEW\",\r",
+                      "    () => {\r",
+                      "        pm.response.to.have.status(200);\r",
+                      "\r",
+                      "        const body =\r",
+                      "            pm.response.json();\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.data.status.name\r",
+                      "        ).to.eql(\r",
+                      "            \"REVIEW\"\r",
+                      "        );\r",
+                      "    }\r",
+                      ");"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n \"statusId\":3\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{issueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{issueId}}"
+                  ]
+                },
+                "description": "- 事前条件用リクエスト"
+              },
+              "response": []
+            },
+            {
+              "name": "Move To DONE",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"issue moved to DONE\", () => {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "\r",
+                      "    const body = pm.response.json();\r",
+                      "\r",
+                      "    pm.expect(body.data.status.name).to.eql(\"DONE\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n \"statusId\":4\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{issueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{issueId}}"
+                  ]
+                },
+                "description": "- 事前条件用リクエスト"
+              },
+              "response": []
+            },
+            {
+              "name": "Move To CLOSED",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"issue moved to CLOSED\", () => {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "\r",
+                      "    const body = pm.response.json();\r",
+                      "\r",
+                      "    pm.expect(body.data.status.name).to.eql(\"CLOSED\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n \"statusId\":5\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{issueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{issueId}}"
+                  ]
+                },
+                "description": "- 事前条件用リクエスト"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Closed Issue",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\r",
+                      "    \"closed issue cannot be updated\",\r",
+                      "    () => {\r",
+                      "        pm.response.to.have.status(403);\r",
+                      "\r",
+                      "        const body = pm.response.json();\r",
+                      "\r",
+                      "        pm.expect(\r",
+                      "            body.code\r",
+                      "        ).eql(\r",
+                      "            \"ISSUE_CLOSED\"\r",
+                      "        );\r",
+                      "    });"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"title\": \"retry\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{issueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{issueId}}"
+                  ]
+                },
+                "description": "- CLOSED更新禁止  \n    \n-   \n    業務制約確認"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04_Histories",
+      "item": [
+        {
+          "name": "Issue History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\r",
+                  "    \"issue history exists\",\r",
+                  "    () => {\r",
+                  "        pm.response.to.have.status(200);\r",
+                  "\r",
+                  "        const body =\r",
+                  "            pm.response.json();\r",
+                  "\r",
+                  "        pm.expect(\r",
+                  "            body.data\r",
+                  "        ).to.be.an(\"array\");\r",
+                  "\r",
+                  "        pm.expect(\r",
+                  "            body.data.length\r",
+                  "        ).to.be.above(0);\r",
+                  "\r",
+                  "        const row =\r",
+                  "            body.data[0];\r",
+                  "\r",
+                  "        pm.expect(\r",
+                  "            row.field\r",
+                  "        ).to.exist;\r",
+                  "\r",
+                  "        pm.expect(\r",
+                  "            row.changedBy\r",
+                  "        ).to.exist;\r",
+                  "    }\r",
+                  ");"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/issues/{{issueId}}/histories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "issues",
+                "{{issueId}}",
+                "histories"
+              ]
+            },
+            "description": "- 履歴作成  \n    \n-   \n    Mapper変換  \n    \n-   \n    changedBy付与  \n    \n-   \n    createdAt降順"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05_Regression",
+      "item": [
+        {
+          "name": "00_Preparation",
+          "item": [
+            {
+              "name": "login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"email\": \"manager@example.com\",\r\n  \"password\": \"password123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "MEMBER Comment Create",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const json = pm.response.json();\r",
+                      "pm.collectionVariables.set(\"memberCommentId\", json.data.id);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{memberAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"content\": \"Regression comment by MEMBER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{activeIssueId}}/comments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{activeIssueId}}",
+                    "comments"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "MANAGER Comment Create",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const json = pm.response.json();\r",
+                      "pm.collectionVariables.set(\"managerCommentId\", json.data.id);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"content\": \"Regression comment by MANAGER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{activeIssueId}}/comments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{activeIssueId}}",
+                    "comments"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "project create",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{ownerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"Last Owner Regression\",\r\n  \"description\": \"sample project\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/projects",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Add Member",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{ownerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"userId\": 5,\r\n  \"role\": \"MEMBER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{memberTestProjectId}}/members",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{memberTestProjectId}}",
+                    "members"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Project Detail",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{ownerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{projectId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{projectId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "01_Authorization",
+          "item": [
+            {
+              "name": "01 Admin Outsider - Project List Empty",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"非所属ADMINのProject一覧が空\", () => {\r",
+                      "  pm.response.to.have.status(200);\r",
+                      "\r",
+                      "  const json = pm.response.json();\r",
+                      "\r",
+                      "  pm.expect(json.data).to.be.an(\"array\").that.is.empty;\r",
+                      "  pm.expect(json.meta.total).to.equal(0);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminOutsiderAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/projects",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "02 Admin Outsider - Project Detail Forbidden",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"非所属ADMINはProject詳細を取得できない\", () => {\r",
+                      "  pm.response.to.have.status(403);\r",
+                      "\r",
+                      "  const json = pm.response.json();\r",
+                      "\r",
+                      "  pm.expect(json.code).to.equal(\"PROJECT_FORBIDDEN\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminOutsiderAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{activeProjectId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{activeProjectId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "03 Admin - Deleted User Detail Allowed",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"ADMINが削除済みUserを取得できる\", () => {\r",
+                      "  pm.response.to.have.status(200);\r",
+                      "\r",
+                      "  const json = pm.response.json();\r",
+                      "\r",
+                      "  pm.expect(json.data.id).to.equal(\r",
+                      "    Number(pm.collectionVariables.get(\"deletedUserId\")),\r",
+                      "  );\r",
+                      "  pm.expect(json.data.deletedAt).to.not.equal(null);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{deletedUserId}}?includeDeleted=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{deletedUserId}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "includeDeleted",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "04 User - Own User Detail With Include Deleted Forbidden",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"一般ユーザーはincludeDeletedを利用できない\", () => {\r",
+                      "  pm.response.to.have.status(403);\r",
+                      "\r",
+                      "  const json = pm.response.json();\r",
+                      "\r",
+                      "  pm.expect(json.code).to.equal(\"FORBIDDEN\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{memberAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{memberUserId}}?includeDeleted=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{memberUserId}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "includeDeleted",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "05 User - Own User Detail Allowed",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"一般ユーザーが通常の自分情報を取得できる\", () => {\r",
+                      "  pm.response.to.have.status(200);\r",
+                      "\r",
+                      "  const json = pm.response.json();\r",
+                      "\r",
+                      "  pm.expect(json.data.id).to.equal(\r",
+                      "    Number(pm.collectionVariables.get(\"memberUserId\")),\r",
+                      "  );\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{memberAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{memberUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{memberUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "02_Project Members",
+          "item": [
+            {
+              "name": "01 Owner - Add Second Owner",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{ownerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"userId\": {{outsiderUserId}},\r\n  \"role\": \"OWNER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{memberTestProjectId}}/members",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{memberTestProjectId}}",
+                    "members"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "02 Manager - Add Owner Forbidden",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"userId\": {{adminOutsiderUserId}},\r\n  \"role\": \"OWNER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{memberTestProjectId}}/members",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{memberTestProjectId}}",
+                    "members"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "03 Manager - Change Owner Forbidden",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"role\": \"MEMBER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{memberTestProjectId}}/members/{{outsiderUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{memberTestProjectId}}",
+                    "members",
+                    "{{outsiderUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "04 Owner - Demote Last Owner Forbidden",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{ownerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"role\": \"MANAGER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{lastOwnerTestProjectId}}/members/{{ownerUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{lastOwnerTestProjectId}}",
+                    "members",
+                    "{{ownerUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "05 Owner - Remove Last Owner Forbidden",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{ownerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{lastOwnerTestProjectId}}/members/{{ownerUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{lastOwnerTestProjectId}}",
+                    "members",
+                    "{{ownerUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "06 Manager - Remove Member Forbidden",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{memberTestProjectId}}/members/{{memberUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{memberTestProjectId}}",
+                    "members",
+                    "{{memberUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "03_Comment Authorization",
+          "item": [
+            {
+              "name": "01 Member - Update Own Comment",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{memberAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"content\": \"Updated by comment owner\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/comments/{{memberCommentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "comments",
+                    "{{memberCommentId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "02 Member - Update Other Comment Forbidden",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{memberAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"content\": \"Unauthorized update\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/comments/{{managerCommentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "comments",
+                    "{{managerCommentId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "03 Manager - Update Other Comment",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"content\": \"Updated by manager\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/comments/{{memberCommentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "comments",
+                    "{{memberCommentId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "04 Member - Delete Other Comment Forbidden",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{memberAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/comments/{{managerCommentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "comments",
+                    "{{managerCommentId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "05 Manager - Delete Other Comment",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/comments/{{memberCommentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "comments",
+                    "{{memberCommentId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "04_Assignee Rules",
+          "item": [
+            {
+              "name": "01 Member - Assign Project Member",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{memberAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"assigneeId\": {{memberUserId}}\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{activeIssueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{activeIssueId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "02 Member - Assign Viewer Forbidden",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"VIEWERを担当者に設定できない\", () => {\r",
+                      "  pm.response.to.have.status(400);\r",
+                      "\r",
+                      "  const json = pm.response.json();\r",
+                      "\r",
+                      "  pm.expect(json.code).to.equal(\"ASSIGNEE_ROLE_FORBIDDEN\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{memberAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"assigneeId\": {{viewerUserId}}\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{activeIssueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{activeIssueId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "03 Member - Assign Other Project User Forbidden",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{memberAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"assigneeId\": {{ownerUserId}}\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{activeIssueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{activeIssueId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "05_Deleted Project",
+          "item": [
+            {
+              "name": "01 Manager - Project List Include Deleted",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/projects?includeDeleted=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects"
+                  ],
+                  "query": [
+                    {
+                      "key": "includeDeleted",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "02 Member - Deleted Project Filtered",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"MEMBERには削除済みProjectを返さない\", () => {\r",
+                      "  pm.response.to.have.status(200);\r",
+                      "\r",
+                      "  const json = pm.response.json();\r",
+                      "\r",
+                      "  const deletedProject = json.data.find(\r",
+                      "    (project) => project.id === Number(pm.collectionVariables.get(\"deletedProjectId\")),\r",
+                      "  );\r",
+                      "\r",
+                      "  pm.expect(deletedProject).to.equal(undefined);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{memberAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/projects?includeDeleted=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects"
+                  ],
+                  "query": [
+                    {
+                      "key": "includeDeleted",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "03 Manager - Deleted Project Detail",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{deletedProjectId}}?includeDeleted=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{deletedProjectId}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "includeDeleted",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "04 Member - Deleted Project Detail Forbidden",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{memberAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{deletedProjectId}}?includeDeleted=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{deletedProjectId}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "includeDeleted",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "05 Manager - Deleted Project Detail Without Query",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{deletedProjectId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{deletedProjectId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "06_Changed Validation",
+          "item": [
+            {
+              "name": "01 Project - Empty Update Validation Error",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{activeProjectId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{activeProjectId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "02 Project - Same Value Update No-op",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"Issue Tracker\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{activeProjectId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{activeProjectId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "03 Issue - Description Maximum Length",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "pm.variables.set(\"description5000\", \"a\".repeat(5000));"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"description\": \"{{description5000}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{activeIssueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{activeIssueId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "04 Issue - Description Over Maximum Length",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "pm.variables.set(\"description5001\", \"a\".repeat(5001));"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"description\": \"{{description5001}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/issues/{{activeIssueId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "issues",
+                    "{{activeIssueId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "05 Query - Invalid Include Deleted",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{managerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{memberUserId}}?includeDeleted=abc",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{memberUserId}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "includeDeleted",
+                      "value": "abc"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ],
+      "description": "# Purpose\n\n過去に修正した認証・認可、バリデーション、論理削除に関する  \n不具合が再発していないことを確認する。\n\n# Test method\n\nこのフォルダには、Post-response Scriptによる自動判定と、  \nレスポンスおよびDBを確認する手動テストが含まれる。\n\n自動判定が設定されていないリクエストについては、  \n`docs/postman-regression-test-results.md`に記載した期待結果と  \n実際の結果を比較して判定する。\n\n# Preconditions\n\n- 開発環境が起動していること\n    \n- DBがSeed直後の状態であること\n    \n- リクエストを番号順に実行すること\n    \n\n# Cleanup\n\nテスト完了後、次のコマンドでDBをSeed状態へ戻す。\n\ndocker compose -f docker/docker-compose.dev.yml exec app npm run db:fresh"
+    },
+    {
+      "name": "06_Deleted User Middleware Regression",
+      "item": [
+        {
+          "name": "01 Login Admin",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\r",
+                  "  \"ログインに成功する\",\r",
+                  "  () => {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "  },\r",
+                  ");\r",
+                  "\r",
+                  "const response =\r",
+                  "  pm.response.json();\r",
+                  "\r",
+                  "const adminToken =\r",
+                  "  response.data.accessToken;\r",
+                  "\r",
+                  "pm.test(\r",
+                  "  \"adminTokenを取得できる\",\r",
+                  "  () => {\r",
+                  "    pm.expect(\r",
+                  "      adminToken,\r",
+                  "      \"ログインレスポンスのaccessToken\",\r",
+                  "    ).to.be.a(\"string\").and.not.empty;\r",
+                  "  },\r",
+                  ");\r",
+                  "\r",
+                  "pm.collectionVariables.set(\r",
+                  "  \"adminToken\",\r",
+                  "  adminToken,\r",
+                  ");\r",
+                  "\r",
+                  "pm.collectionVariables.set(\r",
+                  "  \"adminId\",\r",
+                  "  response.data.user.id,\r",
+                  ");\r",
+                  "\r",
+                  "pm.test(\r",
+                  "  \"adminTokenをCollection Variablesへ保存できる\",\r",
+                  "  () => {\r",
+                  "    const savedToken =\r",
+                  "      pm.collectionVariables.get(\r",
+                  "        \"adminToken\",\r",
+                  "      );\r",
+                  "\r",
+                  "    pm.expect(\r",
+                  "      savedToken,\r",
+                  "      \"保存後のadminToken\",\r",
+                  "    ).to.be.a(\"string\").and.not.empty;\r",
+                  "  },\r",
+                  ");\r",
+                  "\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"admin@example.com\",\r\n  \"password\": \"password123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "- 認証成功\n    \n- accessToken返却\n    \n- refresh cookie発行"
+          },
+          "response": []
+        },
+        {
+          "name": "02 Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"一般Userのログインに成功する\", () => {\r",
+                  "  pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "const response = pm.response.json();\r",
+                  "\r",
+                  "pm.collectionVariables.set(\r",
+                  "  \"userToken\",\r",
+                  "  response.data.accessToken,\r",
+                  ");\r",
+                  "\r",
+                  "pm.collectionVariables.set(\r",
+                  "  \"userId\",\r",
+                  "  response.data.user.id,\r",
+                  ");"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"user@example.com\",\r\n  \"password\": \"password123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 Login Admin Outsider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"削除対象ADMINのログインに成功する\", () => {\r",
+                  "  pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "const response = pm.response.json();\r",
+                  "\r",
+                  "pm.collectionVariables.set(\r",
+                  "  \"deletedAdminToken\",\r",
+                  "  response.data.accessToken,\r",
+                  ");\r",
+                  "\r",
+                  "pm.collectionVariables.set(\r",
+                  "  \"deletedAdminId\",\r",
+                  "  response.data.user.id,\r",
+                  ");"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"admin-outsider@example.com\",\r\n  \"password\": \"password123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04 User Gets Self",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"未削除Userは本人の詳細を取得できる\", () => {\r",
+                  "  pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"取得したUser IDが本人のIDと一致する\", () => {\r",
+                  "  const response = pm.response.json();\r",
+                  "\r",
+                  "  pm.expect(response.data.id).to.eql(\r",
+                  "    Number(pm.collectionVariables.get(\"userId\")),\r",
+                  "  );\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05 User Cannot Get Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"一般UserはADMIN用APIを利用できない\", () => {\r",
+                  "  pm.response.to.have.status(403);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"エラーコードがFORBIDDENである\", () => {\r",
+                  "  const response = pm.response.json();\r",
+                  "\r",
+                  "  pm.expect(response.code).to.eql(\"FORBIDDEN\");\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06 User Cannot Get Other User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"一般Userは他Userの詳細を取得できない\", () => {\r",
+                  "  pm.response.to.have.status(403);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"エラーコードがFORBIDDENである\", () => {\r",
+                  "  const response = pm.response.json();\r",
+                  "\r",
+                  "  pm.expect(response.code).to.eql(\"FORBIDDEN\");\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{adminId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{adminId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07 Admin Gets Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"未削除ADMINはUser一覧を取得できる\", () => {\r",
+                  "  pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"レスポンスデータが配列である\", () => {\r",
+                  "  const response = pm.response.json();\r",
+                  "\r",
+                  "  pm.expect(response.data).to.be.an(\"array\");\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08 Delete User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"一般Userを論理削除できる\", () => {\r",
+                  "  pm.response.to.have.status(204);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "09 Deleted User Token Is Rejected",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"削除済みUserの既存Tokenは拒否される\", () => {\r",
+                  "  pm.response.to.have.status(401);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"エラーコードがUNAUTHORIZEDである\", () => {\r",
+                  "  const response = pm.response.json();\r",
+                  "\r",
+                  "  pm.expect(response.code).to.eql(\"UNAUTHORIZED\");\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10 Delete Admin Outsider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"削除対象ADMINを論理削除できる\", () => {\r",
+                  "  pm.response.to.have.status(204);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{deletedAdminId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{deletedAdminId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "11 Deleted Admin Token Is Rejected",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"削除済みADMINの既存Tokenは拒否される\", () => {\r",
+                  "  pm.response.to.have.status(401);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"エラーコードがUNAUTHORIZEDである\", () => {\r",
+                  "  const response = pm.response.json();\r",
+                  "\r",
+                  "  pm.expect(response.code).to.eql(\"UNAUTHORIZED\");\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{deletedAdminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "12 Tampered Token Is Rejected",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\r",
+                  "  \"改ざんTokenは拒否される\",\r",
+                  "  () => {\r",
+                  "    pm.response.to.have.status(401);\r",
+                  "  },\r",
+                  ");\r",
+                  "\r",
+                  "pm.test(\r",
+                  "  \"エラーコードがINVALID_TOKENである\",\r",
+                  "  () => {\r",
+                  "    const response =\r",
+                  "      pm.response.json();\r",
+                  "\r",
+                  "    pm.expect(\r",
+                  "      response.code,\r",
+                  "    ).to.eql(\"INVALID_TOKEN\");\r",
+                  "  },\r",
+                  ");"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const validToken =\r",
+                  "  pm.collectionVariables.get(\r",
+                  "    \"adminToken\",\r",
+                  "  );\r",
+                  "\r",
+                  "pm.expect(\r",
+                  "  validToken,\r",
+                  "  \"adminToken must be set by 01 Login Admin\",\r",
+                  ").to.be.a(\"string\").and.not.empty;\r",
+                  "\r",
+                  "const lastCharacter =\r",
+                  "  validToken.slice(-1);\r",
+                  "\r",
+                  "const replacement =\r",
+                  "  lastCharacter === \"a\" ? \"b\" : \"a\";\r",
+                  "\r",
+                  "const tamperedToken =\r",
+                  "  validToken.slice(0, -1) +\r",
+                  "  replacement;\r",
+                  "\r",
+                  "pm.collectionVariables.set(\r",
+                  "  \"tamperedToken\",\r",
+                  "  tamperedToken,\r",
+                  ");"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tamperedToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "# Purpose\n\n削除済みUserが既存のAccess Tokenを使用して保護APIへアクセスできないこと、および未削除Userに対する既存の認証・認可が維持されていることを確認する。\n\n# Preconditionss\n\n- 開発用Seedデータが登録されていること\n    \n- `admin@example.com`、`user@example.com`、`admin-outsider@example.com`が未削除であること\n    \n- リクエストを番号順に実行すること\n    \n\n# Important\n\nこのフォルダでは、次のUserを論理削除する。\n\n- `user@example.com`\n    \n- `admin-outsider@example.com`\n    \n\n他のPostmanテストへ影響するため、このフォルダは通常のAPIテスト完了後に実行する。\n\n# Cleanup\n\nテスト完了後、開発DBをSeed状態へ戻す。\n\n\\`\\`\\`bash  \ndocker compose -f docker/docker-compose.dev.yml exec app npm run db:fresh"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "accessToken",
+      "secret": true
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "projectId",
+      "value": ""
+    },
+    {
+      "key": "issueId",
+      "value": ""
+    },
+    {
+      "key": "baseUrl",
+      "value": ""
+    },
+    {
+      "key": "email",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "secret": true
+    },
+    {
+      "key": "deletedProjectId",
+      "value": ""
+    },
+    {
+      "key": "adminUserId",
+      "value": ""
+    },
+    {
+      "key": "memberUserId",
+      "value": ""
+    },
+    {
+      "key": "viewerUserId",
+      "value": ""
+    },
+    {
+      "key": "ownerProjectId",
+      "value": ""
+    },
+    {
+      "key": "activeProjectId",
+      "value": ""
+    },
+    {
+      "key": "memberCommentId",
+      "value": ""
+    },
+    {
+      "key": "activeIssueId",
+      "value": ""
+    },
+    {
+      "key": "deletedProjectIssueId",
+      "value": ""
+    },
+    {
+      "key": "managerCommentId",
+      "value": ""
+    },
+    {
+      "key": "deletedUserId",
+      "value": ""
+    },
+    {
+      "key": "outsiderUserId",
+      "value": ""
+    },
+    {
+      "key": "managerUserId",
+      "value": ""
+    },
+    {
+      "key": "ownerUserId",
+      "value": ""
+    },
+    {
+      "key": "adminOutsiderUserId",
+      "value": ""
+    },
+    {
+      "key": "memberTestProjectId",
+      "value": ""
+    },
+    {
+      "key": "lastOwnerTestProjectId",
+      "value": ""
+    },
+    {
+      "key": "adminAccessToken",
+      "value": ""
+    },
+    {
+      "key": "adminOutsiderAccessToken",
+      "value": ""
+    },
+    {
+      "key": "ownerAccessToken",
+      "value": ""
+    },
+    {
+      "key": "managerAccessToken",
+      "value": ""
+    },
+    {
+      "key": "memberAccessToken",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "adminId",
+      "value": ""
+    },
+    {
+      "key": "userToken",
+      "value": ""
+    },
+    {
+      "key": "deletedAdminToken",
+      "value": ""
+    },
+    {
+      "key": "deletedAdminId",
+      "value": ""
+    },
+    {
+      "key": "tamperedToken",
+      "value": ""
+    }
+  ]
+}

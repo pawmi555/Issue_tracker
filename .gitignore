@@ -62,3 +62,10 @@ Thumbs.db
 # VSCode workspace
 # ========================================
 *.code-workspace
+
+# ========================================
+# Test results
+# ========================================
+
+# Postmanテスト結果（Token・Cookieなどの認証情報を含む可能性があるため除外）
+postman/results/*.json
