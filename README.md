@@ -1068,6 +1068,19 @@ docker compose --env-file app/.env.production -f docker/docker-compose.prod.yml 
 3. 必須マスターデータの投入
 4. バックエンドAPIの起動
 
+#### PostgreSQLの認証エラーが発生する場合
+
+`.env.production`のDB認証情報を変更しても、既存のPostgreSQLボリュームには
+初期化時の認証情報が保持されます。
+
+ローカル確認用のDBデータを削除して問題ない場合は、ボリュームを削除して
+再作成してください。
+
+```bash
+docker compose --env-file app/.env.production -f docker/docker-compose.prod.yml down -v
+docker compose --env-file app/.env.production -f docker/docker-compose.prod.yml up --build -d
+```
+
 ### 6. Check containers
 
 ```bash
