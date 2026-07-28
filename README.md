@@ -1,13 +1,12 @@
 # 1. Overview
 
-Issue Trackerは、チーム開発におけるIssue管理を想定したREST APIです。
+Issue Trackerは、チーム開発におけるIssue管理を想定したWebアプリケーションです。
 
 本プロジェクトは、バックエンドエンジニアへの転職を目的として作成したポートフォリオです。
 
-認証・認可、業務ルール、トランザクション、論理削除、変更履歴、状態遷移など、実務で必要となるバックエンド設計を中心に実装しています。
+認証・認可、業務ルール、トランザクション、論理削除、変更履歴、状態遷移など、実際の業務システムで必要となるバックエンド設計を中心に実装しています。
 
-単純なCRUD APIではなく、実際の業務システムで求められる認証・認可・監査・履歴管理・論理削除・状態遷移制御を考慮して設計・実装しました。
-API設計ではDTOとMapperによるAPI契約の分離、RBACによる認可、Refresh Token Rotationによる認証、履歴管理による監査性など、保守性・拡張性・セキュリティを重視しています。
+API設計では、DTOとMapperによるAPI契約の分離、RBACによる認可、Refresh Token Rotationによる認証、履歴管理による監査性など、保守性・拡張性・セキュリティを重視しています。
 
 ## Design Principles
 
@@ -34,7 +33,7 @@ API設計ではDTOとMapperによるAPI契約の分離、RBACによる認可、R
 
 ## Authorization
 
-- RBAC(Role Based Access Control)
+- RBAC (Role Based Access Control)
 - User Roleによる権限制御
 - Project Roleによるプロジェクト単位の権限制御
 
@@ -105,8 +104,8 @@ Project一覧では、`includeDeleted`の指定に応じて次のように取得
 
 フロントエンドには削除済みデータ管理画面を実装していないため、削除済みデータの取得・復元はPostmanから確認できます。
 
-削除済みデータを取得する場合は、対象APIに`includeDeleted=true`を指定します。
-利用には各リソースで定められた権限が必要です。
+削除済みデータを取得する場合は、対象APIに`includeDeleted=true`を指定します。利用には各リソースで定められた権限が必要です。
+
 詳細な対象APIと権限制御は[API設計書](./docs/api-design.md)を参照してください。
 
 # 3. Tech Stack
@@ -267,11 +266,9 @@ Project Role:
 
 ### ADMINとProject権限
 
-システムロールがADMINであっても、Project内の操作には
-対象Projectへの所属が必要です。
+システムロールがADMINであっても、Project内の操作には対象Projectへの所属が必要です。
 
-Project内の実際の操作権限は、
-ProjectMemberに設定されたProjectRoleによって判定します。
+Project内の実際の操作権限は、ProjectMemberに設定されたProjectRoleによって判定します。
 
 ADMINはProjectRoleによる認可をスキップしません。
 
@@ -516,13 +513,13 @@ Database Designでは以下を重視しました。
 
 # 7. Security
 
-- Password Hashing（bcrypt）
+- Password Hashing (bcrypt)
 - JWT Authentication
 - Refresh Token Rotation
 - HttpOnly Cookie
 - RBAC
-- Input Validation(Zod)
-- SQL Injection Prevention(Prisma)
+- Input Validation (Zod)
+- SQL Injection Prevention (Prisma)
 - Refresh Token Hash Storage
 - Token Reuse Detection
 - Soft Delete Data Protection
@@ -749,8 +746,7 @@ Issue Tracker Collection
 
 ## 10.2 Tested scenarios
 
-以下のPostmanテストを実施し、
-すべて期待結果と一致することを確認しています。
+以下のPostmanテストを実施し、すべて期待結果と一致することを確認しています。
 
 ### テスト対象
 
@@ -785,15 +781,12 @@ Issue Tracker Collection
 
 ## 10.3 Test results
 
-Postmanを使用して、APIテストおよび回帰テストを実施しています。
-テストでは正常系だけではなく、
+Postmanを使用して、APIテストおよび回帰テストを実施しています。テストでは正常系だけではなく、次のような業務システムで発生するケースを確認しています。
 
-権限エラー
-不正状態遷移
-論理削除状態
-Token更新
-
-など業務システムで発生するケースを確認しています。
+- 権限エラー
+- 不正な状態遷移
+- 論理削除状態
+- Token更新
 
 ### 公開ファイル
 
@@ -801,11 +794,10 @@ Token更新
 - [自動テスト実施結果](./docs/postman-automated-test-results.md)
 - [手動回帰テスト実施結果](./docs/postman-regression-test-results.md)
 
-`00_Setup`から`04_Histories`および
-`06_Deleted User Middleware Regression`は、
-Post-response Scriptによる自動判定を実施しています。
+`00_Setup`から`04_Histories`および`06_Deleted User Middleware Regression`は、Post-response Scriptによる自動判定を実施しています。
 
 `05_Regression`には一部Post-response Scriptが設定されていますが、本ポートフォリオでは29件を手動回帰テストとして実施しています。このフォルダはNewmanによる自動テスト結果34件には含めていません。
+
 手動テストでは、レスポンス、変更履歴およびDB更新結果を確認しています。
 
 ## 10.4 How to run
@@ -862,8 +854,7 @@ npx newman@6.2.2 run `
 
 ### テスト実行後
 
-`06_Deleted User Middleware Regression`では、
-確認用Userを論理削除します。
+`06_Deleted User Middleware Regression`では、確認用Userを論理削除します。
 
 ほかの動作確認へ影響しないように、テスト完了後は開発DBをSeed状態へ戻してください。
 
@@ -1070,11 +1061,9 @@ docker compose --env-file app/.env.production -f docker/docker-compose.prod.yml 
 
 #### PostgreSQLの認証エラーが発生する場合
 
-`.env.production`のDB認証情報を変更しても、既存のPostgreSQLボリュームには
-初期化時の認証情報が保持されます。
+`.env.production`のDB認証情報を変更しても、既存のPostgreSQLボリュームには初期化時の認証情報が保持されます。
 
-ローカル確認用のDBデータを削除して問題ない場合は、ボリュームを削除して
-再作成してください。
+ローカル確認用のDBデータを削除して問題ない場合は、ボリュームを削除して再作成してください。
 
 ```bash
 docker compose --env-file app/.env.production -f docker/docker-compose.prod.yml down -v
@@ -1173,8 +1162,7 @@ http://localhost:3000/api/v1/auth/login
 
 ログイン前に有効なRefresh Token Cookieが存在しない場合、`POST /auth/refresh`が`400 Bad Request`を返します。
 
-レスポンスのエラーコードが`TOKEN_REQUIRED`であり、
-ログイン後のAPI通信が成功する場合、この初回の`400`は想定内です。
+レスポンスのエラーコードが`TOKEN_REQUIRED`であり、ログイン後のAPI通信が成功する場合、この初回の`400`は想定内です。
 
 ### 9. Check backend logs
 
@@ -1226,7 +1214,7 @@ DBの永続ボリュームは通常の`down`では削除されません。
 - CIでのNewman自動実行
 - CI/CD Pipeline
 - Notification Feature
-- Real-time Update(WebSocket)
+- Real-time Update (WebSocket)
 
 # 13. Author
 
