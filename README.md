@@ -112,20 +112,18 @@ Project一覧では、`includeDeleted`の指定に応じて次のように取得
 
 ## Backend
 
-| Technology         | Purpose            |
-| ------------------ | ------------------ |
-| TypeScript         | Type Safety        |
-| Node.js            | Runtime            |
-| Express            | REST API Framework |
-| Prisma             | ORM                |
-| PostgreSQL         | Database           |
-| Zod                | Validation         |
-| JWT                | Authentication     |
-| Docker             | Container Runtime  |
-| Docker Compose     | Local Development  |
-| bcrypt             | Password Hashing   |
-| Helmet             | Security Headers   |
-| express-rate-limit | Rate Limiting      |
+| Technology         | Purpose                |
+| ------------------ | ---------------------- |
+| TypeScript         | 型安全性               |
+| Node.js            | JavaScript実行環境     |
+| Express            | REST APIフレームワーク |
+| Prisma             | ORM                    |
+| PostgreSQL         | データベース           |
+| Zod                | バリデーション         |
+| JWT                | 認証                   |
+| bcrypt             | パスワードハッシュ化   |
+| Helmet             | セキュリティヘッダー   |
+| express-rate-limit | レート制限             |
 
 ## Frontend
 
@@ -149,6 +147,7 @@ Project一覧では、`includeDeleted`の指定に応じて次のように取得
 | -------------- | ---------------------------- |
 | Postman        | API Collection・テスト作成   |
 | Newman         | Postman CollectionのCLI実行  |
+| Docker         | コンテナ実行環境             |
 | Docker Compose | ローカル・本番相当環境の構築 |
 | Git            | バージョン管理               |
 
