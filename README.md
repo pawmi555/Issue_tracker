@@ -512,17 +512,17 @@ Database Designでは以下を重視しました。
 
 # 7. Security
 
-- Password Hashing (bcrypt)
-- JWT Authentication
+- パスワードハッシュ化（bcrypt）
+- JWT認証
 - Refresh Token Rotation
 - HttpOnly Cookie
-- RBAC
-- Input Validation (Zod)
-- SQL Injection Prevention (Prisma)
-- Refresh Token Hash Storage
-- Token Reuse Detection
-- Soft Delete Data Protection
-- Transaction Integrity Control
+- RBAC（ロールベースアクセス制御）
+- 入力バリデーション（Zod）
+- SQLインジェクション対策（Prisma）
+- Refresh Tokenのハッシュ保存
+- Refresh Token再利用検知
+- 論理削除データ保護
+- トランザクションによる整合性維持
 
 # 8. Directory Structure
 
