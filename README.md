@@ -672,22 +672,22 @@ Base URL:
 
 設計方針:
 
-- DTOによるResponse Contract管理
-- MapperによるResponse整形
-- ZodによるRequest Validation
-- 共通Error Response
-- Pagination対応
+- DTOによるレスポンス契約管理
+- MapperによるレスポンスDTOへの変換
+- Zodによるリクエストバリデーション
+- 共通エラーレスポンス
+- ページネーション対応
 
 API設計では以下を重視しました。
 
 - RESTful API
-- DTOによるAPI契約固定
-- MapperによるEntity分離
+- DTOによるAPI契約の固定
+- MapperによるEntityとDTOの分離
 - 共通レスポンス形式
-- エラーコード統一
-- Pagination
-- Include Queryによる関連データ取得
-- Soft Delete対応
+- エラーコードの統一
+- ページネーション
+- includeクエリによる関連データ取得
+- 論理削除への対応
 
 ※ History APIはIssue Historyを中心にPhase1で実装しています。
 
