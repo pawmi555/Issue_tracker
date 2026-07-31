@@ -780,7 +780,7 @@ Issue Tracker Collection
 
 ## 10.3 Test results
 
-Postmanを使用して、APIテストおよび回帰テストを実施しています。テストでは正常系だけではなく、次のような業務システムで発生するケースを確認しています。
+Postmanで作成したテストコレクションをNewmanで自動実行し、APIテストおよび回帰テストを実施しています。テストでは正常系だけではなく、次のような業務システムで発生するケースを確認しています。
 
 - 権限エラー
 - 不正な状態遷移
@@ -790,7 +790,7 @@ Postmanを使用して、APIテストおよび回帰テストを実施してい�
 ### 公開ファイル
 
 - [Postman Collection](./postman/Issue-Tracker.postman_collection.json)
-- [自動テスト実施結果](./docs/postman-automated-test-results.md)
+- [自動テスト実施結果](./docs/newman-automated-test-results.md)
 - [手動回帰テスト実施結果](./docs/postman-regression-test-results.md)
 
 `00_Setup`から`04_Histories`および`06_Deleted User Middleware Regression`は、Post-response Scriptによる自動判定を実施しています。
