@@ -672,22 +672,22 @@ Base URL:
 
 設計方針:
 
-- DTOによるResponse Contract管理
-- MapperによるResponse整形
-- ZodによるRequest Validation
-- 共通Error Response
-- Pagination対応
+- DTOによるレスポンス契約管理
+- MapperによるレスポンスDTOへの変換
+- Zodによるリクエストバリデーション
+- 共通エラーレスポンス
+- ページネーション対応
 
 API設計では以下を重視しました。
 
 - RESTful API
-- DTOによるAPI契約固定
-- MapperによるEntity分離
+- DTOによるAPI契約の固定
+- MapperによるEntityとDTOの分離
 - 共通レスポンス形式
-- エラーコード統一
-- Pagination
-- Include Queryによる関連データ取得
-- Soft Delete対応
+- エラーコードの統一
+- ページネーション
+- includeクエリによる関連データ取得
+- 論理削除への対応
 
 ※ History APIはIssue Historyを中心にPhase1で実装しています。
 
@@ -780,7 +780,7 @@ Issue Tracker Collection
 
 ## 10.3 Test results
 
-Postmanを使用して、APIテストおよび回帰テストを実施しています。テストでは正常系だけではなく、次のような業務システムで発生するケースを確認しています。
+Postmanで作成したテストコレクションをNewmanで自動実行し、APIテストおよび回帰テストを実施しています。テストでは正常系だけではなく、次のような業務システムで発生するケースを確認しています。
 
 - 権限エラー
 - 不正な状態遷移
@@ -790,7 +790,7 @@ Postmanを使用して、APIテストおよび回帰テストを実施してい�
 ### 公開ファイル
 
 - [Postman Collection](./postman/Issue-Tracker.postman_collection.json)
-- [自動テスト実施結果](./docs/postman-automated-test-results.md)
+- [自動テスト実施結果](./docs/newman-automated-test-results.md)
 - [手動回帰テスト実施結果](./docs/postman-regression-test-results.md)
 
 `00_Setup`から`04_Histories`および`06_Deleted User Middleware Regression`は、Post-response Scriptによる自動判定を実施しています。
@@ -1210,7 +1210,8 @@ DBの永続ボリュームは通常の`down`では削除されません。
 ## Additional
 
 - JestによるUnit Test
-- CIでのNewman自動実行
+- 手動回帰テストのPost-response Script化
+- CIでのNewman回帰テスト自動実行
 - CI/CD Pipeline
 - Notification Feature
 - Real-time Update (WebSocket)
