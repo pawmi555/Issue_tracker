@@ -1210,7 +1210,8 @@ DBの永続ボリュームは通常の`down`では削除されません。
 ## Additional
 
 - JestによるUnit Test
-- CIでのNewman自動実行
+- 手動回帰テストのPost-response Script化
+- CIでのNewman回帰テスト自動実行
 - CI/CD Pipeline
 - Notification Feature
 - Real-time Update (WebSocket)
