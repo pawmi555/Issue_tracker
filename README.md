@@ -153,63 +153,50 @@ Project一覧では、`includeDeleted`の指定に応じて次のように取得
 
 ## System Architecture
 
+本番相当環境では、NginxがReactのビルド済み静的ファイルを配信します。開発環境では、フロントエンドの開発サーバーとしてViteを使用します。
+
+ブラウザ上で動作するReact Clientは、Nginxを経由せず、Express APIへ直接HTTPリクエストを送信します。Express APIはPrismaを介してPostgreSQLへアクセスします。
+
 ```mermaid
 flowchart LR
+    Browser["Browser / React Client"]
+    Nginx["Nginx / 静的ファイル配信"]
+    API["Express API"]
+    DB[("PostgreSQL")]
 
-Client[React Client]
-
-API[Express API]
-
-Service[Service Layer]
-
-Prisma[Prisma ORM]
-
-DB[(PostgreSQL)]
-
-Client --> API
-API --> Service
-Service --> Prisma
-Prisma --> DB
+    Browser -->|"静的ファイル取得"| Nginx
+    Browser -->|"HTTP API Request"| API
+    API -->|"PrismaによるDBアクセス"| DB
 ```
 
-## Backend Layer
+NginxはReactの静的ファイル配信を担当しており、Express APIへのリバースプロキシとしては使用していません。
+
+## Backend Architecture
+
+バックエンドでは、Router、Middleware、Controller、Serviceに責務を分割しています。
+
+RouterとMiddlewareがルーティング、認証、リクエストの検証およびエンドポイント共通の認可を行い、Controllerへ処理を渡します。ControllerはServiceを呼び出し、Serviceが業務ロジック、業務ルールを含む認可およびTransactionを管理します。
+
+データベース操作にはPrismaを使用しています。各Entityの操作はServiceからPrismaを直接利用し、履歴データの参照処理のみHistory Repositoryへ分離しています。
 
 ```mermaid
 flowchart TD
+    Routing["Router / Middleware"]
+    Controller["Controller"]
+    Service["Service"]
+    Repository["History Repository"]
+    Prisma["Prisma"]
+    DB[("PostgreSQL")]
 
-Controller --> Service
-
-Service --> Prisma
-
-Service --> HistoryRepository
-
-HistoryRepository --> Prisma
-
-Prisma --> Database
+    Routing --> Controller
+    Controller --> Service
+    Service --> Prisma
+    Service --> Repository
+    Repository --> Prisma
+    Prisma --> DB
 ```
 
-責務分離:
-
-- Controller
-  - HTTP Request / Response管理
-
-- Service
-  - Business Logic
-  - Transaction制御
-  - Prismaを利用したEntity操作
-  - Entity変更時のHistory Record作成制御
-  - History Repositoryを利用した履歴参照
-
-- Repository
-  - 履歴データの参照処理を担当
-  - 履歴一覧取得
-  - Pagination用件数取得
-  - 履歴表示変換用Master取得
-  - Prisma QueryをService層から分離
-  - 読み取り専用のQuery Repositoryとして実装
-
-- Mapper
-  - EntityからDTOへの変換
+各ディレクトリの詳しい責務は「8. Directory Structure」を参照してください。
 
 # 5. Authentication / Authorization
 
@@ -581,7 +568,7 @@ Issue_tracker
 ├── docs
 │   ├── api-design.md
 │   ├── er-diagram.mmd
-│   ├── postman-automated-test-results.md
+│   ├── newman-automated-test-results.md
 │   └── postman-regression-test-results.md
 ├── postman
 │   └── Issue-Tracker.postman_collection.json
@@ -686,8 +673,6 @@ API設計では以下を重視しました。
 - ページネーション
 - includeクエリによる関連データ取得
 - 論理削除への対応
-
-※ History APIはIssue Historyを中心にPhase1で実装しています。
 
 # 10. Testing
 
@@ -1210,7 +1195,7 @@ DBの永続ボリュームは通常の`down`では削除されません。
 - JestによるUnit Test
 - 手動回帰テストのPost-response Script化
 - CIでのNewman回帰テスト自動実行
-- CI/CD Pipeline
+- CD Pipeline
 - Notification Feature
 - Real-time Update (WebSocket)
 
