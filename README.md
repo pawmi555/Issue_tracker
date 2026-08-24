@@ -1,6 +1,6 @@
 # 1. Overview
 
-Issue Trackerは、チーム開発におけるIssue管理を想定したWebアプリケーションです。
+Issue Trackerは、チーム開発における課題管理を想定したWebアプリケーションです。
 
 本プロジェクトは、Webアプリケーション開発への転職を目的として作成したポートフォリオであり、バックエンドを中心に設計・実装しました。
 
@@ -18,6 +18,32 @@ Issue Trackerは、チーム開発におけるIssue管理を想定したWebア�
 - History Table
 - Refresh Token Rotation
 - Transactionによる整合性維持
+
+## Demo
+
+### Project List
+
+<img width = "800" src="./docs/images/project-list.png" alt="project list">
+
+参加しているプロジェクトを一覧で確認できます。
+
+### Issue List
+
+<img width = "800" src="./docs/images/issue-list.png" alt="issue list">
+
+プロジェクト内の課題を一覧で確認できます。
+
+### Issue Details
+
+<img width = "800" src="./docs/images/issue-details.png" alt="issue detail">
+
+課題の詳細情報を確認できます。
+
+### Issue Creation, Update, and Change History
+
+<img width = "800" src="./docs/images/issue-create-update-history.gif" alt="Issue creation, update, and change history">
+
+課題の作成からタイトルの更新、変更履歴の確認までの操作例です。
 
 # 2. Features
 
